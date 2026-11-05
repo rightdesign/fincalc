@@ -22,6 +22,11 @@ hooks:
 
   version: node -p "require('./package.json').version"
 
+  preview: |
+    port=$((30000 + ${CREW_TICKET##*-}))
+    nohup python3 -m http.server "$port" --bind "${CREW_PREVIEW_HOST:-localhost}" --directory site >/dev/null 2>&1 &
+    echo "http://${CREW_PREVIEW_HOST:-localhost}:$port"
+
   # `npm version` rather than release.versionFiles: it keeps package.json
   # and package-lock.json in step.
   bump: |
