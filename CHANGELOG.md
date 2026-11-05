@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.4.3] — 2026-11-05
+
+- FINC-009 Added a footer link to the feedback form for requesting calculator enhancements.
+
 ## [0.4.1] — 2026-11-05
 
 - FINC-006 The calculator page now shows the variables on the left and the charts and tables on the right (stacked on narrow screens)
