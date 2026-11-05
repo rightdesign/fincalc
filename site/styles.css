@@ -16,3 +16,31 @@ body {
   font-size: 0.875rem;
   color: #555;
 }
+
+fieldset {
+  margin: 0 0 var(--gap);
+  padding: var(--gap);
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+}
+
+legend {
+  padding: 0 0.25rem;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0;
+}
+
+.field input,
+.field select {
+  width: 10rem;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+}
