@@ -31,16 +31,22 @@ legend {
 
 .field {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem 1rem;
+  gap: 1rem;
   margin: 0.5rem 0;
+}
+
+/* A long label wraps its own text; the input never drops below it. */
+.field span {
+  flex: 1;
+  min-width: 0;
 }
 
 .field input,
 .field select {
-  width: 10rem;
+  flex: none;
+  width: 8rem;
   padding: 0.25rem 0.5rem;
   font: inherit;
 }
