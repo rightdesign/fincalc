@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.4.5] — 2026-11-05
+
+- FINC-011 Each input now stays on the same line as its label; long labels wrap their own text instead.
+
 ## [0.4.4] — 2026-11-05
 
 - FINC-010 The page title and heading now read "Keep your home or sell and rent".
