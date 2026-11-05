@@ -1,6 +1,7 @@
 // Entry point for the calculator page. The inputs form mounts into
 // #calculator; the page is stateless, so nothing is persisted.
 import { FIELDS, defaultHorizon, defaultValues, parseValue } from './inputs.js';
+import { buildResults, lineChartSvg, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -71,4 +72,25 @@ export function readInputs(form) {
   return out;
 }
 
-if (root) renderForm(root);
+function renderResults(container, form) {
+  const values = readInputs(form);
+  const missing = FIELDS.filter((f) => values[f.id] == null);
+  if (missing.length) {
+    container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.map((f) => f.label).join(', ')}.</p>`;
+    return;
+  }
+  const { sections } = buildResults(values);
+  container.innerHTML = sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${lineChartSvg(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('');
+}
+
+if (root) {
+  const form = renderForm(root);
+  const results = document.createElement('div');
+  results.id = 'results';
+  results.setAttribute('aria-live', 'polite');
+  root.append(results);
+  const update = () => renderResults(results, form);
+  form.addEventListener('input', update);
+  form.addEventListener('change', update);
+  update();
+}

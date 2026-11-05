@@ -44,3 +44,29 @@ legend {
   padding: 0.25rem 0.5rem;
   font: inherit;
 }
+
+.result {
+  margin: 0 0 var(--gap);
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+}
+
+.result table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.result th,
+.result td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #ddd;
+  text-align: right;
+}
+
+.result th:first-child {
+  text-align: left;
+}
