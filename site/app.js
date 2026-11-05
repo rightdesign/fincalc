@@ -27,6 +27,19 @@ function renderField(field, value) {
   }
   input.name = field.id;
   input.id = `field-${field.id}`;
+  if (field.hint) {
+    const hint = document.createElement('span');
+    hint.className = 'hint';
+    hint.tabIndex = 0;
+    hint.textContent = '?';
+    hint.setAttribute('role', 'note');
+    hint.setAttribute('aria-label', field.hint);
+    const tip = document.createElement('span');
+    tip.className = 'hint-text';
+    tip.textContent = field.hint;
+    hint.append(tip);
+    text.append(' ', hint);
+  }
   label.append(text, input);
   return label;
 }

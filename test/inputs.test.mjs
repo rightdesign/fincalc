@@ -35,3 +35,7 @@ test('parseValue reads numbers, rejects blank, negative and junk', () => {
   assert.equal(parseValue(choice, 'married'), 'married');
   assert.equal(parseValue(choice, 'bogus'), null);
 });
+
+test('every field has a hint describing it', () => {
+  for (const f of FIELDS) assert.ok(typeof f.hint === 'string' && f.hint.length > 20, `${f.id} has a hint`);
+});
