@@ -1,0 +1,7 @@
+# The crew's contract for this repository — see docs/REPO_SPEC.md in the
+# crew repo. Only the base branch is declared so far; hooks, worktree copies
+# and release mode fall back to the crew's defaults until they are added.
+version: 1
+
+branch:
+  base: master
