@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.3.0] — 2026-11-05
+
+- FINC-004 Added the stay vs. sell-and-rent calculation engine (mortgage amortization, net sale proceeds, yearly projection and breakeven year)
+
 ## [0.2.0] — 2026-11-05
 
 - FINC-003 Added the homeowner inputs form for the stay vs. sell-and-rent calculator
