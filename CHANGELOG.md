@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.5.0] — 2026-11-05
+
+- FINC-012 Each input now has a "?" hint beside its label that shows a short definition and typical range on hover or focus, and stays within the screen on narrow devices.
+
 ## [0.4.5] — 2026-11-05
 
 - FINC-011 Each input now stays on the same line as its label; long labels wrap their own text instead.
