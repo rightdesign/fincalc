@@ -16,3 +16,7 @@ every verified ticket, then in one following commit adds one
 `Changelog:` line across the batch) and bumps `package.json`, sized by the
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
+
+## [0.1.1] — 2026-11-05
+
+- FINC-002 Scaffold the single-page calculator shell (layout, styles, entry script)
