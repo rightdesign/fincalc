@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.4.1] — 2026-11-05
+
+- FINC-006 The calculator page now shows the variables on the left and the charts and tables on the right (stacked on narrow screens)
+
 ## [0.4.0] — 2026-11-05
 
 - FINC-005 Added a results view with net worth (breakeven year called out), monthly cash flow and investable cash, each as a chart and a table that update as you edit the inputs
