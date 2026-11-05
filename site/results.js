@@ -29,6 +29,8 @@ export function buildResults(values) {
       series('Stay (home equity)', rows, (r) => r.equity),
       series('Sell (invested)', rows, (r) => r.investmentCapital),
     ],
+    tipCols: [1, 2],
+    tipExtra: 3,
     markerX: breakevenYear,
   };
 
@@ -42,6 +44,8 @@ export function buildResults(values) {
       series('Own (per month)', years, (r) => r.monthlyOwnCost),
       series('Rent (per month)', years, (r) => r.monthlyRentCost),
     ],
+    tipCols: [1, 2],
+    tipExtra: null,
     markerX: null,
   };
 
@@ -52,6 +56,8 @@ export function buildResults(values) {
     columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)'],
     rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome)]),
     series: [series('Income (per month)', years, (r) => r.monthlyInvestmentIncome)],
+    tipCols: [3],
+    tipExtra: null,
     markerX: null,
   };
 
@@ -63,24 +69,37 @@ const W = 480;
 const H = 260;
 const PAD = { l: 64, r: 12, t: 12, b: 28 };
 
-// A self-contained SVG line chart with axes, a legend and an optional
-// vertical marker (the breakeven year).
-export function lineChartSvg(section) {
+// Chart geometry shared by the SVG and the hover model, so a ring always
+// lands on its line.
+function chartScale(section) {
   const pts = section.series.flatMap((s) => s.points);
-  if (!pts.length) return '';
   const xs = pts.map((p) => p.x);
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
   const yMin = Math.min(0, ...pts.map((p) => p.y));
   const yMax = Math.max(0, ...pts.map((p) => p.y)) || 1;
-  const sx = (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r));
-  const sy = (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
+  return {
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+    sx: (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r)),
+    sy: (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b),
+  };
+}
+
+// A self-contained SVG line chart with axes, a legend, an optional vertical
+// marker (the breakeven year) and a hidden crosshair with one ring per
+// series that the page moves to the active year.
+export function lineChartSvg(section) {
+  if (!section.series.some((s) => s.points.length)) return '';
+  const { xMin, xMax, yMin, yMax, sx, sy } = chartScale(section);
   const f = (n) => n.toFixed(1);
 
   let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escape(section.title)} chart" class="chart">`;
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
-    out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" stroke="#ddd"/>`;
+    out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" stroke="#eee"/>`;
     out += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(formatMoney(y))}</text>`;
   }
   out += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
@@ -91,13 +110,53 @@ export function lineChartSvg(section) {
   }
   section.series.forEach((s, i) => {
     const d = s.points.map((p, j) => `${j ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p.y))}`).join('');
-    out += `<path d="${d}" fill="none" stroke="${COLORS[i]}" stroke-width="2"/>`;
+    out += `<path d="${d}" fill="none" stroke="${COLORS[i]}" stroke-width="2.5"/>`;
   });
   section.series.forEach((s, i) => {
     out += `<rect x="${PAD.l + 60 + i * 170}" y="${H - 22}" width="10" height="10" fill="${COLORS[i]}"/>`;
     out += `<text x="${PAD.l + 74 + i * 170}" y="${H - 13}" font-size="10">${escape(s.label)}</text>`;
   });
-  return `${out}</svg>`;
+  out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${H - PAD.b}" stroke="#555"/>`;
+  section.series.forEach((s, i) => {
+    out += `<circle class="ring" r="4" fill="#fff" stroke="${COLORS[i]}" stroke-width="2"/>`;
+  });
+  return `${out}</g></svg>`;
+}
+
+// One entry per year the pointer can snap to: where to draw the crosshair
+// and rings (SVG units), and the card's text, taken from the table's own
+// cells so the chart and table cannot disagree.
+export function hoverPoints(section) {
+  if (!section.series.some((s) => s.points.length)) return [];
+  const { sx, sy } = chartScale(section);
+  const cell = (row, col) => ({ label: section.columns[col], value: row[col] });
+  return section.series[0].points.map((p, i) => {
+    const row = section.rows[i];
+    return {
+      year: p.x,
+      x: sx(p.x),
+      ys: section.series.map((s) => sy(s.points[i].y)),
+      items: section.tipCols.map((col, k) => ({ ...cell(row, col), label: section.series[k].label, color: COLORS[k] })),
+      extra: section.tipExtra == null ? null : cell(row, section.tipExtra),
+    };
+  });
+}
+
+// The chart plus its hover card and a live region for keyboard moves.
+export function chartHtml(section) {
+  const svg = lineChartSvg(section);
+  if (!svg) return '';
+  return `<div class="chart-wrap" tabindex="0" role="group" aria-label="${escape(section.title)} chart. Use the left and right arrow keys to read values by year.">${svg}<div class="chart-card" hidden></div><div class="visually-hidden" aria-live="polite"></div></div>`;
+}
+
+export function cardHtml(point) {
+  const rows = point.items.map((i) => `<div class="card-row"><span class="swatch" style="background:${i.color}"></span><span class="card-label">${escape(i.label)}</span><strong>${escape(i.value)}</strong></div>`).join('');
+  const extra = point.extra ? `<div class="card-row card-extra"><span class="card-label">${escape(point.extra.label)}</span><strong>${escape(point.extra.value)}</strong></div>` : '';
+  return `<div class="card-year">Year ${point.year}</div>${rows}${extra}`;
+}
+
+export function cardText(point) {
+  return `Year ${point.year}: ${point.items.map((i) => `${i.label} ${i.value}`).join(', ')}`;
 }
 
 export function tableHtml(section) {

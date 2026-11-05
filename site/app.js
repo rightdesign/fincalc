@@ -1,7 +1,7 @@
 // Entry point for the calculator page. The inputs form mounts into
 // #calculator; the page is stateless, so nothing is persisted.
 import { FIELDS, defaultHorizon, defaultValues, parseValue } from './inputs.js';
-import { buildResults, lineChartSvg, tableHtml } from './results.js';
+import { buildResults, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -93,7 +93,66 @@ function renderResults(container, form) {
     return;
   }
   const { sections } = buildResults(values);
-  container.innerHTML = sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${lineChartSvg(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('');
+  container.innerHTML = sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('');
+  sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
+}
+
+// Pointer, touch and keyboard all drive one "active year": a crosshair, a
+// ring per line and a card of values.
+function attachHover(wrap, section) {
+  const points = hoverPoints(section);
+  if (!wrap || !points.length) return;
+  const svg = wrap.querySelector('svg');
+  const g = svg.querySelector('.hover');
+  const crosshair = g.querySelector('.crosshair');
+  const rings = g.querySelectorAll('.ring');
+  const card = wrap.querySelector('.chart-card');
+  const live = wrap.querySelector('[aria-live]');
+  const width = svg.viewBox.baseVal.width;
+  let active = null;
+
+  const hide = () => {
+    active = null;
+    g.style.display = 'none';
+    card.hidden = true;
+  };
+  const show = (i, announce) => {
+    active = i;
+    const p = points[i];
+    crosshair.setAttribute('x1', p.x);
+    crosshair.setAttribute('x2', p.x);
+    rings.forEach((r, k) => {
+      r.setAttribute('cx', p.x);
+      r.setAttribute('cy', p.ys[k]);
+    });
+    g.style.display = '';
+    card.innerHTML = cardHtml(p);
+    card.hidden = false;
+    const pct = (p.x / width) * 100;
+    card.classList.toggle('flip', pct > 50);
+    card.style.left = `${pct}%`;
+    if (announce) live.textContent = cardText(p);
+  };
+  const nearest = (clientX) => {
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * width;
+    let best = 0;
+    points.forEach((p, i) => { if (Math.abs(p.x - x) < Math.abs(points[best].x - x)) best = i; });
+    return best;
+  };
+
+  wrap.addEventListener('pointermove', (e) => show(nearest(e.clientX), false));
+  wrap.addEventListener('pointerdown', (e) => show(nearest(e.clientX), false));
+  wrap.addEventListener('pointerleave', hide);
+  wrap.addEventListener('keydown', (e) => {
+    const last = points.length - 1;
+    const next = { ArrowRight: active == null ? 0 : Math.min(last, active + 1), ArrowLeft: active == null ? last : Math.max(0, active - 1), Home: 0, End: last }[e.key];
+    if (e.key === 'Escape') hide();
+    else if (next != null) {
+      e.preventDefault();
+      show(next, true);
+    }
+  });
 }
 
 if (root) {

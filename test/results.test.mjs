@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildResults, formatMoney, lineChartSvg, tableHtml } from '../site/results.js';
+import { buildResults, cardHtml, cardText, chartHtml, formatMoney, hoverPoints, lineChartSvg, tableHtml } from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('formats money without cents and without negative zero', () => {
@@ -34,4 +34,33 @@ test('charts are SVG with one path per series; tables escape text', () => {
   assert.equal(lineChartSvg({ title: 't', series: [], markerX: null }), '');
   const html = tableHtml({ title: 'A<b>', columns: ['Year'], rows: [['1']] });
   assert.ok(html.includes('A&lt;b&gt;'));
+});
+
+test('hover points snap to each year and reuse the table cells', () => {
+  const { sections } = buildResults(defaultValues());
+  for (const s of sections) {
+    const pts = hoverPoints(s);
+    assert.equal(pts.length, s.rows.length);
+    assert.equal(pts[0].year, Number(s.rows[0][0]));
+    assert.equal(pts[0].items.length, s.series.length);
+    assert.equal(pts[0].items[0].value, s.rows[0][s.tipCols[0]]);
+  }
+  const [nw, cf, inc] = sections;
+  assert.equal(hoverPoints(nw)[3].extra.label, 'Sell minus stay');
+  assert.equal(hoverPoints(nw)[3].extra.value, nw.rows[3][3]);
+  assert.equal(hoverPoints(cf)[0].extra, null);
+  assert.equal(hoverPoints(inc)[0].items[0].value, inc.rows[0][3]);
+  assert.equal(hoverPoints({ series: [] }).length, 0);
+});
+
+test('card and chart markup carry the values, escaped, with a ring per series', () => {
+  const nw = buildResults(defaultValues()).sections[0];
+  const p = hoverPoints(nw)[2];
+  assert.match(cardHtml(p), /Year 2/);
+  assert.ok(cardHtml(p).includes(p.items[0].value));
+  assert.match(cardText(p), /^Year 2: Stay \(home equity\) /);
+  const html = chartHtml(nw);
+  assert.match(html, /tabindex="0"/);
+  assert.equal(html.match(/class="ring"/g).length, nw.series.length);
+  assert.equal(chartHtml({ title: 't', series: [], markerX: null }), '');
 });
