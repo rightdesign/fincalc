@@ -1,7 +1,62 @@
 # The crew's contract for this repository — see docs/REPO_SPEC.md in the
-# crew repo. Only the base branch is declared so far; hooks, worktree copies
-# and release mode fall back to the crew's defaults until they are added.
+# crew repo.
 version: 1
+
+# POSIX-shell hooks: macOS or Linux, not Windows.
+platform: unix
 
 branch:
   base: master
+
+hooks:
+  # Every hook goes through an npm script, so the stack behind it (plain
+  # files today, a bundler later) can change in package.json without this
+  # file or the Pages workflow moving.
+  setup: npm ci
+
+  test: npm test
+
+  # Builds the static site into dist/ (gitignored). The Pages workflow runs
+  # the same script, so a build that passes here is the build that ships.
+  build: npm run build
+
+  version: node -p "require('./package.json').version"
+
+  # `npm version` rather than release.versionFiles: it keeps package.json
+  # and package-lock.json in step.
+  bump: |
+    npm version "$CREW_BUMP" --no-git-tag-version >/dev/null
+    node -p "require('./package.json').version"
+
+  # Publishing is GitHub's job: .github/workflows/pages.yml builds the site
+  # and deploys it to GitHub Pages, and only runs when dispatched. The
+  # release phase has already pushed master by the time this hook runs, so
+  # this dispatches the workflow on master and waits for it; the run's
+  # result is the hook's exit status. Needs an authenticated `gh` on the
+  # ship.
+  deploy: |
+    set -e
+    wf=pages.yml
+    before="$(gh run list --workflow "$wf" --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+    gh workflow run "$wf" --ref master
+    # The dispatch returns before the run exists: wait for a run newer than
+    # the last one seen (run ids only grow).
+    run=""
+    for _ in $(seq 1 30); do
+      run="$(gh run list --workflow "$wf" --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+      [ "$run" -gt "$before" ] && break
+      run=""
+      sleep 2
+    done
+    [ -n "$run" ] || { echo "deploy: the $wf run never appeared after dispatch" >&2; exit 1; }
+    gh run watch "$run" --exit-status --interval 5
+
+labels:
+  test: npm test
+  build: npm run build (static site into dist/)
+  deploy: GitHub Pages (.github/workflows/pages.yml)
+
+release:
+  mode: local
+  # No versionFiles: the bump hook above owns versioning for this repo.
+  changelog: CHANGELOG.md
