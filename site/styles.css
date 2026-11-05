@@ -1,5 +1,5 @@
 :root {
-  --max-width: 40rem;
+  --max-width: 72rem;
   --gap: 1rem;
   font-family: system-ui, sans-serif;
   line-height: 1.5;
@@ -69,4 +69,18 @@ legend {
 
 .result th:first-child {
   text-align: left;
+}
+
+/* Variables on the left, visualizations on the right; stacked on narrow screens. */
+.calculator {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  gap: calc(var(--gap) * 2);
+  align-items: start;
+}
+
+@media (max-width: 50rem) {
+  .calculator {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
