@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.2.0] — 2026-11-05
+
+- FINC-003 Added the homeowner inputs form for the stay vs. sell-and-rent calculator
+
 ## [0.1.1] — 2026-11-05
 
 - FINC-002 Scaffold the single-page calculator shell (layout, styles, entry script)
