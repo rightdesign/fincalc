@@ -3,25 +3,83 @@
   --gap: 1rem;
   font-family: system-ui, sans-serif;
   line-height: 1.5;
+  color-scheme: light dark;
+  --bg: #fff;
+  --panel: #fff;
+  --border: #ccc;
+  --rule: #ddd;
+  --text: #000;
+  --muted: #555;
+  --raised-bg: #fff;
+  --raised-border: #ccc;
+  --tip-bg: #222;
+  --tip-text: #fff;
+  --tip-border: #222;
+  --focus: #1b6ec2;
+  --series-1: #1b6ec2;
+  --series-2: #c25b1b;
+  --grid: #eee;
+  --guide: #555;
+  --ring-fill: #fff;
+}
+
+/* Night theme: follows the device's own light/dark setting. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151c;
+    --panel: #1b2029;
+    --border: #2f3744;
+    --rule: #2f3744;
+    --text: #e6e9ef;
+    --muted: #9aa4b2;
+    --tip-bg: #2b3340;
+    --tip-text: #e6e9ef;
+    --tip-border: #3d4757;
+    --raised-bg: #232a35;
+    --raised-border: #3d4757;
+    --focus: #7dbbf5;
+    --series-1: #5aa9f0;
+    --series-2: #f0955a;
+    --grid: #2a303b;
+    --guide: #9aa4b2;
+    --ring-fill: #1b2029;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  a {
+    color: #8ec5f7;
+  }
+
+  .field input,
+  .field select {
+    background: #12151c;
+    color: var(--text);
+    border: 1px solid #3d4757;
+    border-radius: 0.25rem;
+  }
 }
 
 body {
   margin: 0 auto;
   padding: var(--gap);
   max-width: var(--max-width);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .site-footer {
   margin-top: calc(var(--gap) * 2);
   font-size: 0.875rem;
-  color: #555;
+  color: var(--muted);
 }
 
 fieldset {
   margin: 0 0 var(--gap);
   padding: var(--gap);
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
+  background: var(--panel);
 }
 
 legend {
@@ -61,6 +119,27 @@ legend {
   height: auto;
 }
 
+.chart text {
+  fill: currentColor;
+}
+
+.chart .grid {
+  stroke: var(--grid);
+}
+
+.chart .marker {
+  stroke: var(--guide);
+  stroke-dasharray: 4 3;
+}
+
+.chart .crosshair {
+  stroke: var(--guide);
+}
+
+.chart .ring {
+  fill: var(--ring-fill);
+}
+
 .result table {
   width: 100%;
   border-collapse: collapse;
@@ -70,7 +149,7 @@ legend {
 .result th,
 .result td {
   padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--rule);
   text-align: right;
 }
 
@@ -99,11 +178,11 @@ legend {
   width: 1.1rem;
   height: 1.1rem;
   line-height: 1.1rem;
-  border: 1px solid #888;
+  border: 1px solid var(--muted);
   border-radius: 50%;
   font-size: 0.75rem;
   text-align: center;
-  color: #555;
+  color: var(--muted);
   cursor: help;
 }
 
@@ -116,8 +195,9 @@ legend {
   top: 100%;
   padding: 0.5rem;
   border-radius: 0.25rem;
-  background: #222;
-  color: #fff;
+  border: 1px solid var(--tip-border);
+  background: var(--tip-bg);
+  color: var(--tip-text);
   font-size: 0.8125rem;
   line-height: 1.4;
   text-align: left;
@@ -136,7 +216,7 @@ legend {
 }
 
 .chart-wrap:focus-visible {
-  outline: 2px solid #1b6ec2;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
@@ -148,9 +228,9 @@ legend {
   min-width: 11rem;
   margin-left: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--raised-border);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--raised-bg);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   font-size: 0.8125rem;
   pointer-events: none;
@@ -187,7 +267,7 @@ legend {
 .card-extra {
   margin-top: 0.25rem;
   padding-top: 0.25rem;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--rule);
 }
 
 .visually-hidden {

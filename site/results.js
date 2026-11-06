@@ -64,7 +64,8 @@ export function buildResults(values) {
   return { breakevenYear, sections: [netWorth, cashFlow, income] };
 }
 
-const COLORS = ['#1b6ec2', '#c25b1b'];
+// CSS custom properties (see styles.css), so the night theme can recolour the series.
+const COLORS = ['var(--series-1)', 'var(--series-2)'];
 const W = 480;
 const H = 260;
 const PAD = { l: 64, r: 12, t: 12, b: 28 };
@@ -99,26 +100,26 @@ export function lineChartSvg(section) {
   let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escape(section.title)} chart" class="chart">`;
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
-    out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" stroke="#eee"/>`;
+    out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
     out += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(formatMoney(y))}</text>`;
   }
   out += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
   out += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
   if (section.markerX != null) {
-    out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${H - PAD.b}" stroke="#555" stroke-dasharray="4 3"/>`;
+    out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${H - PAD.b}"/>`;
     out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="10">Breakeven: year ${section.markerX}</text>`;
   }
   section.series.forEach((s, i) => {
     const d = s.points.map((p, j) => `${j ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p.y))}`).join('');
-    out += `<path d="${d}" fill="none" stroke="${COLORS[i]}" stroke-width="2.5"/>`;
+    out += `<path d="${d}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
   });
   section.series.forEach((s, i) => {
-    out += `<rect x="${PAD.l + 60 + i * 170}" y="${H - 22}" width="10" height="10" fill="${COLORS[i]}"/>`;
+    out += `<rect x="${PAD.l + 60 + i * 170}" y="${H - 22}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
     out += `<text x="${PAD.l + 74 + i * 170}" y="${H - 13}" font-size="10">${escape(s.label)}</text>`;
   });
-  out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${H - PAD.b}" stroke="#555"/>`;
+  out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${H - PAD.b}"/>`;
   section.series.forEach((s, i) => {
-    out += `<circle class="ring" r="4" fill="#fff" stroke="${COLORS[i]}" stroke-width="2"/>`;
+    out += `<circle class="ring" r="4" style="stroke:${COLORS[i]}" stroke-width="2"/>`;
   });
   return `${out}</g></svg>`;
 }
