@@ -309,6 +309,7 @@ export function downsizeWaterfall(values) {
       { label: 'Buying costs', amount: -f.buyingCosts },
       { label: 'New mortgage', amount: f.newMortgage },
     ]),
+    ...(values.useProceeds !== 0 && f.outsideFunds > 0.5 ? [{ label: 'Paid from outside funds', amount: f.outsideFunds }] : []),
     { label: 'Moving costs', amount: -f.movingCosts },
   ];
   return { steps, invested: f.invested, shortfall: f.invested < 0, resultLabel: f.invested < 0 ? 'Shortfall drawn from investments' : 'Amount invested at year 0' };

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { amortizationByYear, inTodaysDollars, monthlyPayment, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
+import { amortizationByYear, inTodaysDollars, monthlyPayment, downsizeFunding, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
 import { defaultValues } from '../site/inputs.js';
 
 const close = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} !~ ${b}`);
@@ -267,4 +267,21 @@ test('downsize path: with useProceeds off the full net proceeds are invested', (
   const absent = project({ ...v, useProceeds: undefined }).rows[0].downsizeInvestmentCapital;
   close(on, sale.netProceeds - 5000 - 204000);
   close(absent, on);
+});
+
+test('downsize path: a proceeds cap keeps the rest invested and leaves the remainder to outside funds', () => {
+  const v = { ...defaultValues(), horizon: 5, newHomePrice: 400000, newBuyingCostsPct: 2, newMortgageAmount: 100000, movingCosts: 5000 };
+  const { sale } = project(v);
+  const needed = 408000 - 100000;
+  const all = downsizeFunding(v);
+  close(all.invested, sale.netProceeds - 5000 - needed);
+  assert.equal(all.outsideFunds, 0);
+  const amount = downsizeFunding({ ...v, proceedsMode: 'amount', proceedsAmount: 200000 });
+  close(amount.invested, sale.netProceeds - 5000 - 200000);
+  close(amount.outsideFunds, needed - 200000);
+  const pctCap = downsizeFunding({ ...v, proceedsMode: 'percent', proceedsPercent: 50 });
+  close(pctCap.invested, sale.netProceeds - 5000 - sale.netProceeds * 0.5);
+  // A cap above what is needed changes nothing; useProceeds off ignores the cap.
+  close(downsizeFunding({ ...v, proceedsMode: 'amount', proceedsAmount: 1e9 }).invested, all.invested);
+  close(downsizeFunding({ ...v, useProceeds: 0, proceedsMode: 'amount', proceedsAmount: 1 }).invested, sale.netProceeds - 5000);
 });

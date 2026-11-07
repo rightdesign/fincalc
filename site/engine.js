@@ -69,7 +69,13 @@ export function downsizeFunding(v) {
   const sale = netSaleProceeds(v);
   const buyingCosts = v.newHomePrice * pct(v.newBuyingCostsPct);
   const useProceeds = v.useProceeds !== 0;
-  const invested = sale.netProceeds - v.movingCosts - (useProceeds ? v.newHomePrice + buyingCosts - v.newMortgageAmount : 0);
+  const needed = v.newHomePrice + buyingCosts - v.newMortgageAmount;
+  // The most the user allows from the proceeds; the rest of the purchase is paid
+  // from money outside the model (as when useProceeds is off).
+  const cap = v.proceedsMode === 'amount' ? v.proceedsAmount
+    : v.proceedsMode === 'percent' ? Math.max(0, sale.netProceeds) * pct(v.proceedsPercent) : Infinity;
+  const fromProceeds = useProceeds ? Math.min(needed, Number.isFinite(cap) ? cap : needed) : 0;
+  const invested = sale.netProceeds - v.movingCosts - fromProceeds;
   return {
     salePrice: sale.proceeds,
     sellingCosts: sale.sellingCosts,
@@ -80,6 +86,7 @@ export function downsizeFunding(v) {
     buyingCosts,
     newMortgage: v.newMortgageAmount,
     movingCosts: v.movingCosts,
+    outsideFunds: useProceeds ? needed - fromProceeds : needed,
     invested,
   };
 }
@@ -138,7 +145,9 @@ export function downsizeFunding(v) {
 //   With useProceeds off (v.useProceeds === 0) the purchase is not drawn from the
 //   sale proceeds: the net proceeds less moving costs are invested at year 0 as
 //   in the sell path, and the new mortgage plus funds outside the model pay for
-//   the home. Anything else (including absent) keeps the default, on.
+//   the home. proceedsMode 'amount' / 'percent' (of net proceeds) caps what is
+//   drawn from the proceeds when useProceeds is on; the rest is outside funds.
+//   Anything else (including absent) keeps the default, on.
 //   downsizeBreakevenYear is the first year (1 or later) the downsize path is at
 //   or ahead of the stay path, else null.
 export function project(values) {

@@ -183,8 +183,21 @@ function renderForm(container) {
     if (!horizonEdited) horizon.value = defaultHorizon(term.value);
   });
 
+  form.addEventListener('change', () => syncProceedsFields(form));
+  syncProceedsFields(form);
+
   container.replaceChildren(form);
   return form;
+}
+
+// The proceeds-cap fields apply only while the "use the proceeds" box is checked,
+// and only the amount or percentage field matching the chosen mode is enabled.
+function syncProceedsFields(form) {
+  const on = form.elements.useProceeds.checked;
+  const mode = form.elements.proceedsMode.value;
+  form.elements.proceedsMode.disabled = !on;
+  form.elements.proceedsAmount.disabled = !on || mode !== 'amount';
+  form.elements.proceedsPercent.disabled = !on || mode !== 'percent';
 }
 
 // Current form contents as numbers (null where blank or invalid).
@@ -219,6 +232,7 @@ function writeInputs(form, values) {
     row.querySelector('[name="repair-year"]').value = rep.year;
     row.querySelector('[name="repair-amount"]').value = rep.amount;
   }
+  syncProceedsFields(form);
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

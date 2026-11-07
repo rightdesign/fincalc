@@ -45,3 +45,13 @@ test('useProceeds defaults to checked and round-trips when unchecked', () => {
   assert.equal(decodeInputs(encodeInputs(off)).useProceeds, 0);
   assert.equal(decodeInputs('useProceeds=junk').useProceeds, 1);
 });
+
+test('the proceeds cap defaults to as much as needed and round-trips', () => {
+  assert.equal(defaultValues().proceedsMode, 'all');
+  const capped = { ...defaultValues(), proceedsMode: 'amount', proceedsAmount: 500000 };
+  assert.match(encodeInputs(capped), /proceedsMode=amount/);
+  const back = decodeInputs(encodeInputs(capped));
+  assert.equal(back.proceedsMode, 'amount');
+  assert.equal(back.proceedsAmount, 500000);
+  assert.equal(decodeInputs('proceedsMode=junk').proceedsMode, 'all');
+});

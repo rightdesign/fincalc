@@ -47,6 +47,17 @@ export const FIELDS = [
     id: 'useProceeds', label: 'Use the proceeds from selling my current home to buy the new home', kind: 'checkbox', default: 1, group: 'If you downsize',
     hint: "Checked: the new home is paid for from the net sale proceeds (plus any new mortgage), and only what is left is invested. Unchecked: all the net proceeds are invested right away, as in the sell-and-rent path, and the new home is paid for by the new mortgage plus money from outside this model.",
   },
+  {
+    id: 'proceedsMode', label: 'How much of the proceeds to put into the new home', kind: 'choice', default: 'all', group: 'If you downsize',
+    hint: "Only used when the box above is checked. \"As much as needed\" puts in whatever the new home, its buying costs and your new mortgage require. Choosing a dollar amount or a share of the net sale proceeds caps it: you keep the rest invested, and whatever the cap leaves uncovered is paid from money outside this model.",
+    options: [
+      { value: 'all', label: 'As much as needed' },
+      { value: 'amount', label: 'A dollar amount' },
+      { value: 'percent', label: 'A percentage of the net proceeds' },
+    ],
+  },
+  { id: 'proceedsAmount', label: 'Proceeds to put into the new home ($)', kind: 'money', default: 0, group: 'If you downsize', hint: "The most you will put into the new home from the net sale proceeds. Used when the choice above is a dollar amount." },
+  { id: 'proceedsPercent', label: 'Proceeds to put into the new home (% of net proceeds)', kind: 'percent', default: 100, group: 'If you downsize', hint: "The most you will put into the new home, as a share of the net sale proceeds. Used when the choice above is a percentage." },
   { id: 'newHomePrice', label: 'New home price', kind: 'money', default: 300000, group: 'If you downsize', hint: "What a smaller or cheaper home would cost you today. The third path in the comparison: sell, buy this home, and invest what is left. Typically well below your current home value." },
   { id: 'newBuyingCostsPct', label: 'Buying costs (% of new home price)', kind: 'percent', default: 2, group: 'If you downsize', hint: "Closing costs and fees when buying the new home, as a share of its price, paid up front. Typical range 2–5%." },
   { id: 'newMortgageAmount', label: 'New mortgage amount', kind: 'money', default: 0, group: 'If you downsize', hint: "How much you would borrow to buy the new home. Enter 0 to buy it outright with your sale proceeds. Anything the proceeds do not cover is taken from your investments." },
