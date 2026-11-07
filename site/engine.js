@@ -63,13 +63,15 @@ export function netSaleProceeds(v) {
 }
 
 // Modelling rules (the ticket leaves these open):
+// - HOA dues are monthly dues x 12 in year 1 and grow at hoaGrowth; they are not
+//   tax deductible.
 // - Renter's insurance is flat; rent grows at rentGrowth, year 1 at the
 //   quoted rent.
 // - Property tax is the quoted dollars in year 1; home insurance and
 //   maintenance are their % of today's home value in year 1. Each then grows
 //   at its own rate (propertyTaxGrowth, insuranceGrowth, maintenanceGrowth),
 //   independent of the home's appreciation.
-// - Unrecoverable cost = property tax + maintenance + insurance + mortgage
+// - Unrecoverable cost = property tax + maintenance + insurance + HOA dues + mortgage
 //   interest, less the income tax saved by deducting interest and property
 //   tax (see housingTaxSavings). Principal is not a cost: it builds equity.
 // - Both paths cover the same housing need. Each year the sell path invests
@@ -122,8 +124,9 @@ export function project(values) {
     const propertyTax = v.propertyTax * (1 + pct(v.propertyTaxGrowth)) ** (y - 1);
     const insurance = v.homeValue * pct(v.insurancePct) * (1 + pct(v.insuranceGrowth)) ** (y - 1);
     const maintenance = v.homeValue * pct(v.maintenancePct) * (1 + pct(v.maintenanceGrowth)) ** (y - 1);
+    const hoa = v.hoaMonthly * 12 * (1 + pct(v.hoaGrowth)) ** (y - 1);
     const taxSavings = housingTaxSavings(v, interest, propertyTax);
-    const unrecoverableCost = propertyTax + insurance + maintenance + interest - taxSavings;
+    const unrecoverableCost = propertyTax + insurance + maintenance + hoa + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
     const investmentIncome = capital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
@@ -143,6 +146,7 @@ export function project(values) {
       propertyTax,
       insurance,
       maintenance,
+      hoa,
       mortgageInterest: interest,
       taxSavings,
       mortgagePrincipal: principal,

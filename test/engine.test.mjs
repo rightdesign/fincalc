@@ -164,6 +164,17 @@ test("today's dollars discounts each year by compounded inflation", () => {
   assert.equal(inTodaysDollars(rows, 0)[3].homeValue, rows[3].homeValue);
 });
 
+test('HOA dues grow yearly, count as owning cost and are not tax deductible', () => {
+  const v = { ...defaultValues(), horizon: 2, hoaMonthly: 400, hoaGrowth: 5 };
+  const base = project({ ...v, hoaMonthly: 0 }).rows;
+  const { rows } = project(v);
+  close(rows[1].hoa, 4800);
+  close(rows[2].hoa, 4800 * 1.05);
+  close(rows[1].unrecoverableCost - base[1].unrecoverableCost, 4800);
+  close(rows[1].monthlyOwnCost - base[1].monthlyOwnCost, 400);
+  close(rows[1].taxSavings, base[1].taxSavings);
+});
+
 test('stay net worth in a later year nets selling costs and capital-gains tax on that year\'s value', () => {
   const v = { ...defaultValues(), exclusion: 'none', horizon: 5 };
   const { rows } = project(v);
