@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.32.0] — 2026-11-07
+
+- FINC-045 A new "Cash you must supply" chart and cost-summary rows show the monthly cash the household must come up with under staying, selling and renting, and downsizing, after portfolio withdrawals applied to housing.
+
 ## [0.31.0] — 2026-11-07
 
 - FINC-044 The calculator layout is redesigned: inputs are collapsible groups in a sticky left rail with saved scenarios as chips, results sit under a headline strip and tabs (one chart at a time, full width), and printing now uses the full page width with optional data tables and a summary of the changed inputs.
