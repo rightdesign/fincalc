@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.11.0] — 2026-11-07
+
+- FINC-020 The stay path now nets out selling costs and capital-gains tax at the end of the horizon, so both paths are compared after sale and after tax.
+
 ## [0.10.0] — 2026-11-07
 
 - FINC-019 The calculator now has an inflation rate and an option to show all results in today's dollars.
