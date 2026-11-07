@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.30.1] — 2026-11-07
+
+- FINC-050 The methodology now has a section explaining the cash-flow lens versus the net-worth lens: principal builds equity and is not a cost, rent is fully unrecoverable, withdrawals applied to housing are equity converted into income, and staying converts income into equity while selling does the reverse.
+
 ## [0.30.0] — 2026-11-07
 
 - FINC-041 "What drives the verdict" now also shows the values at which downsizing flips against staying, and it follows the "Use the proceeds" checkbox and cap like the charts and tables do.
