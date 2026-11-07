@@ -15,6 +15,76 @@
     <main id="calculator" class="calculator">
       <p class="placeholder">Calculators coming soon.</p>
     </main>
+    <section class="methodology" id="methodology">
+      <details>
+        <summary>Methodology and assumptions</summary>
+        <p>The calculator compares three paths over the time horizon you choose, year by year: <strong>stay</strong> in your home, <strong>sell and rent</strong> a comparable home while investing the proceeds, and <strong>downsize</strong> to a cheaper home while investing the rest. All three cover the same housing need. Percentages are annual rates, applied once per year.</p>
+
+        <h3>Mortgage</h3>
+        <ul>
+          <li>The monthly payment is the standard amortizing payment: <code>P = B &times; r / (1 &minus; (1 + r)<sup>&minus;n</sup>)</code>, where B is the balance, r is the annual rate divided by 12 and n is the remaining term in months. At a 0% rate it is B / n.</li>
+          <li>Each month, interest is the balance times r and the rest of the payment is principal. Months are summed into years; after the loan is paid off, interest and principal are zero.</li>
+          <li><strong>Principal is not a cost of owning.</strong> It builds equity, so it is left out of the &ldquo;unrecoverable cost&rdquo;. It is cash out the door, though, so it is counted in monthly cash flow and in the money the sell path can invest.</li>
+        </ul>
+
+        <h3>Costs of owning</h3>
+        <ul>
+          <li>Property tax is the dollars you enter in year 1. Home insurance and maintenance are their percentage of today&rsquo;s home value in year 1. HOA dues are the monthly dues times 12 in year 1.</li>
+          <li>Each of these then grows at its own growth rate. They do <strong>not</strong> track the home&rsquo;s appreciation.</li>
+          <li>Major repairs are one-time amounts in the year you enter, in that year&rsquo;s own dollars. They are not tax deductible.</li>
+          <li><strong>Unrecoverable cost</strong> = property tax + insurance + maintenance + HOA dues + major repairs + mortgage interest &minus; income tax saved by deductions.</li>
+          <li>Tax saved = (mortgage interest + property tax up to the state and local tax cap &minus; standard deduction, never below 0) &times; marginal tax rate. Only the amount above the standard deduction is a benefit of owning.</li>
+          <li><strong>Monthly cost of owning</strong> is the full cash outlay: unrecoverable cost plus principal, divided by 12.</li>
+        </ul>
+
+        <h3>Selling</h3>
+        <ul>
+          <li>Net sales = home value &minus; selling costs (a percentage of the sale price). Gain = net sales &minus; cost basis. Taxable gain = gain &minus; the primary-residence exclusion you pick (never below 0), taxed at your capital gains rate.</li>
+          <li>Net proceeds = net sales &minus; capital gains tax &minus; mortgage balance.</li>
+          <li>Moving costs and the rental&rsquo;s upfront cash (deposit, first and last month&rsquo;s rent) are one-time amounts taken out of the proceeds before investing. They are counted as spent.</li>
+        </ul>
+
+        <h3>Sell and rent</h3>
+        <ul>
+          <li>Rent is the monthly rent times 12 in year 1, growing at the rent growth rate, plus renter&rsquo;s insurance (flat).</li>
+          <li>Each year the investments grow, then receive (what owning would have cost in cash, including principal) &minus; (rent and renter&rsquo;s insurance). If renting costs more than owning would, the difference is drawn from the investments. Both paths are therefore compared on equal cash out.</li>
+          <li>Growth: investment growth is reduced by the tax rate on investment growth in a year with a gain, as a tax drag on a taxable account. A year with a loss owes no tax and gets no cushion.</li>
+        </ul>
+
+        <h3>Withdrawals</h3>
+        <ul>
+          <li>Investment income is the withdrawal rate times the capital at the start of the year, less the tax on withdrawals. It shows what the portfolio could pay out; it is <strong>not</strong> subtracted from the capital, so the net worth figures do not assume you spend it.</li>
+          <li>Because investment growth is taxed and withdrawals are shown as a share of capital, a withdrawal rate above the after-tax growth rate would erode capital over time if you actually took it.</li>
+        </ul>
+
+        <h3>Net worth and break-even</h3>
+        <ul>
+          <li>Net worth for staying is what you would net by selling at that point: the home&rsquo;s then-current value less selling costs, capital gains tax and the remaining mortgage. Net worth for selling is the investment capital, whose selling costs and taxes were charged up front. Both are after sale and after tax, so year 0 is level.</li>
+          <li>The break-even year is the first year (1 or later) in which the sell path&rsquo;s net worth is at or ahead of staying. If that never happens within the horizon, none is shown. The downsize path has its own break-even year.</li>
+        </ul>
+
+        <h3>Downsize</h3>
+        <ul>
+          <li>The home is sold (same proceeds and moving costs as the sell path). The new home costs its price plus buying costs, paid from the proceeds and any new mortgage. A shortfall is drawn from the investments, so capital can start negative.</li>
+          <li>The new home appreciates at the same rate as the old one, and its tax, insurance, maintenance and HOA dues grow at the same rates. The same deduction rules apply.</li>
+          <li>Each year it invests the stay path&rsquo;s cash outlay less its own (unrecoverable cost plus principal). Its net worth is the investment capital plus the new home&rsquo;s value after selling costs, capital gains tax (cost basis is the price paid) and mortgage.</li>
+        </ul>
+
+        <h3>Nominal or real dollars</h3>
+        <ul>
+          <li>By default every figure is <strong>nominal</strong>: the dollars you would see in that year. Choose &ldquo;Today&rsquo;s dollars&rdquo; to divide each year&rsquo;s amounts by (1 + inflation)<sup>year</sup>. Year 0 is unchanged.</li>
+          <li>Inflation is used only for that restatement. It does not change any growth rate you enter.</li>
+        </ul>
+
+        <h3>What is not modelled</h3>
+        <ul>
+          <li>Taxes beyond those described above: investment and withdrawal taxes are the flat rates you enter, and the alternative minimum tax and future changes in tax law are ignored.</li>
+          <li>Rates, returns and appreciation that vary from year to year. Every rate is a constant for the whole horizon.</li>
+          <li>Financing costs of a new mortgage beyond the buying costs you enter, and any benefit of owning that is not money, such as stability or the ability to modify your home.</li>
+        </ul>
+      </details>
+    </section>
+    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real results will differ. It is not tax, legal, investment or financial advice; talk to a qualified professional before making a decision about your home.</p>
     <footer class="site-footer">
       <p>Everything runs in your browser. Nothing is sent anywhere; saved scenarios and your current inputs stay in this browser, and are also kept in the page address so you can bookmark or share a link.</p>
       <p><a href="https://app.tablation.com/v/6JRkFg" target="_blank" rel="noopener">Send feedback or ask for an enhancement</a></p>

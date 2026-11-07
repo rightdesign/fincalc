@@ -19,3 +19,13 @@ test('the entry page links the stylesheet and script, and both are built', () =>
   }
   assert.ok(html.includes('id="calculator"'));
 });
+
+test('the entry page publishes the methodology and a not-financial-advice disclaimer', () => {
+  execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: root, stdio: 'pipe' });
+  const html = readFileSync(new URL('dist/index.html', root), 'utf8');
+  assert.ok(html.includes('id="methodology"'));
+  for (const topic of ['Mortgage', 'Principal is not a cost', 'Nominal or real', 'Withdrawals', 'do <strong>not</strong> track']) {
+    assert.ok(html.includes(topic), `methodology covers ${topic}`);
+  }
+  assert.ok(html.includes('Not financial advice'));
+});
