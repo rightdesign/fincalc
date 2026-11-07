@@ -28,3 +28,20 @@ test('a driver that never flips the verdict says so', () => {
   assert.equal(line.flip, null);
   assert.match(line.text, /does not change the verdict/);
 });
+
+test('downsize lines compare downsizing with staying and skip rent growth', () => {
+  const lines = sensitivityLines(base).filter((l) => l.path === 'downsize');
+  assert.deepEqual(lines.map((l) => l.id), ['downsize-appreciation', 'downsize-investmentGrowth', 'downsize-taxRate']);
+  for (const l of lines) assert.match(l.text, /downsizing wins|staying wins/);
+});
+
+test('the downsize flip point follows the downsize margin and the proceeds setting', () => {
+  const d = DRIVERS.find((x) => x.id === 'appreciation');
+  const v = { ...base, newHomePrice: 300000, newMortgageAmount: 0 };
+  const endGap = (x) => { const r = project(x).rows; return r[r.length - 1].downsizeGainLoss; };
+  const flip = flipPoint(v, d, 'downsize');
+  assert.ok(flip > 0 && flip < d.max);
+  assert.notEqual(endGap({ ...v, appreciation: flip - 0.01 }) >= 0, endGap({ ...v, appreciation: flip + 0.01 }) >= 0);
+  const off = flipPoint({ ...v, useProceeds: 0 }, d, 'downsize');
+  assert.ok(off > flip);
+});

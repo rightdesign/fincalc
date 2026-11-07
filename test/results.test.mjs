@@ -78,10 +78,11 @@ test("today's dollars option shrinks future amounts and is labelled", () => {
 
 test('builds a sensitivity list that renders as escaped HTML', () => {
   const { sensitivity } = buildResults(defaultValues());
-  assert.equal(sensitivity.length, 4);
+  assert.equal(sensitivity.length, 7);
   const html = sensitivityHtml(sensitivity);
   assert.match(html, /id="sensitivity"/);
-  assert.equal((html.match(/<li>/g) ?? []).length, 4);
+  assert.equal((html.match(/<li>/g) ?? []).length, 7);
+  assert.match(html, /Downsizing vs\. staying/);
 });
 
 test('the net worth summary always gives the gap at the horizon and the closest year', () => {
@@ -192,4 +193,18 @@ test('unchecked proceeds mode: summaries say the outside money is left out, chec
   assert.doesNotMatch(on.costSummary.note, /outside this model/);
   const capped = buildResults({ ...defaultValues(), useProceeds: 1, proceedsMode: 'amount', proceedsAmount: 1000 });
   assert.match(capped.sections[0].summary, /outside this model/);
+});
+
+test('the proceeds setting reaches the year-0 numbers, tables and verdict', () => {
+  const base = { ...defaultValues(), newHomePrice: 300000, newMortgageAmount: 0 };
+  const on = buildResults({ ...base, useProceeds: 1 });
+  const off = buildResults({ ...base, useProceeds: 0 });
+  const cell = (r, section, row, col) => r.sections.find((s) => s.id === section).rows[row][col];
+  // Unchecked: the full net proceeds are invested, so starting capital is higher,
+  // while year-0 net worth stays level because the outside money is left out.
+  assert.equal(cell(on, 'net-worth', 0, 3), cell(off, 'net-worth', 0, 3));
+  assert.notEqual(on.sections[2].rows[0][4], off.sections[2].rows[0][4]);
+  assert.match(off.sections[0].summary, /outside this model/);
+  assert.doesNotMatch(on.sections[0].summary, /outside this model/);
+  assert.match(off.costSummary.headlines[1], /staying\./);
 });

@@ -283,7 +283,8 @@ export function tableHtml(section) {
 
 // The "what would change the answer" list under the charts.
 export function sensitivityHtml(lines) {
-  return `<section class="result" id="sensitivity"><h2>What drives the verdict</h2><p>The verdict compares selling and investing with staying at the end of your time horizon. For each key assumption, this is the value at which that verdict flips, holding everything else as entered.</p><ul>${lines.map((l) => `<li>${escape(l.text)}</li>`).join('')}</ul></section>`;
+  const list = (path) => `<ul>${lines.filter((l) => l.path === path).map((l) => `<li>${escape(l.text)}</li>`).join('')}</ul>`;
+  return `<section class="result" id="sensitivity"><h2>What drives the verdict</h2><p>The verdict compares each path with staying at the end of your time horizon. For each key assumption, this is the value at which that verdict flips, holding everything else as entered.</p><h3>Selling and renting vs. staying</h3>${list('sell')}<h3>Downsizing vs. staying</h3>${list('downsize')}</section>`;
 }
 
 // The cost summary: headline gaps, then the category table.
