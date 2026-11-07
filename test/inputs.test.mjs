@@ -6,6 +6,7 @@ const REQUIRED = [
   'homeValue', 'costBasis', 'mortgageBalance', 'mortgageRate', 'mortgageTerm', 'propertyTax',
   'insurancePct', 'maintenancePct', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
   'investmentGrowth', 'investmentWithdrawal', 'rent', 'rentGrowth', 'rentersInsurance', 'horizon',
+  'marginalTaxRate', 'standardDeduction', 'saltCap',
 ];
 
 test('every calculator variable has a field', () => {

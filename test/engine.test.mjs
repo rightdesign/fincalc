@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { amortizationByYear, monthlyPayment, netSaleProceeds, project } from '../site/engine.js';
+import { amortizationByYear, monthlyPayment, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
 import { defaultValues } from '../site/inputs.js';
 
 const close = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} !~ ${b}`);
@@ -103,4 +103,26 @@ test('strong investment growth against a flat home reaches breakeven; weak never
 test('horizon bounds the projection and zero horizon yields only year 0', () => {
   assert.equal(project({ ...defaultValues(), horizon: 10 }).rows.length, 11);
   assert.equal(project({ ...defaultValues(), horizon: 0 }).rows.length, 1);
+});
+
+test('tax savings count only itemized housing deductions above the standard deduction', () => {
+  const base = { propertyTax: 5000, saltCap: 10000, standardDeduction: 14000, marginalTaxRate: 25 };
+  close(housingTaxSavings(base, 8000), 0);
+  close(housingTaxSavings(base, 12000), (12000 + 5000 - 14000) * 0.25);
+  close(housingTaxSavings({ ...base, marginalTaxRate: 0 }, 12000), 0);
+});
+
+test('the SALT cap limits the property tax that is deductible', () => {
+  const v = { propertyTax: 20000, saltCap: 10000, standardDeduction: 0, marginalTaxRate: 20 };
+  close(housingTaxSavings(v, 5000), (5000 + 10000) * 0.2);
+});
+
+test('tax savings reduce the owner\'s unrecoverable cost and monthly cost', () => {
+  const v = { ...defaultValues(), mortgageBalance: 400000, standardDeduction: 10000, horizon: 1 };
+  const y1 = project(v).rows[1];
+  const gross = v.propertyTax + v.homeValue * 0.015 + y1.mortgageInterest;
+  assert.ok(y1.taxSavings > 0);
+  close(y1.taxSavings, (y1.mortgageInterest + v.propertyTax - 10000) * 0.24);
+  close(y1.unrecoverableCost, gross - y1.taxSavings);
+  close(y1.monthlyOwnCost * 12, gross - y1.taxSavings + y1.mortgagePrincipal);
 });

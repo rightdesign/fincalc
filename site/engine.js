@@ -39,6 +39,14 @@ export function amortizationByYear({ mortgageBalance, mortgageRate, mortgageTerm
   return years;
 }
 
+// Tax saved by deducting mortgage interest and property tax. Only the part of
+// the itemized deductions above the standard deduction is a benefit of owning;
+// property tax counts up to the SALT cap.
+export function housingTaxSavings(v, interest) {
+  const itemized = interest + Math.min(v.propertyTax, v.saltCap);
+  return Math.max(0, itemized - v.standardDeduction) * pct(v.marginalTaxRate);
+}
+
 // Selling today: Proceeds -> Selling Costs -> Net Sales -> less Cost Basis ->
 // less exclusion -> Cap Gains after Exclusion x Tax Rate -> Taxes Due ->
 // minus Mortgage Balance -> Net Proceeds.
@@ -60,7 +68,8 @@ export function netSaleProceeds(v) {
 // - Home insurance and maintenance are % of the home's value at the start of
 //   the year.
 // - Unrecoverable cost = property tax + maintenance + insurance + mortgage
-//   interest. Principal is not a cost: it builds equity.
+//   interest, less the income tax saved by deducting interest and property
+//   tax (see housingTaxSavings). Principal is not a cost: it builds equity.
 // - Both paths cover the same housing need. Each year the sell path invests
 //   (owner's unrecoverable cost + principal paid) minus (rent + renter's
 //   insurance), so the two paths are compared on equal cash out. A negative
@@ -102,7 +111,8 @@ export function project(values) {
     const propertyTax = v.propertyTax;
     const insurance = startValue * pct(v.insurancePct);
     const maintenance = startValue * pct(v.maintenancePct);
-    const unrecoverableCost = propertyTax + insurance + maintenance + interest;
+    const taxSavings = housingTaxSavings(v, interest);
+    const unrecoverableCost = propertyTax + insurance + maintenance + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
     const investmentIncome = capital * pct(v.investmentWithdrawal);
@@ -121,6 +131,7 @@ export function project(values) {
       insurance,
       maintenance,
       mortgageInterest: interest,
+      taxSavings,
       mortgagePrincipal: principal,
       unrecoverableCost,
       rentCost,
