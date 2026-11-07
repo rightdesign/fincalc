@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.29.0] — 2026-11-07
+
+- FINC-039 With "Use the proceeds from selling my current home" unchecked, or capped, the downsize net worth, verdict and summary table now leave out the money from outside the model that pays for the new home, so the three paths stay comparable.
+- FINC-042 The downsize methodology and help text now describe both modes of the "Use the proceeds" checkbox, the funding order (sale proceeds, then new mortgage, then other savings), the shortfall rule and how negative starting capital is treated.
+
 ## [0.28.1] — 2026-11-07
 
 - FINC-043 Loading a scenario saved before the "Use the proceeds" checkbox existed now resets it to checked, and its help button correctly reports the text as open.
