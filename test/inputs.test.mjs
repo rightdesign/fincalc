@@ -6,7 +6,7 @@ const REQUIRED = [
   'homeValue', 'costBasis', 'mortgageBalance', 'mortgageRate', 'mortgageTerm', 'propertyTax',
   'insurancePct', 'maintenancePct', 'propertyTaxGrowth', 'insuranceGrowth', 'maintenanceGrowth', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
   'investmentGrowth', 'investmentWithdrawal', 'rent', 'rentGrowth', 'rentersInsurance', 'horizon',
-  'marginalTaxRate', 'standardDeduction', 'saltCap', 'investmentTaxRate', 'withdrawalTaxRate', 'inflation', 'todaysDollars', 'hoaMonthly', 'hoaGrowth', 'movingCosts', 'rentalUpfront',
+  'marginalTaxRate', 'standardDeduction', 'saltCap', 'investmentTaxRate', 'withdrawalTaxRate', 'inflation', 'todaysDollars', 'hoaMonthly', 'hoaGrowth', 'movingCosts', 'rentalUpfront', 'useProceeds',
   'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'newMortgageRate', 'newMortgageTerm', 'newPropertyTax', 'newInsurancePct', 'newMaintenancePct', 'newHoaMonthly',
 ];
 

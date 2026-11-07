@@ -4,7 +4,7 @@
 export const MAX_HORIZON_YEARS = 30;
 
 // slider: { min, max, step } adds a range slider beside the number field (the
-// field itself still accepts any value). kind: 'money' ($), 'percent' (%), 'years', 'choice'.
+// field itself still accepts any value). kind: 'money' ($), 'percent' (%), 'years', 'choice', 'checkbox' (stored as 1 or 0).
 export const FIELDS = [
   { id: 'homeValue', label: 'Home value', kind: 'money', default: 500000, group: 'Home', slider: { min: 50000, max: 2000000, step: 5000 }, hint: "What your home would sell for today. Typical range: your local market value, often $150,000–$1,000,000." },
   { id: 'costBasis', label: 'Cost basis', kind: 'money', default: 300000, group: 'Home', hint: "What you paid for the home plus purchase closing costs and major improvements. Used to work out your taxable gain. Typically 40–90% of the home value." },
@@ -43,6 +43,10 @@ export const FIELDS = [
   { id: 'rent', label: 'Comparable rent (per month)', kind: 'money', default: 2500, group: 'If you rent', slider: { min: 500, max: 8000, step: 50 }, hint: "What it would cost to rent a comparable home, per month. Typically 0.4–0.7% of the home value per month." },
   { id: 'rentGrowth', label: 'Rent growth (per year)', kind: 'percent', default: 3, group: 'If you rent', slider: { min: 0, max: 10, step: 0.1 }, hint: "Expected yearly rise in your rent. Typical range 2–5%." },
   { id: 'rentersInsurance', label: "Renter's insurance (per year)", kind: 'money', default: 200, group: 'If you rent', hint: "Yearly cost of renter's insurance. Typical range $100–$400." },
+  {
+    id: 'useProceeds', label: 'Use the proceeds from selling my current home to buy the new home', kind: 'checkbox', default: 1, group: 'If you downsize',
+    hint: "Checked: the new home is paid for from the net sale proceeds (plus any new mortgage), and only what is left is invested. Unchecked: all the net proceeds are invested right away, as in the sell-and-rent path, and the new home is paid for by the new mortgage plus money from outside this model.",
+  },
   { id: 'newHomePrice', label: 'New home price', kind: 'money', default: 300000, group: 'If you downsize', hint: "What a smaller or cheaper home would cost you today. The third path in the comparison: sell, buy this home, and invest what is left. Typically well below your current home value." },
   { id: 'newBuyingCostsPct', label: 'Buying costs (% of new home price)', kind: 'percent', default: 2, group: 'If you downsize', hint: "Closing costs and fees when buying the new home, as a share of its price, paid up front. Typical range 2–5%." },
   { id: 'newMortgageAmount', label: 'New mortgage amount', kind: 'money', default: 0, group: 'If you downsize', hint: "How much you would borrow to buy the new home. Enter 0 to buy it outright with your sale proceeds. Anything the proceeds do not cover is taken from your investments." },
@@ -81,6 +85,7 @@ export function defaultValues() {
 // Reads raw form strings into numbers (choices stay strings). A blank or
 // non-numeric entry becomes null so the calculator can tell it is missing.
 export function parseValue(field, raw) {
+  if (field.kind === 'checkbox') return raw === '1' ? 1 : raw === '0' ? 0 : null;
   if (field.kind === 'choice') return field.options.some((o) => o.value === raw) ? raw : null;
   if (raw === '' || raw == null) return null;
   const n = Number(raw);

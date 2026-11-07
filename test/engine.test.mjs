@@ -244,3 +244,15 @@ test('downsize breakeven is the first year it is at or ahead of staying', () => 
     assert.ok(r.rows.slice(1, r.downsizeBreakevenYear).every((x) => x.downsizeGainLoss < 0));
   }
 });
+
+test('downsize path: with useProceeds off the full net proceeds are invested', () => {
+  const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000, useProceeds: 0 };
+  const { rows, sale } = project(v);
+  close(rows[0].downsizeInvestmentCapital, sale.netProceeds - 5000);
+  close(rows[0].downsizeNetWorth, sale.netProceeds - 5000 + 200000 * 0.94);
+  // Checked, or absent from older values, keeps the current behavior.
+  const on = project({ ...v, useProceeds: 1 }).rows[0].downsizeInvestmentCapital;
+  const absent = project({ ...v, useProceeds: undefined }).rows[0].downsizeInvestmentCapital;
+  close(on, sale.netProceeds - 5000 - 204000);
+  close(absent, on);
+});

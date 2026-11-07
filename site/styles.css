@@ -131,6 +131,14 @@ legend {
   font: inherit;
 }
 
+.field.checkbox-field {
+  justify-content: flex-start;
+}
+
+.field.checkbox-field input {
+  width: auto;
+}
+
 .field.has-slider {
   flex-wrap: wrap;
 }

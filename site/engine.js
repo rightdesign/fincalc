@@ -112,6 +112,10 @@ export function netSaleProceeds(v) {
 //   cover the same housing need on equal cash out. Its net worth is investment
 //   capital plus the new home's value net of selling costs, capital-gains tax
 //   (cost basis = price paid) and mortgage, the same after-sale basis as stay.
+//   With useProceeds off (v.useProceeds === 0) the purchase is not drawn from the
+//   sale proceeds: the net proceeds less moving costs are invested at year 0 as
+//   in the sell path, and the new mortgage plus funds outside the model pay for
+//   the home. Anything else (including absent) keeps the default, on.
 //   downsizeBreakevenYear is the first year (1 or later) the downsize path is at
 //   or ahead of the stay path, else null.
 export function project(values) {
@@ -131,7 +135,8 @@ export function project(values) {
     ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
   }).netProceeds;
   const buyingCosts = v.newHomePrice * pct(v.newBuyingCostsPct);
-  let downsizeCapital = sale.netProceeds - v.movingCosts - (v.newHomePrice + buyingCosts - v.newMortgageAmount);
+  const useProceeds = v.useProceeds !== 0;
+  let downsizeCapital = sale.netProceeds - v.movingCosts - (useProceeds ? v.newHomePrice + buyingCosts - v.newMortgageAmount : 0);
   let newHomeValue = v.newHomePrice;
   let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount);
   let homeValue = v.homeValue;

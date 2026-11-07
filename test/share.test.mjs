@@ -35,3 +35,13 @@ test('garbage input does not throw', () => {
   assert.doesNotThrow(() => decodeInputs('%E0%A4%A'));
   assert.doesNotThrow(() => decodeInputs(null));
 });
+
+test('useProceeds defaults to checked and round-trips when unchecked', () => {
+  assert.equal(defaultValues().useProceeds, 1);
+  assert.equal(decodeInputs('').useProceeds, 1);
+  assert.equal(encodeInputs(defaultValues()), '');
+  const off = { ...defaultValues(), useProceeds: 0 };
+  assert.match(encodeInputs(off), /useProceeds=0/);
+  assert.equal(decodeInputs(encodeInputs(off)).useProceeds, 0);
+  assert.equal(decodeInputs('useProceeds=junk').useProceeds, 1);
+});

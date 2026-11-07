@@ -22,6 +22,11 @@ function renderField(field, value) {
       const opt = new Option(o.label, o.value, false, o.value === value);
       input.append(opt);
     }
+  } else if (field.kind === 'checkbox') {
+    input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = value === 1;
+    label.classList.add('checkbox-field');
   } else {
     input = document.createElement('input');
     input.type = 'number';
@@ -52,6 +57,8 @@ function renderField(field, value) {
     });
     input.setAttribute('aria-describedby', tip.id);
     text.append(' ', hint);
+    // The checkbox's explanation is always shown, directly under it.
+    if (field.kind === 'checkbox') tip.classList.add('open');
     label.hintText = tip;
   }
   if (field.slider) {
@@ -76,7 +83,8 @@ function renderField(field, value) {
     if (label.hintText) label.append(label.hintText);
     return label;
   }
-  label.append(text, input);
+  if (field.kind === 'checkbox') label.append(input, text);
+  else label.append(text, input);
   if (label.hintText) label.append(label.hintText);
   return label;
 }
@@ -177,7 +185,10 @@ function renderForm(container) {
 // Current form contents as numbers (null where blank or invalid).
 export function readInputs(form) {
   const out = {};
-  for (const field of FIELDS) out[field.id] = parseValue(field, form.elements[field.id].value);
+  for (const field of FIELDS) {
+    const el = form.elements[field.id];
+    out[field.id] = parseValue(field, field.kind === 'checkbox' ? (el.checked ? '1' : '0') : el.value);
+  }
   const rows = [...form.querySelectorAll('.repair-row')].map((r) => ({
     year: r.querySelector('[name="repair-year"]').value,
     amount: r.querySelector('[name="repair-amount"]').value,
@@ -190,7 +201,8 @@ export function readInputs(form) {
 function writeInputs(form, values) {
   for (const field of FIELDS) {
     if (values[field.id] == null) continue;
-    form.elements[field.id].value = values[field.id];
+    if (field.kind === 'checkbox') form.elements[field.id].checked = values[field.id] === 1;
+    else form.elements[field.id].value = values[field.id];
     if (field.slider) form.elements[`${field.id}-slider`].value = values[field.id];
   }
   form.querySelectorAll('.repair-row').forEach((r) => r.remove());
