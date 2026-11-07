@@ -4,6 +4,7 @@
 // fragment so the page can be bookmarked and shared.
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
+import { csvFilename, tableCsv } from './export.js';
 import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
 import { buildResults, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
@@ -204,17 +205,46 @@ function mountScenarios(form, update) {
   return box;
 }
 
+// The sections last rendered, so a CSV button can find its table.
+let shown = [];
+
 function renderResults(container, form) {
   const values = readInputs(form);
   const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
   if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
   if (missing.length) {
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
+    shown = [];
     return;
   }
   const { sections, sensitivity, costSummary } = buildResults(values);
-  container.innerHTML = costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('') + sensitivityHtml(sensitivity);
+  shown = sections;
+  container.innerHTML = costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download table as CSV</button></p></section>`).join('') + sensitivityHtml(sensitivity);
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
+}
+
+// Saves one section's table as a CSV file.
+function downloadCsv(section) {
+  const url = URL.createObjectURL(new Blob([tableCsv(section)], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = csvFilename(section);
+  document.body.append(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Every table is printed, so closed <details> are opened around printing and
+// put back afterwards.
+function mountPrinting(container) {
+  const opened = [];
+  window.addEventListener('beforeprint', () => {
+    container.querySelectorAll('details:not([open])').forEach((d) => { d.open = true; opened.push(d); });
+  });
+  window.addEventListener('afterprint', () => {
+    opened.splice(0).forEach((d) => { d.open = false; });
+  });
 }
 
 // Pointer, touch and keyboard all drive one "active year": a crosshair, a
@@ -280,7 +310,7 @@ function attachHover(wrap, section) {
 function mountSharing(form, update) {
   const box = document.createElement('div');
   box.className = 'share';
-  box.innerHTML = `<button type="button" data-act="copy">Copy link to these inputs</button> <button type="button" data-act="reset">Reset to defaults</button> <span class="share-message" role="status"></span>`;
+  box.innerHTML = `<button type="button" data-act="copy">Copy link to these inputs</button> <button type="button" data-act="reset">Reset to defaults</button> <button type="button" data-act="print">Print or save as PDF</button> <span class="share-message" role="status"></span>`;
   const message = box.querySelector('.share-message');
   const say = (text) => { message.textContent = text; };
 
@@ -311,6 +341,8 @@ function mountSharing(form, update) {
     if (act === 'copy') {
       save();
       try { await navigator.clipboard.writeText(location.href); say('Link copied.'); } catch { say('Copy failed; copy the address from the browser bar instead.'); }
+    } else if (act === 'print') {
+      window.print();
     } else if (act === 'reset') {
       restore('');
       save();
@@ -326,6 +358,12 @@ if (root) {
   results.id = 'results';
   results.setAttribute('aria-live', 'polite');
   const update = () => renderResults(results, form);
+  results.addEventListener('click', (e) => {
+    const id = e.target.closest('button[data-csv]')?.dataset.csv;
+    const section = shown.find((s) => s.id === id);
+    if (section) downloadCsv(section);
+  });
+  mountPrinting(results);
   const sharing = mountSharing(form, update);
   // Loading a scenario rewrites the form without form events, so save explicitly.
   root.append(sharing, mountScenarios(form, () => { update(); sharing.save(); }), results);

@@ -319,3 +319,13 @@ legend {
 
 .share { margin: 0 0 1rem; }
 .share-message { margin-left: 0.5rem; }
+
+@media print {
+  :root { --bg: #fff; --panel: #fff; --border: #ccc; --rule: #ddd; --text: #000; --muted: #555; --grid: #eee; --guide: #555; --ring-fill: #fff; }
+  body { background: #fff; color: #000; }
+  #inputs, .share, .scenarios, .no-print, .site-footer, details > summary { display: none; }
+  .result { break-inside: avoid; }
+  .result table { color: #000; }
+  .table-wrap { overflow: visible; }
+  .chart-card { display: none; }
+}
