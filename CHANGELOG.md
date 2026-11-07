@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.32.2] — 2026-11-07
+
+- FINC-047 The cost summary now shows the total cash the household must supply over the full time horizon for each path.
+
 ## [0.32.1] — 2026-11-07
 
 - FINC-046 The Investable cash table now shows the monthly rent, how much of it the withdrawal income covers (flagged when under 100%) and the amount left out of pocket.
