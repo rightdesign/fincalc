@@ -213,10 +213,240 @@ legend {
   align-items: start;
 }
 
+/* The inputs rail stays in view and scrolls by itself, so the results are never pushed down. */
+.rail {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.results-area {
+  min-width: 0;
+}
+
 @media (max-width: 50rem) {
   .calculator {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* Accordion groups in the rail. */
+.group {
+  margin: 0 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+}
+
+.group > h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-toggle:focus-visible,
+.tab:focus-visible,
+.chip:focus-visible,
+.tab-panel:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.group-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--series-2);
+}
+
+.group-dot[hidden] {
+  display: none;
+}
+
+.group.open > h3 {
+  border-bottom: 1px solid var(--rule);
+}
+
+.group-body {
+  padding: 0.25rem 0.75rem 0.75rem;
+}
+
+.group-body[hidden] {
+  display: none;
+}
+
+/* Scenario chips. */
+.scenarios {
+  margin-bottom: 0.75rem;
+}
+
+.scenario-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.chip-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chip,
+.chip-remove {
+  padding: 0.125rem 0.75rem;
+  border: 1px solid var(--focus);
+  border-radius: 999px;
+  background: none;
+  color: var(--focus);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--focus);
+  color: var(--bg);
+}
+
+.chip-group .chip {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.chip-remove {
+  padding: 0.125rem 0.5rem;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Headline numbers, tabs and panels. */
+.results-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.results-head .share {
+  margin: 0;
+}
+
+.share-menu {
+  display: inline-block;
+}
+
+.share-menu summary {
+  cursor: pointer;
+}
+
+.share-items {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+}
+
+.print-options {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kpi {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+}
+
+.kpi-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.kpi strong {
+  font-size: 1.0625rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--rule);
+  overflow-x: auto;
+}
+
+.tab {
+  flex: none;
+  margin-bottom: -2px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--focus);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.print-summary {
+  display: none;
+}
+
+.print-summary ul {
+  columns: 2;
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
 /* A "?" next to a label; hovering or focusing it shows the field's definition and typical range.
@@ -352,8 +582,8 @@ legend {
   font-size: 0.9rem;
 }
 
-.scenarios {
-  margin-bottom: 1.5rem;
+.scenario-save[hidden] {
+  display: none;
 }
 .scenario-save {
   display: flex;
@@ -381,12 +611,19 @@ legend {
 
 @media print {
   :root { --bg: #fff; --panel: #fff; --border: #ccc; --rule: #ddd; --text: #000; --muted: #555; --grid: #eee; --guide: #555; --ring-fill: #fff; }
-  body { background: #fff; color: #000; }
-  #inputs, .share, .scenarios, .no-print, .site-footer, details > summary, .toggle-all { display: none; }
+  @page { margin: 1.5cm; }
+  body { background: #fff; color: #000; max-width: none; padding: 0; }
+  .calculator { display: block; }
+  .rail, .results-head, .tabs, .no-print, .site-footer, .print-skip, .toggle-all, details > summary { display: none !important; }
+  .tab-panel, .tab-panel[hidden] { display: block; }
+  .print-summary { display: block; }
   .result { break-inside: avoid; }
   .result table { color: #000; }
   .table-wrap { overflow: visible; }
   .chart-card { display: none; }
+  .chart-table { display: none; }
+  .print-tables .chart-table { display: block; font-size: 0.75rem; }
+  .headline { break-inside: avoid; }
 }
 
 .shortfall-notice {

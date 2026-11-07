@@ -208,3 +208,25 @@ test('the proceeds setting reaches the year-0 numbers, tables and verdict', () =
   assert.doesNotMatch(on.sections[0].summary, /outside this model/);
   assert.match(off.costSummary.headlines[1], /staying\./);
 });
+
+test('the headline strip shows both break-even years and the final net worth of the three paths', async () => {
+  const { headlineHtml } = await import('../site/results.js');
+  const { headline } = buildResults(defaultValues());
+  const html = headlineHtml(headline);
+  assert.match(html, /Sell pulls ahead/);
+  assert.match(html, /Downsize pulls ahead/);
+  assert.ok(html.includes(`year ${defaultValues().horizon}`));
+  assert.ok(html.includes(formatMoney(headline.sell)));
+  assert.match(headlineHtml({ ...headline, breakevenYear: null }), /Not within horizon/);
+});
+
+test('changedInputs lists only inputs that differ from the defaults, plus repairs', async () => {
+  const { changedInputs } = await import('../site/results.js');
+  const { FIELDS } = await import('../site/inputs.js');
+  const defaults = defaultValues();
+  assert.deepEqual(changedInputs({ ...defaults, repairs: [] }, FIELDS, defaults), []);
+  const list = changedInputs({ ...defaults, homeValue: 123, repairs: [{ year: 3, amount: 5000 }] }, FIELDS, defaults);
+  assert.equal(list.length, 2);
+  assert.deepEqual(list[0], [FIELDS.find((f) => f.id === 'homeValue').label, '123']);
+  assert.deepEqual(list[1], ['Major repair', 'year 3, $5,000']);
+});

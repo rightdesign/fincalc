@@ -6,7 +6,7 @@ import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from 
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
 import { csvFilename, tableCsv } from './export.js';
 import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
-import { buildResults, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
+import { buildResults, changedInputs, headlineHtml, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -96,10 +96,8 @@ function renderField(field, value) {
 // user adds and removes. Rows live in the DOM (.repair-row) and are read by
 // readInputs.
 function renderRepairs() {
-  const fieldset = document.createElement('fieldset');
-  fieldset.className = 'repairs';
-  const legend = document.createElement('legend');
-  legend.textContent = 'Major repairs';
+  const box = document.createElement('div');
+  box.className = 'repairs';
   const note = document.createElement('p');
   note.className = 'hint-note';
   note.textContent = 'Optional. Lump-sum costs such as a new roof or HVAC, in that year\'s dollars. They are added to your owning costs in the year you choose.';
@@ -137,8 +135,47 @@ function renderRepairs() {
     row.querySelector('input').focus();
   };
   add.addEventListener('click', addRow);
-  fieldset.append(legend, note, list, add);
-  return fieldset;
+  box.append(note, list, add);
+  return box;
+}
+
+// Groups that share one accordion section in the rail.
+const GROUP_TITLES = { Inflation: 'Inflation & horizon', 'Time horizon': 'Inflation & horizon' };
+const GROUP_KEY = 'fincalc.group';
+const DEFAULT_GROUP = 'Home';
+
+// One collapsible group: a header button (name and input count) over a body.
+// Only one group is open at a time; the open one is remembered.
+function makeGroup(title, count) {
+  const group = document.createElement('div');
+  group.className = 'group';
+  group.dataset.group = title;
+  const id = `group-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  const head = document.createElement('h3');
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'group-toggle';
+  toggle.id = `${id}-toggle`;
+  toggle.setAttribute('aria-controls', id);
+  toggle.innerHTML = `<span class="group-name">${esc(title)}</span><span class="group-meta"><span class="group-dot" role="img" aria-label="Needs attention" hidden></span><span class="group-count">${count} ${count === 1 ? 'input' : 'inputs'}</span></span>`;
+  head.append(toggle);
+  const body = document.createElement('div');
+  body.className = 'group-body';
+  body.id = id;
+  body.setAttribute('role', 'group');
+  body.setAttribute('aria-labelledby', toggle.id);
+  group.append(head, body);
+  return { group, body };
+}
+
+function openGroup(form, title) {
+  for (const g of form.querySelectorAll('.group')) {
+    const open = g.dataset.group === title;
+    g.classList.toggle('open', open);
+    g.querySelector('.group-toggle').setAttribute('aria-expanded', String(open));
+    g.querySelector('.group-body').hidden = !open;
+  }
+  try { localStorage.setItem(GROUP_KEY, title); } catch { /* storage unavailable */ }
 }
 
 function renderForm(container) {
@@ -156,26 +193,32 @@ function renderForm(container) {
   helpToggle.append(helpBox, ' Show all help text');
   form.append(helpToggle);
 
-  let fieldset = null;
-  let group = null;
-  for (const field of FIELDS) {
-    if (field.group !== group) {
-      group = field.group;
-      fieldset = document.createElement('fieldset');
-      const legend = document.createElement('legend');
-      legend.textContent = group;
-      fieldset.append(legend);
-      form.append(fieldset);
-    }
-    fieldset.append(renderField(field, values[field.id]));
+  const titles = [...new Set(FIELDS.map((f) => GROUP_TITLES[f.group] ?? f.group))];
+  const bodies = {};
+  for (const title of titles) {
+    const { group, body } = makeGroup(title, FIELDS.filter((f) => (GROUP_TITLES[f.group] ?? f.group) === title).length);
+    bodies[title] = body;
+    form.append(group);
   }
+  for (const field of FIELDS) bodies[GROUP_TITLES[field.group] ?? field.group].append(renderField(field, values[field.id]));
 
   const waterfall = document.createElement('div');
   waterfall.className = 'waterfall table-wrap';
   waterfall.setAttribute('aria-live', 'polite');
-  form.elements.newHoaMonthly.closest('fieldset').append(waterfall);
+  bodies['If you downsize'].append(waterfall);
 
-  form.append(renderRepairs());
+  const { group: repairsGroup, body: repairsBody } = makeGroup('Major repairs', 0);
+  repairsBody.append(renderRepairs());
+  repairsGroup.querySelector('.group-count').textContent = 'optional';
+  form.append(repairsGroup);
+
+  form.addEventListener('click', (e) => {
+    const toggle = e.target.closest('.group-toggle');
+    if (toggle) openGroup(form, toggle.closest('.group').dataset.group);
+  });
+  let remembered = null;
+  try { remembered = localStorage.getItem(GROUP_KEY); } catch { /* storage unavailable */ }
+  openGroup(form, form.querySelector(`.group[data-group="${CSS.escape(remembered ?? '')}"]`) ? remembered : DEFAULT_GROUP);
 
   // The horizon follows the mortgage term until the user sets it themselves.
   const term = form.elements.mortgageTerm;
@@ -189,7 +232,7 @@ function renderForm(container) {
   form.addEventListener('change', () => syncProceedsFields(form));
   syncProceedsFields(form);
 
-  container.replaceChildren(form);
+  container.append(form);
   return form;
 }
 
@@ -244,47 +287,104 @@ function writeInputs(form, values) {
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// Save/load/remove named scenarios and a comparison table of their verdicts.
+// Saved named scenarios as chips at the top of the rail: "Current" (the live
+// inputs) plus up to MAX_SCENARIOS saved ones. Loading a scenario keeps the
+// live inputs aside so the Current chip can bring them back; editing any input
+// makes the inputs "Current" again. The side-by-side comparison is a results tab.
 function mountScenarios(form, update) {
   const box = document.createElement('section');
   box.className = 'scenarios';
-  let list = [];
-  try { list = parseStored(localStorage.getItem(STORAGE_KEY)); } catch { /* storage unavailable */ }
-  const persist = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch { /* storage unavailable */ } };
+  const state = { list: [] };
+  try { state.list = parseStored(localStorage.getItem(STORAGE_KEY)); } catch { /* storage unavailable */ }
+  const persist = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.list)); } catch { /* storage unavailable */ } };
+  let active = null;
+  let stash = null;
+  let saving = false;
+  let message = '';
 
-  const render = (message = '') => {
-    const comparison = list.length ? compareScenarios(list) : null;
-    box.innerHTML = `<h2>Scenarios</h2>
-      <p class="hint-note">Save up to ${MAX_SCENARIOS} named variants of your inputs (for example base, optimistic and pessimistic) and compare their verdicts side by side. They are stored only in this browser.</p>
-      <div class="scenario-save"><label class="field"><span>Scenario name</span><input type="text" name="scenario-name" maxlength="40"></label><button type="button" data-act="save">Save current inputs</button></div>
-      <p class="scenario-message" role="status">${esc(message)}</p>
-      <ul class="scenario-list">${list.map((s) => `<li>${esc(s.name)} <button type="button" data-act="load" data-name="${esc(s.name)}">Load</button> <button type="button" data-act="remove" data-name="${esc(s.name)}">Remove</button></li>`).join('')}</ul>
-      ${comparison ? `<div class="table-wrap"><table class="scenario-compare"><thead><tr><th></th>${comparison.names.map((n) => `<th scope="col">${esc(n)}</th>`).join('')}</tr></thead><tbody>${comparison.rows.map(([l, ...c]) => `<tr><th scope="row">${esc(l)}</th>${c.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}`;
+  const render = () => {
+    const chips = state.list.map((s) => `<span class="chip-group"><button type="button" class="chip" data-act="load" data-name="${esc(s.name)}" aria-pressed="${active === s.name}">${esc(s.name)}</button><button type="button" class="chip-remove" data-act="remove" data-name="${esc(s.name)}" aria-label="Remove scenario ${esc(s.name)}">&times;</button></span>`).join('');
+    const full = state.list.length >= MAX_SCENARIOS;
+    box.innerHTML = `<div class="scenario-chips"><strong>Scenario</strong> <button type="button" class="chip" data-act="current" aria-pressed="${active == null}">Current</button>${chips} <button type="button" data-act="save-open"${saving ? ' hidden' : ''}>Save as&hellip;</button></div>
+      <div class="scenario-save"${saving ? '' : ' hidden'}><label class="field"><span>Scenario name</span><input type="text" name="scenario-name" maxlength="40"></label><button type="button" data-act="save">Save</button><button type="button" data-act="save-cancel">Cancel</button></div>
+      <p class="scenario-message" role="status">${esc(message)}</p>`;
+    if (saving) box.querySelector('[name="scenario-name"]').focus();
+    message = '';
   };
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.name === 'scenario-name') { e.preventDefault(); box.querySelector('[data-act="save"]').click(); }
+    if (e.key === 'Escape' && saving) { saving = false; render(); }
+  });
   box.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
     const { act, name } = btn.dataset;
-    if (act === 'save') {
+    if (act === 'save-open') {
+      if (state.list.length >= MAX_SCENARIOS) message = `You can keep up to ${MAX_SCENARIOS} scenarios. Remove one first.`;
+      else saving = true;
+      render();
+    } else if (act === 'save-cancel') {
+      saving = false;
+      render();
+    } else if (act === 'save') {
       const values = readInputs(form);
       const missing = FIELDS.some((f) => values[f.id] == null) || values.repairs == null;
-      if (missing) return render('Fix the inputs before saving; some values are missing or invalid.');
-      const next = addScenario(list, box.querySelector('[name="scenario-name"]').value, values);
-      if (next.error) return render(next.error);
-      list = next;
+      if (missing) { message = 'Fix the inputs before saving; some values are missing or invalid.'; return render(); }
+      const next = addScenario(state.list, box.querySelector('[name="scenario-name"]').value, values);
+      if (next.error) { message = next.error; return render(); }
+      state.list = next;
       persist();
-      render('Scenario saved.');
-    } else if (act === 'load') {
-      const s = list.find((x) => x.name === name);
-      if (s) { writeInputs(form, s.values); update(); }
-    } else if (act === 'remove') {
-      list = removeScenario(list, name);
-      persist();
+      saving = false;
+      active = null;
+      stash = null;
+      message = 'Scenario saved.';
       render();
+      update();
+    } else if (act === 'load') {
+      const s = state.list.find((x) => x.name === name);
+      if (!s) return;
+      if (active == null) {
+        const current = readInputs(form);
+        stash = FIELDS.some((f) => current[f.id] == null) || current.repairs == null ? null : current;
+      }
+      active = s.name;
+      writeInputs(form, s.values);
+      render();
+      update();
+    } else if (act === 'current') {
+      if (active != null && stash) writeInputs(form, stash);
+      active = null;
+      stash = null;
+      render();
+      update();
+    } else if (act === 'remove') {
+      if (!confirm(`Remove the scenario "${name}"?`)) return;
+      state.list = removeScenario(state.list, name);
+      persist();
+      if (active === name) active = null;
+      render();
+      update();
     }
   });
+  // Typing into an input leaves any loaded scenario behind.
+  const edited = (e) => {
+    if (active == null || !form.contains(e.target)) return;
+    active = null;
+    stash = null;
+    render();
+  };
+  form.addEventListener('input', edited);
+  form.addEventListener('change', edited);
   render();
+  box.state = state;
   return box;
+}
+
+// The "Compare scenarios" tab: the saved scenarios side by side.
+function compareHtml(list) {
+  if (!list.length) return '<p class="placeholder">Save a scenario to compare it.</p>';
+  const c = compareScenarios(list);
+  return `<div class="table-wrap"><table class="scenario-compare"><thead><tr><th></th>${c.names.map((n) => `<th scope="col">${esc(n)}</th>`).join('')}</tr></thead><tbody>${c.rows.map(([l, ...cells]) => `<tr><th scope="row">${esc(l)}</th>${cells.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
 // The downsize inputs' notice that the new home is not covered by the sale
@@ -295,7 +395,7 @@ function showShortfall(form, text) {
     note = document.createElement('p');
     note.className = 'shortfall-notice';
     note.setAttribute('role', 'status');
-    [...form.querySelectorAll('legend')].find((l) => l.textContent === 'If you downsize').parentElement.append(note);
+    form.querySelector('.group[data-group="If you downsize"] .group-body').append(note);
   }
   note.textContent = text;
   note.hidden = !text;
@@ -307,31 +407,69 @@ const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion
 // The sections last rendered, so a CSV button can find its table.
 let shown = [];
 
-function renderResults(container, form) {
+// The result tabs, in order. The first three are charts.
+const TABS = [
+  ['net-worth', 'Net worth'],
+  ['cash-flow', 'Monthly cash flow'],
+  ['investable-cash', 'Investable cash'],
+  ['cost-summary', 'Cost summary'],
+  ['compare', 'Compare scenarios'],
+  ['tables', 'Tables'],
+];
+const ui = { tab: 'net-worth' };
+
+// Shows one tab panel; the chart panels are all shown when printing (see the print CSS).
+function selectTab(container, id, focus = false) {
+  if (!TABS.some(([t]) => t === id)) id = TABS[0][0];
+  ui.tab = id;
+  for (const btn of container.querySelectorAll('[role="tab"]')) {
+    const on = btn.dataset.tab === id;
+    btn.setAttribute('aria-selected', String(on));
+    btn.tabIndex = on ? 0 : -1;
+    if (on && focus) btn.focus();
+  }
+  for (const panel of container.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.dataset.tab !== id;
+}
+
+function renderResults(container, form, scenarios) {
   const values = readInputs(form);
   const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
   if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
   const waterfall = form.querySelector('.waterfall');
   const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
   waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
+  // A group header shows a dot while its inputs are invalid or it carries a notice, even when closed.
+  const flag = (title, on) => { const dot = form.querySelector(`.group[data-group="${title}"] .group-dot`); if (dot) dot.hidden = !on; };
+  for (const g of form.querySelectorAll('.group')) {
+    const title = g.dataset.group;
+    flag(title, FIELDS.some((f) => (GROUP_TITLES[f.group] ?? f.group) === title && values[f.id] == null) || (title === 'Major repairs' && values.repairs == null));
+  }
   if (missing.length) {
     showShortfall(form, '');
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     shown = [];
     return;
   }
-  const { sections, sensitivity, costSummary, shortfallNotice } = buildResults(values);
+  const { sections, sensitivity, costSummary, shortfallNotice, headline } = buildResults(values);
   shown = sections;
   showShortfall(form, shortfallNotice);
-  const expand = container.querySelector('#expand-tables');
-  const expanded = expand ? expand.checked : false;
-  container.innerHTML = '<label class="toggle-all"><input type="checkbox" id="expand-tables"> Expand all tables</label>' + costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download table as CSV</button></p></section>`).join('') + sensitivityHtml(sensitivity);
+  if (shortfallNotice) flag('If you downsize', true);
+  const changed = changedInputs(values, FIELDS, defaultValues());
+  const printSummary = `<section class="print-summary"><h2>Scenario inputs (changed from default)</h2>${changed.length ? `<ul>${changed.map(([l, v]) => `<li>${esc(l)}: ${esc(v)}</li>`).join('')}</ul>` : '<p>All inputs are at their defaults.</p>'}</section>`;
+  const chartPanel = (s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details class="chart-table"><summary>Show table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`;
+  const panels = {
+    'net-worth': chartPanel(sections[0]),
+    'cash-flow': chartPanel(sections[1]),
+    'investable-cash': chartPanel(sections[2]),
+    'cost-summary': costSummaryHtml(costSummary) + sensitivityHtml(sensitivity),
+    compare: compareHtml(scenarios.state.list),
+    tables: sections.map((s) => `<section class="result"><h2>${s.title}</h2>${tableHtml(s)}<p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`).join(''),
+  };
+  const tabs = TABS.map(([id, label]) => `<button type="button" role="tab" class="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`).join('');
+  const body = TABS.map(([id]) => `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`).join('');
+  container.innerHTML = `${headlineHtml(headline)}${printSummary}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${body}`;
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
-  const all = container.querySelector('#expand-tables');
-  const setOpen = (open) => container.querySelectorAll('details').forEach((d) => { d.open = open; });
-  all.checked = expanded;
-  if (expanded) setOpen(true);
-  all.addEventListener('change', () => setOpen(all.checked));
+  selectTab(container, ui.tab);
 }
 
 // Saves one section's table as a CSV file.
@@ -346,14 +484,18 @@ function downloadCsv(section) {
   URL.revokeObjectURL(url);
 }
 
-// Every table is printed, so closed <details> are opened around printing and
-// put back afterwards.
+// Printing ignores the tabs (every chart prints) and leaves out the data
+// tables unless the Print button was used with "Include data tables" ticked,
+// which marks the body for the duration; the closed <details> are then opened
+// around printing and put back afterwards.
 function mountPrinting(container) {
   const opened = [];
   window.addEventListener('beforeprint', () => {
+    if (!document.body.classList.contains('print-tables')) return;
     container.querySelectorAll('details:not([open])').forEach((d) => { d.open = true; opened.push(d); });
   });
   window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-tables');
     opened.splice(0).forEach((d) => { d.open = false; });
   });
 }
@@ -421,12 +563,14 @@ function attachHover(wrap, section) {
 function mountSharing(form, update) {
   const box = document.createElement('div');
   box.className = 'share';
-  box.innerHTML = `<button type="button" data-act="copy">Copy link to these inputs</button> <button type="button" data-act="reset">Reset to defaults</button> <button type="button" data-act="print">Print or save as PDF</button> <span class="share-message" role="status"></span>`;
+  box.innerHTML = `<details class="share-menu"><summary>Share &amp; export</summary><div class="share-items"><button type="button" data-act="copy">Copy link to these inputs</button><button type="button" data-act="reset">Reset to defaults</button><div class="print-options"><label><input type="checkbox" id="print-tables"> Include data tables</label><button type="button" data-act="print">Print&hellip;</button></div></div></details><span class="share-message" role="status"></span>`;
   const message = box.querySelector('.share-message');
   const say = (text) => { message.textContent = text; };
 
   const restore = (text) => {
     writeInputs(form, decodeInputs(text));
+    const tab = new URLSearchParams(String(text).replace(/^[#?]/, '')).get('tab');
+    if (tab) ui.tab = tab;
     update();
   };
   let stored = null;
@@ -439,7 +583,11 @@ function mountSharing(form, update) {
     if (FIELDS.some((f) => values[f.id] == null) || values.repairs == null) return;
     const text = encodeInputs(values);
     try { localStorage.setItem(INPUTS_KEY, text); } catch { /* storage unavailable */ }
-    try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
+    // The tab rides along in the address (not in the stored inputs).
+    const params = new URLSearchParams(text);
+    if (ui.tab !== TABS[0][0]) params.set('tab', ui.tab);
+    const hash = params.toString();
+    try { history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search); } catch { /* not allowed here */ }
   };
   form.addEventListener('input', save);
   form.addEventListener('change', save);
@@ -453,6 +601,7 @@ function mountSharing(form, update) {
       save();
       try { await navigator.clipboard.writeText(location.href); say('Link copied.'); } catch { say('Copy failed; copy the address from the browser bar instead.'); }
     } else if (act === 'print') {
+      document.body.classList.toggle('print-tables', box.querySelector('#print-tables').checked);
       window.print();
     } else if (act === 'reset') {
       restore('');
@@ -464,20 +613,47 @@ function mountSharing(form, update) {
 }
 
 if (root) {
-  const form = renderForm(root);
+  const rail = document.createElement('aside');
+  rail.className = 'rail';
+  rail.setAttribute('aria-label', 'Inputs and scenarios');
+  const main = document.createElement('div');
+  main.className = 'results-area';
+  const form = renderForm(document.createDocumentFragment());
   const results = document.createElement('div');
   results.id = 'results';
   results.setAttribute('aria-live', 'polite');
-  const update = () => renderResults(results, form);
+  let scenarios;
+  const update = () => renderResults(results, form, scenarios);
+  scenarios = mountScenarios(form, () => { update(); sharing.save(); });
   results.addEventListener('click', (e) => {
+    const tab = e.target.closest('[role="tab"]');
+    if (tab) { selectTab(results, tab.dataset.tab); sharing.save(); return; }
     const id = e.target.closest('button[data-csv]')?.dataset.csv;
     const section = shown.find((s) => s.id === id);
     if (section) downloadCsv(section);
   });
+  // Arrow keys, Home and End move between tabs.
+  results.addEventListener('keydown', (e) => {
+    const tab = e.target.closest('[role="tab"]');
+    if (!tab) return;
+    const ids = TABS.map(([id]) => id);
+    const i = ids.indexOf(tab.dataset.tab);
+    const next = { ArrowRight: ids[(i + 1) % ids.length], ArrowLeft: ids[(i + ids.length - 1) % ids.length], Home: ids[0], End: ids[ids.length - 1] }[e.key];
+    if (!next) return;
+    e.preventDefault();
+    selectTab(results, next, true);
+    sharing.save();
+  });
   mountPrinting(results);
   const sharing = mountSharing(form, update);
   // Loading a scenario rewrites the form without form events, so save explicitly.
-  root.append(sharing, mountScenarios(form, () => { update(); sharing.save(); }), results);
+  const head = document.createElement('div');
+  head.className = 'results-head';
+  head.append(sharing);
+  rail.append(scenarios);
+  rail.append(form);
+  main.append(head, results);
+  root.replaceChildren(rail, main);
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();

@@ -159,7 +159,9 @@ export function buildResults(values) {
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
-  return { breakevenYear, sections, shortfallNotice: shortfallNotice(downsizeShortfall), costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
+  const end = rows[rows.length - 1];
+  const headline = { breakevenYear, downsizeBreakevenYear, year: end.year, stay: end.stayNetWorth, sell: end.investmentCapital, downsize: end.downsizeNetWorth };
+  return { breakevenYear, headline, sections, shortfallNotice: shortfallNotice(downsizeShortfall), costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.
@@ -285,6 +287,22 @@ export function tableHtml(section) {
 export function sensitivityHtml(lines) {
   const list = (path) => `<ul>${lines.filter((l) => l.path === path).map((l) => `<li>${escape(l.text)}</li>`).join('')}</ul>`;
   return `<section class="result" id="sensitivity"><h2>What drives the verdict</h2><p>The verdict compares each path with staying at the end of your time horizon. For each key assumption, this is the value at which that verdict flips, holding everything else as entered.</p><h3>Selling and renting vs. staying</h3>${list('sell')}<h3>Downsizing vs. staying</h3>${list('downsize')}</section>`;
+}
+
+// The three key numbers kept above the result tabs.
+export function headlineHtml(h) {
+  const year = (y) => (y == null ? 'Not within horizon' : `Year ${y}`);
+  const card = (label, value) => `<div class="kpi"><span class="kpi-label">${escape(label)}</span><strong>${escape(value)}</strong></div>`;
+  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear))}${card('Downsize pulls ahead', year(h.downsizeBreakevenYear))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(formatMoney).join(' / '))}</div>`;
+}
+
+// The inputs that differ from their defaults, as [label, formatted value]
+// pairs, for the summary at the top of a printout.
+export function changedInputs(values, fields, defaults) {
+  const show = (f, v) => (f.kind === 'choice' ? (f.options.find((o) => o.value === v)?.label ?? String(v)) : f.kind === 'checkbox' ? (v === 1 ? 'Yes' : 'No') : String(v));
+  const list = fields.filter((f) => values[f.id] != null && values[f.id] !== defaults[f.id]).map((f) => [f.label, show(f, values[f.id])]);
+  for (const r of values.repairs ?? []) list.push(['Major repair', `year ${r.year}, ${formatMoney(r.amount)}`]);
+  return list;
 }
 
 // The cost summary: headline gaps, then the category table.
