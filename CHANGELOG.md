@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.34.0] — 2026-11-07
+
+- FINC-054 An optional checkbox sets the yearly withdrawal to just cover the rent (or the new home's housing costs when downsizing), overriding the flat withdrawal percentage.
+
 ## [0.33.0] — 2026-11-07
 
 - FINC-048 When you would buy the new home with no mortgage, the downsize inputs and the monthly cash summary now say so: no mortgage payment, a monthly cash need of carrying costs only, and the monthly withdrawal the remaining invested proceeds generate.
