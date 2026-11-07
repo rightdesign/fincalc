@@ -86,6 +86,9 @@ export function netSaleProceeds(v) {
 // - Investment income is investmentWithdrawal% of capital at the start of the
 //   year, less withdrawalTaxRate (tax-deferred money is taxed when taken out):
 //   what the portfolio could pay out after tax, not deducted from capital.
+// - Leaving costs the sell path two one-time amounts up front, taken out of
+//   the net proceeds before investing: moving costs and the rental's upfront
+//   cash (security deposit, first/last month's rent), counted as spent.
 // - Stay net worth is what the owner would net by selling at that point:
 //   home value less selling costs and capital-gains tax (same chain as
 //   netSaleProceeds, on the then-current value and mortgage balance). Sell
@@ -102,7 +105,7 @@ export function project(values) {
 
   const gross = pct(v.investmentGrowth);
   const growth = gross > 0 ? gross * (1 - pct(v.investmentTaxRate)) : gross;
-  let capital = sale.netProceeds;
+  let capital = sale.netProceeds - v.movingCosts - v.rentalUpfront;
   let homeValue = v.homeValue;
   let cumulativeSell = 0;
   let cumulativeStay = 0;

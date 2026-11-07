@@ -164,6 +164,15 @@ test("today's dollars discounts each year by compounded inflation", () => {
   assert.equal(inTodaysDollars(rows, 0)[3].homeValue, rows[3].homeValue);
 });
 
+test('moving costs and rental upfront cash reduce the starting investment', () => {
+  const v = { ...defaultValues(), horizon: 1 };
+  const base = project(v);
+  const costly = project({ ...v, movingCosts: 5000, rentalUpfront: 7500 });
+  close(costly.rows[0].investmentCapital, base.rows[0].investmentCapital - 12500);
+  close(costly.rows[0].netWorthGainLoss, base.rows[0].netWorthGainLoss - 12500);
+  close(costly.rows[1].investmentCapital, base.rows[1].investmentCapital - 12500 * (1 + 0.06 * 0.85));
+});
+
 test('HOA dues grow yearly, count as owning cost and are not tax deductible', () => {
   const v = { ...defaultValues(), horizon: 2, hoaMonthly: 400, hoaGrowth: 5 };
   const base = project({ ...v, hoaMonthly: 0 }).rows;
