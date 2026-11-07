@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.31.0] — 2026-11-07
+
+- FINC-044 The calculator layout is redesigned: inputs are collapsible groups in a sticky left rail with saved scenarios as chips, results sit under a headline strip and tabs (one chart at a time, full width), and printing now uses the full page width with optional data tables and a summary of the changed inputs.
+
 ## [0.30.1] — 2026-11-07
 
 - FINC-050 The methodology now has a section explaining the cash-flow lens versus the net-worth lens: principal builds equity and is not a cost, rent is fully unrecoverable, withdrawals applied to housing are equity converted into income, and staying converts income into equity while selling does the reverse.
