@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.27.1] — 2026-11-07
+
+- FINC-038 Downsize shortfalls are flagged: when sale proceeds and the new mortgage do not cover the new home, buying and moving costs, a notice shows the amount and the investable-cash section and methodology say it is drawn from other savings.
+
 ## [0.27.0] — 2026-11-07
 
 - FINC-037 The "If you downsize" section now shows a live sale-proceeds breakdown: sale price, selling costs, capital gains tax and mortgage payoff down to net proceeds, then the new home, buying costs, new mortgage and moving costs down to the amount invested at year 0 (or the shortfall).
