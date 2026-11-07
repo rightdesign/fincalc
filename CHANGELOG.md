@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.23.0] — 2026-11-07
+
+- FINC-032 The page now explains its math in a "Methodology and assumptions" section (mortgage amortization, principal versus cost, how costs grow, withdrawals, nominal versus real dollars, break-even) and carries a not-financial-advice disclaimer.
+
 ## [0.22.0] — 2026-11-07
 
 - FINC-031 You can now download each year-by-year table as a CSV file and print the whole comparison or save it as a PDF.
