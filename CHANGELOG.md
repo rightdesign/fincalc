@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.12.0] — 2026-11-07
+
+- FINC-021 Property tax, insurance and maintenance can each grow at their own annual rate.
+
 ## [0.11.0] — 2026-11-07
 
 - FINC-020 The stay path now nets out selling costs and capital-gains tax at the end of the horizon, so both paths are compared after sale and after tax.
