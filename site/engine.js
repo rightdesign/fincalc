@@ -124,6 +124,9 @@ export function downsizeFunding(v) {
 // - Investment income is investmentWithdrawal% of capital at the start of the
 //   year, less withdrawalTaxRate (tax-deferred money is taxed when taken out):
 //   what the portfolio could pay out after tax, not deducted from capital.
+// - With withdrawToCoverRent on, the income is instead just what pays that
+//   year's rent (the downsize path: its housing outflow), capped at what the
+//   capital can pay after tax; the withdrawal rate is ignored.
 // - Leaving costs the sell path two one-time amounts up front, taken out of
 //   the net proceeds before investing: moving costs and the rental's upfront
 //   cash (security deposit, first/last month's rent), counted as spent.
@@ -165,6 +168,17 @@ export function downsizeFunding(v) {
 // pays nothing.
 function outOfPocket(annualOutflow, annualWithdrawal) {
   return Math.max(0, annualOutflow - Math.max(0, annualWithdrawal)) / 12;
+}
+
+// After-tax portfolio income for a year. Normally the withdrawal rate times
+// the capital at the start of the year, less tax on withdrawals. With
+// v.withdrawToCoverRent === 1 the rate is ignored: the household withdraws just
+// enough to pay `need` (the rent, or the new home's housing outflow), capped at
+// what the capital can pay after tax, and nothing when capital is not positive.
+function portfolioIncome(v, capital, need) {
+  const keep = 1 - pct(v.withdrawalTaxRate);
+  if (v.withdrawToCoverRent !== 1) return capital * pct(v.investmentWithdrawal) * keep;
+  return Math.min(Math.max(0, need), Math.max(0, capital) * keep);
 }
 
 export function project(values) {
@@ -221,7 +235,7 @@ export function project(values) {
     const unrecoverableCost = propertyTax + insurance + maintenance + hoa + repairs + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
-    const investmentIncome = capital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
+    const investmentIncome = portfolioIncome(v, capital, rentCost);
     const contribution = unrecoverableCost + principal - rentCost;
     capital = capital * (1 + growth) + contribution;
 
@@ -233,7 +247,7 @@ export function project(values) {
     const newHoa = v.newHoaMonthly * 12 * (1 + pct(v.hoaGrowth)) ** (y - 1);
     const newTaxSavings = housingTaxSavings(v, newPay.interest, newPropertyTax);
     const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
-    const downsizeIncome = downsizeCapital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
+    const downsizeIncome = portfolioIncome(v, downsizeCapital, downsizeCost + newPay.principal);
     downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal);
     downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, newPay.balance) - outsideFunds;
 

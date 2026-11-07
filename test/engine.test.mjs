@@ -312,3 +312,18 @@ test('out-of-pocket cash: stay pays the full cost, others net off portfolio with
   const none = project({ ...v, investmentWithdrawal: 0 }).rows[1];
   assert.ok(Math.abs(none.monthlySellOutOfPocket - none.monthlyRentCost) < 1e-9);
 });
+
+test('withdraw-to-cover-rent sets income to the rent, ignoring the withdrawal percentage', () => {
+  const v = { ...defaultValues(), horizon: 5, investmentWithdrawal: 0, withdrawalTaxRate: 20 };
+  const off = project(v).rows[1];
+  close(off.investmentIncome, 0);
+  const on = project({ ...v, withdrawToCoverRent: 1 });
+  for (const r of on.rows.slice(1)) {
+    close(r.investmentIncome, r.rentCost);
+    close(r.monthlySellOutOfPocket, 0);
+    assert.ok(r.downsizeInvestmentIncome <= r.monthlyDownsizeCost * 12 + 1e-6);
+  }
+  // capped at what the capital can pay after tax
+  const tiny = project({ ...v, withdrawToCoverRent: 1, rent: 1e7 }).rows[1];
+  close(tiny.investmentIncome, project(v).rows[0].investmentCapital * 0.8);
+});

@@ -94,6 +94,9 @@ export function selfFundingRent(values) {
     return { ...base, rate: null, rent: null, text: 'Self-funding rent: the invested proceeds are nothing after moving and rental costs, so they cannot pay any rent.' };
   }
   const rate = (annualRent / (capital * keep)) * 100;
+  if (values.withdrawToCoverRent === 1) {
+    return { ...base, rate, rent: null, text: `Self-funding rent: withdrawals are set to cover the rent, so selling pays the first year's rent in full by withdrawing ${fmt(rate)} a year of the ${usd.format(capital)} invested (the withdrawal percentage is not used).` };
+  }
   const rent = Math.max(0, (capital * (values.investmentWithdrawal / 100) * keep - values.rentersInsurance) / 12);
   const income = capital * (values.investmentWithdrawal / 100) * keep;
   const result = income >= annualRent

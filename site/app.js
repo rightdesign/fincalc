@@ -244,6 +244,8 @@ function syncProceedsFields(form) {
   form.elements.proceedsMode.disabled = !on;
   form.elements.proceedsAmount.disabled = !on || mode !== 'amount';
   form.elements.proceedsPercent.disabled = !on || mode !== 'percent';
+  // The withdrawal percentage is not used when withdrawals are set to cover the rent.
+  form.elements.investmentWithdrawal.disabled = form.elements.withdrawToCoverRent.checked;
 }
 
 // Current form contents as numbers (null where blank or invalid).
