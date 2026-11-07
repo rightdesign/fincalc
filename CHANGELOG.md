@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.14.0] — 2026-11-07
+
+- FINC-023 The sell path now charges optional one-time moving costs and rental deposit/upfront rent, taken out of the proceeds before investing.
+
 ## [0.13.0] — 2026-11-07
 
 - FINC-022 Added monthly HOA dues with their own annual growth rate to the owning costs.
