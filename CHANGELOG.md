@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.32.1] — 2026-11-07
+
+- FINC-046 The Investable cash table now shows the monthly rent, how much of it the withdrawal income covers (flagged when under 100%) and the amount left out of pocket.
+
 ## [0.32.0] — 2026-11-07
 
 - FINC-045 A new "Cash you must supply" chart and cost-summary rows show the monthly cash the household must come up with under staying, selling and renting, and downsizing, after portfolio withdrawals applied to housing.
