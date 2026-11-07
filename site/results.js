@@ -94,7 +94,7 @@ function costSummary(values, projection, rows) {
       row('Total costs', (p) => p.initial + p.recurring + p.opportunity),
       row(`Net proceeds (year ${end.year})`, (p) => p.net),
     ],
-    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only.${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
+    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only.${downsizeFunding(values).outsideFunds > 0.5 ? ' Downsize net proceeds leave out the money from outside this model that pays for the new home.' : ''}${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
   };
 }
 
@@ -110,7 +110,7 @@ export function buildResults(values) {
   const netWorth = {
     id: 'net-worth',
     title: 'Net worth',
-    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.`,
+    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out, so the three paths stay comparable.' : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.downsizeNetWorth), formatMoney(r.netWorthGainLoss), formatMoney(r.downsizeGainLoss)]),
     series: [

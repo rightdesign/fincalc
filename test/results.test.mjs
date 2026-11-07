@@ -181,3 +181,15 @@ test('the downsize waterfall leaves out the purchase when the proceeds are not u
   assert.equal(w.steps.some((s) => s.label === 'New home price'), false);
   assert.equal(w.invested, w.steps.find((s) => s.label === 'Net proceeds').amount - v.movingCosts);
 });
+
+test('unchecked proceeds mode: summaries say the outside money is left out, checked mode does not', async () => {
+  const { buildResults } = await import('../site/results.js');
+  const off = buildResults({ ...defaultValues(), useProceeds: 0 });
+  assert.match(off.sections[0].summary, /outside this model/);
+  assert.match(off.costSummary.note, /outside this model/);
+  const on = buildResults({ ...defaultValues(), useProceeds: 1 });
+  assert.doesNotMatch(on.sections[0].summary, /outside this model/);
+  assert.doesNotMatch(on.costSummary.note, /outside this model/);
+  const capped = buildResults({ ...defaultValues(), useProceeds: 1, proceedsMode: 'amount', proceedsAmount: 1000 });
+  assert.match(capped.sections[0].summary, /outside this model/);
+});

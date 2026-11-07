@@ -147,7 +147,11 @@ export function downsizeFunding(v) {
 //   in the sell path, and the new mortgage plus funds outside the model pay for
 //   the home. proceedsMode 'amount' / 'percent' (of net proceeds) caps what is
 //   drawn from the proceeds when useProceeds is on; the rest is outside funds.
-//   Anything else (including absent) keeps the default, on.
+//   Outside money (`outsideFunds`: price + buying costs - mortgage, less any
+//   part drawn from the proceeds) is not part of the comparison, so the downsize
+//   net worth is reduced by it, in the capped mode as well as the unchecked one.
+//   That keeps year 0 level and the three paths comparable. Anything else
+//   (including absent) keeps the default, on.
 //   downsizeBreakevenYear is the first year (1 or later) the downsize path is at
 //   or ahead of the stay path, else null.
 export function project(values) {
@@ -166,10 +170,12 @@ export function project(values) {
   const newNetSale = (homeValue, mortgageBalance) => netSaleProceeds({
     ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
   }).netProceeds;
-  let downsizeCapital = downsizeFunding(v).invested;
+  const funding = downsizeFunding(v);
+  const outsideFunds = funding.outsideFunds;
+  let downsizeCapital = funding.invested;
   const downsizeShortfall = v.useProceeds !== 0 ? Math.max(0, -downsizeCapital) : 0;
   let newHomeValue = v.newHomePrice;
-  let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount);
+  let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount) - outsideFunds;
   let homeValue = v.homeValue;
   let cumulativeSell = 0;
   let cumulativeStay = 0;
@@ -216,7 +222,7 @@ export function project(values) {
     const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
     const downsizeIncome = downsizeCapital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
     downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal);
-    downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, newPay.balance);
+    downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, newPay.balance) - outsideFunds;
 
     const equity = homeValue - balance;
     const stayNetWorth = netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds;

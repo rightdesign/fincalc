@@ -261,7 +261,10 @@ test('downsize path: with useProceeds off the full net proceeds are invested', (
   const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000, useProceeds: 0 };
   const { rows, sale } = project(v);
   close(rows[0].downsizeInvestmentCapital, sale.netProceeds - 5000);
-  close(rows[0].downsizeNetWorth, sale.netProceeds - 5000 + 200000 * 0.94);
+  // The 204,000 paid from outside funds is excluded: year 0 net worth is level with the checked mode.
+  close(rows[0].downsizeNetWorth, sale.netProceeds - 5000 + 200000 * 0.94 - 204000);
+  close(rows[0].downsizeNetWorth, project({ ...v, useProceeds: 1 }).rows[0].downsizeNetWorth);
+  assert.equal(project(v).downsizeShortfall, 0);
   // Checked, or absent from older values, keeps the current behavior.
   const on = project({ ...v, useProceeds: 1 }).rows[0].downsizeInvestmentCapital;
   const absent = project({ ...v, useProceeds: undefined }).rows[0].downsizeInvestmentCapital;
@@ -284,4 +287,13 @@ test('downsize path: a proceeds cap keeps the rest invested and leaves the remai
   // A cap above what is needed changes nothing; useProceeds off ignores the cap.
   close(downsizeFunding({ ...v, proceedsMode: 'amount', proceedsAmount: 1e9 }).invested, all.invested);
   close(downsizeFunding({ ...v, useProceeds: 0, proceedsMode: 'amount', proceedsAmount: 1 }).invested, sale.netProceeds - 5000);
+});
+
+test('downsize path: outside funds are excluded from net worth when a proceeds cap is set, keeping year 0 level', () => {
+  const v = { ...defaultValues(), horizon: 5, newHomePrice: 400000, newBuyingCostsPct: 2, newMortgageAmount: 100000, movingCosts: 5000 };
+  const all = project(v).rows;
+  const capped = project({ ...v, proceedsMode: 'amount', proceedsAmount: 200000 }).rows;
+  close(capped[0].downsizeNetWorth, all[0].downsizeNetWorth);
+  assert.ok(capped[5].downsizeNetWorth < all[5].downsizeNetWorth + 108000 * 1.5);
+  assert.ok(capped[5].downsizeNetWorth > all[5].downsizeNetWorth - 1);
 });
