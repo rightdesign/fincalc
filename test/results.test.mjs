@@ -83,3 +83,16 @@ test('builds a sensitivity list that renders as escaped HTML', () => {
   assert.match(html, /id="sensitivity"/);
   assert.equal((html.match(/<li>/g) ?? []).length, 4);
 });
+
+test('the net worth summary always gives the gap at the horizon and the closest year', () => {
+  const lag = { ...defaultValues(), investmentGrowth: 0, appreciation: 8 };
+  const { breakevenYear, sections } = buildResults(lag);
+  assert.equal(breakevenYear, null);
+  const text = sections[0].summary;
+  assert.match(text, /does not catch up/);
+  assert.match(text, /behind staying/);
+  assert.match(text, /narrowing|widening/);
+  const win = buildResults({ ...defaultValues(), investmentGrowth: 12, appreciation: 0 });
+  assert.ok(win.breakevenYear != null);
+  assert.match(win.sections[0].summary, /by year \d+ it is [^ ]+ ahead of staying/);
+});

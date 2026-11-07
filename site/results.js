@@ -9,6 +9,23 @@ export const formatMoney = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
 
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+// One path's standing against staying: when it pulls ahead (if ever), the
+// gap at the horizon and how it is moving, and the year it came closest.
+// `rows` hold each path's net worth minus staying, so a positive gap is ahead.
+function gapNote(subject, short, rows, gap, crossYear) {
+  const years = rows.slice(1);
+  if (!years.length) return '';
+  const end = years[years.length - 1];
+  const endGap = gap(end);
+  const side = (g) => `${formatMoney(Math.abs(g))} ${g >= 0 ? 'ahead of' : 'behind'} staying`;
+  if (crossYear != null) return `${subject} pulls ahead of staying in year ${crossYear}; by year ${end.year} it is ${side(endGap)}.`;
+  const closest = years.reduce((best, r) => (Math.abs(gap(r)) < Math.abs(gap(best)) ? r : best));
+  const prev = years.length > 1 ? years[years.length - 2] : null;
+  const trend = prev == null ? '' : Math.abs(endGap) < Math.abs(gap(prev)) ? ' and the gap is still narrowing' : ' and the gap is widening';
+  const nearest = closest === end ? '' : ` It came closest in year ${closest.year}, ${side(gap(closest))}.`;
+  return `${subject} does not catch up with staying within this time horizon. In year ${end.year}, ${short.toLowerCase()} is ${side(endGap)}${trend}.${nearest}`;
+}
+
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
@@ -21,11 +38,7 @@ export function buildResults(values) {
   const netWorth = {
     id: 'net-worth',
     title: 'Net worth',
-    summary: `${breakevenYear == null
-      ? 'Selling and investing does not catch up with staying within this time horizon.'
-      : `Selling and investing pulls ahead in year ${breakevenYear}.`} ${downsizeBreakevenYear == null
-      ? 'Downsizing does not catch up with staying within this time horizon.'
-      : `Downsizing pulls ahead of staying in year ${downsizeBreakevenYear}.`} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.`,
+    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.downsizeNetWorth), formatMoney(r.netWorthGainLoss), formatMoney(r.downsizeGainLoss)]),
     series: [
