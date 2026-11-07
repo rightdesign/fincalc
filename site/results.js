@@ -37,7 +37,7 @@ export function buildResults(values) {
   const cashFlow = {
     id: 'cash-flow',
     title: 'Monthly cash flow',
-    summary: 'What each path costs per month: owning (taxes, insurance, maintenance, mortgage interest) vs. renting.',
+    summary: 'What each path costs per month: owning (property tax, insurance, maintenance, mortgage principal and interest) vs. renting.',
     columns: ['Year', 'Own (per month)', 'Rent (per month)', 'Own minus rent'],
     rows: years.map((r) => [String(r.year), formatMoney(r.monthlyOwnCost), formatMoney(r.monthlyRentCost), formatMoney(r.monthlyOwnCost - r.monthlyRentCost)]),
     series: [

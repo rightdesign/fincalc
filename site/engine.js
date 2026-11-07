@@ -65,6 +65,8 @@ export function netSaleProceeds(v) {
 //   (owner's unrecoverable cost + principal paid) minus (rent + renter's
 //   insurance), so the two paths are compared on equal cash out. A negative
 //   amount is drawn from the investment.
+// - Monthly own cost is the full cash outlay: unrecoverable cost plus
+//   principal (property tax, insurance, maintenance, principal and interest).
 // - Investment income is investmentWithdrawal% of capital at the start of the
 //   year: what the portfolio could pay out, not deducted from capital.
 // - Stay net worth is home equity (value minus mortgage balance); sell net
@@ -122,7 +124,7 @@ export function project(values) {
       mortgagePrincipal: principal,
       unrecoverableCost,
       rentCost,
-      monthlyOwnCost: unrecoverableCost / 12,
+      monthlyOwnCost: (unrecoverableCost + principal) / 12,
       monthlyRentCost: rentCost / 12,
       cumulativeUnrecoverableCost: cumulativeStay,
       cumulativeRentCost: cumulativeSell,

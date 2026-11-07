@@ -67,6 +67,12 @@ test('unrecoverable cost excludes principal and rent grows yearly', () => {
   close(rows[1].homeValue, 500000 * 1.03);
 });
 
+test('monthly own cost includes tax, insurance, maintenance, principal and interest', () => {
+  const v = { ...defaultValues(), horizon: 1 };
+  const y1 = project(v).rows[1];
+  close(y1.monthlyOwnCost * 12, v.propertyTax + v.homeValue * 0.015 + y1.mortgageInterest + y1.mortgagePrincipal);
+});
+
 test('investment capital compounds with the owning-vs-renting difference', () => {
   const v = { ...defaultValues(), horizon: 1 };
   const { sale, rows } = project(v);
