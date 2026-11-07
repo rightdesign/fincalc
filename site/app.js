@@ -2,7 +2,7 @@
 // #calculator. Saved scenarios are kept in this browser's localStorage.
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
-import { buildResults, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
+import { buildResults, sensitivityHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -209,8 +209,8 @@ function renderResults(container, form) {
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     return;
   }
-  const { sections } = buildResults(values);
-  container.innerHTML = sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('');
+  const { sections, sensitivity } = buildResults(values);
+  container.innerHTML = sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details></section>`).join('') + sensitivityHtml(sensitivity);
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
 }
 

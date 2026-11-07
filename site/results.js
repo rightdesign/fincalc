@@ -2,6 +2,7 @@
 // SVG line charts built from the engine's projection. Pure (strings and
 // plain objects, no DOM) so it runs under node.
 import { inTodaysDollars, project } from './engine.js';
+import { sensitivityLines } from './sensitivity.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 export const formatMoney = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -72,7 +73,7 @@ export function buildResults(values) {
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
-  return { breakevenYear, sections };
+  return { breakevenYear, sections, sensitivity: sensitivityLines(values) };
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.
@@ -175,4 +176,9 @@ export function tableHtml(section) {
   const head = section.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
   const body = section.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
   return `<table><caption>${escape(section.title)} by year</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+// The "what would change the answer" list under the charts.
+export function sensitivityHtml(lines) {
+  return `<section class="result" id="sensitivity"><h2>What drives the verdict</h2><p>The verdict compares selling and investing with staying at the end of your time horizon. For each key assumption, this is the value at which that verdict flips, holding everything else as entered.</p><ul>${lines.map((l) => `<li>${escape(l.text)}</li>`).join('')}</ul></section>`;
 }

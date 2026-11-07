@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildResults, cardHtml, cardText, chartHtml, formatMoney, hoverPoints, lineChartSvg, tableHtml } from '../site/results.js';
+import { buildResults, cardHtml, cardText, chartHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('formats money without cents and without negative zero', () => {
@@ -74,4 +74,12 @@ test("today's dollars option shrinks future amounts and is labelled", () => {
   assert.notEqual(real.sections[0].rows[10][1], nominal.sections[0].rows[10][1]);
   assert.ok(real.sections.every((s) => s.summary.includes("today's dollars")));
   assert.ok(nominal.sections.every((s) => !s.summary.includes("today's dollars")));
+});
+
+test('builds a sensitivity list that renders as escaped HTML', () => {
+  const { sensitivity } = buildResults(defaultValues());
+  assert.equal(sensitivity.length, 4);
+  const html = sensitivityHtml(sensitivity);
+  assert.match(html, /id="sensitivity"/);
+  assert.equal((html.match(/<li>/g) ?? []).length, 4);
 });
