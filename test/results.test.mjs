@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildResults, cardHtml, cardText, chartHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
+import { buildResults, cardHtml, cardText, chartHtml, costSummaryHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('formats money without cents and without negative zero', () => {
@@ -95,4 +95,22 @@ test('the net worth summary always gives the gap at the horizon and the closest 
   const win = buildResults({ ...defaultValues(), investmentGrowth: 12, appreciation: 0 });
   assert.ok(win.breakevenYear != null);
   assert.match(win.sections[0].summary, /by year \d+ it is [^ ]+ ahead of staying/);
+});
+
+test('the cost summary lists each category for the three paths and the gaps against staying', () => {
+  const v = defaultValues();
+  const { costSummary } = buildResults(v);
+  assert.deepEqual(costSummary.rows.map((r) => r[0]).slice(0, 4), ['Initial costs', 'Recurring costs', 'Opportunity costs', 'Total costs']);
+  for (const r of costSummary.rows) assert.equal(r.length, 4);
+  assert.equal(costSummary.rows[0][1], '$0');
+  assert.equal(costSummary.headlines.length, 4);
+  assert.match(costSummary.headlines[0], /ahead of staying|behind staying/);
+  assert.match(costSummary.headlines[2], /year 1 and .* in year \d+/);
+  assert.match(costSummaryHtml(costSummary), /<th scope="row">Initial costs<\/th>/);
+});
+
+test('the cost summary is absent with no years and noted in today\'s dollars', () => {
+  assert.equal(buildResults({ ...defaultValues(), horizon: 0 }).costSummary, null);
+  assert.equal(costSummaryHtml(null), '');
+  assert.match(buildResults({ ...defaultValues(), todaysDollars: 'real' }).costSummary.note, /today's dollars/);
 });

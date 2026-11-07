@@ -26,6 +26,70 @@ function gapNote(subject, short, rows, gap, crossYear) {
   return `${subject} does not catch up with staying within this time horizon. In year ${end.year}, ${short.toLowerCase()} is ${side(endGap)}${trend}.${nearest}`;
 }
 
+// Cost summary by category for the three paths over the whole horizon, plus
+// headline gaps against staying. `rows` are the (possibly inflation-adjusted)
+// projection rows; `factor` restates a year-0 amount in the same dollars as
+// the horizon year (1 nominal).
+//   Initial: selling costs, capital-gains tax, moving, rental upfront / buying costs.
+//   Recurring: running housing costs (stay, downsize) or rent (sell), summed over the years.
+//   Opportunity: investment return forgone on the cash left in the home (stay), or
+//   home appreciation forgone (sell; downsize, net of the new home's appreciation).
+//   Net proceeds: net worth at the horizon. Total is the three costs only.
+function costSummary(values, projection, rows) {
+  const years = rows.slice(1);
+  if (!years.length) return null;
+  const { sale } = projection;
+  const end = years[years.length - 1];
+  const first = years[0];
+  const deflate = values.todaysDollars === 'real' ? (1 + values.inflation / 100) ** end.year : 1;
+  const sum = (pick) => years.reduce((t, r) => t + pick(r), 0);
+  const buyingCosts = values.newHomePrice * (values.newBuyingCostsPct / 100);
+  const saleCosts = sale.sellingCosts + sale.taxesDue + values.movingCosts;
+  const stayGrowthForgone = (sale.netProceeds * ((1 + projection.investmentGrowth) ** end.year - 1)) / deflate;
+  const costs = {
+    stay: { initial: 0, recurring: sum((r) => r.unrecoverableCost), opportunity: stayGrowthForgone, net: end.stayNetWorth },
+    sell: { initial: saleCosts + values.rentalUpfront, recurring: sum((r) => r.rentCost), opportunity: end.homeValue - values.homeValue, net: end.investmentCapital },
+    downsize: {
+      initial: saleCosts + buyingCosts,
+      recurring: sum((r) => r.downsizeUnrecoverableCost),
+      opportunity: end.homeValue - values.homeValue - (end.downsizeHomeValue - values.newHomePrice),
+      net: end.downsizeNetWorth,
+    },
+  };
+  const paths = [costs.stay, costs.sell, costs.downsize];
+  const row = (label, pick) => [label, ...paths.map((p) => formatMoney(pick(p)))];
+  const gap = (name, net) => {
+    const diff = net - end.stayNetWorth;
+    const pct = end.stayNetWorth > 0 ? ` (${diff >= 0 ? '+' : '-'}${(Math.abs(diff / end.stayNetWorth) * 100).toFixed(1)}%)` : '';
+    return `${name} ends year ${end.year} ${formatMoney(Math.abs(diff))}${pct} ${diff >= 0 ? 'ahead of' : 'behind'} staying.`;
+  };
+  const month = (name, own, other) => {
+    const d1 = own(first) - other(first);
+    const dn = own(end) - other(end);
+    const fmt = (d) => `${formatMoney(Math.abs(d))} ${d >= 0 ? 'more' : 'less'}`;
+    return `Staying costs ${fmt(d1)} per month than ${name} in year 1 and ${fmt(dn)} in year ${end.year}.`;
+  };
+  return {
+    id: 'cost-summary',
+    title: 'Summary of costs by category',
+    headlines: [
+      gap('Selling and investing', end.investmentCapital),
+      gap('Downsizing', end.downsizeNetWorth),
+      month('renting', (r) => r.monthlyOwnCost, (r) => r.monthlyRentCost),
+      month('downsizing', (r) => r.monthlyOwnCost, (r) => r.monthlyDownsizeCost),
+    ],
+    columns: ['', 'Stay', 'Sell and rent', 'Downsize'],
+    rows: [
+      row('Initial costs', (p) => p.initial),
+      row('Recurring costs', (p) => p.recurring),
+      row('Opportunity costs', (p) => p.opportunity),
+      row('Total costs', (p) => p.initial + p.recurring + p.opportunity),
+      row(`Net proceeds (year ${end.year})`, (p) => p.net),
+    ],
+    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only.${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
+  };
+}
+
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
@@ -86,7 +150,7 @@ export function buildResults(values) {
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
-  return { breakevenYear, sections, sensitivity: sensitivityLines(values) };
+  return { breakevenYear, sections, costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.
@@ -194,4 +258,12 @@ export function tableHtml(section) {
 // The "what would change the answer" list under the charts.
 export function sensitivityHtml(lines) {
   return `<section class="result" id="sensitivity"><h2>What drives the verdict</h2><p>The verdict compares selling and investing with staying at the end of your time horizon. For each key assumption, this is the value at which that verdict flips, holding everything else as entered.</p><ul>${lines.map((l) => `<li>${escape(l.text)}</li>`).join('')}</ul></section>`;
+}
+
+// The cost summary: headline gaps, then the category table.
+export function costSummaryHtml(summary) {
+  if (!summary) return '';
+  const head = summary.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
+  const body = summary.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
+  return `<section class="result" id="${summary.id}"><h2>${escape(summary.title)}</h2><ul>${summary.headlines.map((h) => `<li>${escape(h)}</li>`).join('')}</ul><div class="table-wrap"><table><caption>${escape(summary.title)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="hint-note">${escape(summary.note)}</p></section>`;
 }

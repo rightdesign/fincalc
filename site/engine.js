@@ -227,6 +227,7 @@ export function project(values) {
   return {
     sale,
     rows,
+    investmentGrowth: growth,
     breakevenYear: breakeven ? breakeven.year : null,
     downsizeBreakevenYear: downsizeBreakeven ? downsizeBreakeven.year : null,
   };
