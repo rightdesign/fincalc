@@ -33,17 +33,26 @@ function renderField(field, value) {
   input.name = field.id;
   input.id = `field-${field.id}`;
   if (field.hint) {
-    const hint = document.createElement('span');
-    hint.className = 'hint';
-    hint.tabIndex = 0;
-    hint.textContent = '?';
-    hint.setAttribute('role', 'note');
-    hint.setAttribute('aria-label', field.hint);
     const tip = document.createElement('span');
     tip.className = 'hint-text';
+    tip.id = `hint-${field.id}`;
     tip.textContent = field.hint;
-    hint.append(tip);
+    const hint = document.createElement('button');
+    hint.type = 'button';
+    hint.className = 'hint';
+    hint.textContent = '?';
+    hint.setAttribute('aria-label', `Help: ${field.label}`);
+    hint.setAttribute('aria-expanded', 'false');
+    hint.setAttribute('aria-controls', tip.id);
+    // Help text sits in the page flow (never a floating box), so it cannot be clipped.
+    hint.addEventListener('click', (e) => {
+      e.preventDefault();
+      const open = tip.classList.toggle('open');
+      hint.setAttribute('aria-expanded', String(open));
+    });
+    input.setAttribute('aria-describedby', tip.id);
     text.append(' ', hint);
+    label.hintText = tip;
   }
   if (field.slider) {
     const slider = document.createElement('input');
@@ -64,9 +73,11 @@ function renderField(field, value) {
     input.addEventListener('input', () => { slider.value = input.value; });
     label.classList.add('has-slider');
     label.append(text, slider, input);
+    if (label.hintText) label.append(label.hintText);
     return label;
   }
   label.append(text, input);
+  if (label.hintText) label.append(label.hintText);
   return label;
 }
 
@@ -125,6 +136,14 @@ function renderForm(container) {
   form.id = 'inputs';
   form.noValidate = true;
   form.addEventListener('submit', (e) => e.preventDefault());
+
+  const helpToggle = document.createElement('label');
+  helpToggle.className = 'toggle-all';
+  const helpBox = document.createElement('input');
+  helpBox.type = 'checkbox';
+  helpBox.addEventListener('change', () => form.classList.toggle('show-hints', helpBox.checked));
+  helpToggle.append(helpBox, ' Show all help text');
+  form.append(helpToggle);
 
   let fieldset = null;
   let group = null;
@@ -244,8 +263,15 @@ function renderResults(container, form) {
   }
   const { sections, sensitivity, costSummary } = buildResults(values);
   shown = sections;
-  container.innerHTML = costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download table as CSV</button></p></section>`).join('') + sensitivityHtml(sensitivity);
+  const expand = container.querySelector('#expand-tables');
+  const expanded = expand ? expand.checked : false;
+  container.innerHTML = '<label class="toggle-all"><input type="checkbox" id="expand-tables"> Expand all tables</label>' + costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download table as CSV</button></p></section>`).join('') + sensitivityHtml(sensitivity);
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
+  const all = container.querySelector('#expand-tables');
+  const setOpen = (open) => container.querySelectorAll('details').forEach((d) => { d.open = open; });
+  all.checked = expanded;
+  if (expanded) setOpen(true);
+  all.addEventListener('change', () => setOpen(all.checked));
 }
 
 // Saves one section's table as a CSV file.

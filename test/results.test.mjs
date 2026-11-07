@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildResults, cardHtml, cardText, chartHtml, costSummaryHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
+import { buildResults, cardHtml, cardText, chartDescription, chartHtml, costSummaryHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('formats money without cents and without negative zero', () => {
@@ -130,4 +130,14 @@ test('every chart axis rescales to the visible data when the horizon shrinks', (
     assert.ok(s.svg.includes(formatMoney(s.peak)), 'top y-axis label is the 10-year maximum');
     assert.ok(!s.svg.includes(formatMoney(long[i].peak)), 'old 25-year maximum is gone');
   });
+});
+
+test('each chart carries a text equivalent with every line and a pointer to its table', () => {
+  const nw = buildResults(defaultValues()).sections[0];
+  const html = chartHtml(nw);
+  assert.match(html, /aria-describedby="chart-desc-net-worth"/);
+  const text = chartDescription(nw);
+  for (const s of nw.series) assert.ok(text.includes(s.label), s.label);
+  assert.match(text, /starts at .* ends at .* highest .* lowest/);
+  assert.match(text, /table below/);
 });

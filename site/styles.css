@@ -114,6 +114,7 @@ legend {
   gap: 1rem;
   margin: 0.5rem 0;
   position: relative;
+  flex-wrap: wrap;
 }
 
 /* A long label wraps its own text; the input never drops below it. */
@@ -222,16 +223,19 @@ legend {
   font-size: 0.75rem;
   text-align: center;
   color: var(--muted);
-  cursor: help;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hint:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .hint-text {
   display: none;
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  right: 0;
-  top: 100%;
+  margin-top: 0.25rem;
   padding: 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid var(--tip-border);
@@ -242,9 +246,19 @@ legend {
   text-align: left;
 }
 
-.hint:hover .hint-text,
-.hint:focus .hint-text {
+/* Help text takes its own full-width row on every field, slider or not. */
+.field span.hint-text {
+  flex: 1 1 100%;
+}
+
+.hint-text.open,
+.show-hints .hint-text {
   display: block;
+}
+
+.toggle-all {
+  display: block;
+  margin: 0 0 0.75rem;
 }
 
 /* Hover values on the charts. The card is HTML positioned by percentage of the
@@ -360,7 +374,7 @@ legend {
 @media print {
   :root { --bg: #fff; --panel: #fff; --border: #ccc; --rule: #ddd; --text: #000; --muted: #555; --grid: #eee; --guide: #555; --ring-fill: #fff; }
   body { background: #fff; color: #000; }
-  #inputs, .share, .scenarios, .no-print, .site-footer, details > summary { display: none; }
+  #inputs, .share, .scenarios, .no-print, .site-footer, details > summary, .toggle-all { display: none; }
   .result { break-inside: avoid; }
   .result table { color: #000; }
   .table-wrap { overflow: visible; }

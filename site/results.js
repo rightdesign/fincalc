@@ -232,11 +232,28 @@ export function hoverPoints(section) {
   });
 }
 
+// A text equivalent of the chart for screen readers: the section's summary
+// and, for each line, where it starts and ends and its highest and lowest
+// points. The full year-by-year values are in the table below the chart.
+export function chartDescription(section) {
+  const fmt = (p) => `${formatMoney(p.y)} in year ${p.x}`;
+  const lines = section.series.filter((s) => s.points.length).map((s) => {
+    const first = s.points[0];
+    const last = s.points[s.points.length - 1];
+    const high = s.points.reduce((a, p) => (p.y > a.y ? p : a));
+    const low = s.points.reduce((a, p) => (p.y < a.y ? p : a));
+    return `${s.label}: starts at ${fmt(first)}, ends at ${fmt(last)}, highest ${fmt(high)}, lowest ${fmt(low)}.`;
+  });
+  const marker = section.markerX != null ? ` The breakeven year is ${section.markerX}.` : '';
+  return `${section.title} line chart. ${lines.join(' ')}${marker} The full values for every year are in the table below.`;
+}
+
 // The chart plus its hover card and a live region for keyboard moves.
 export function chartHtml(section) {
   const svg = lineChartSvg(section);
   if (!svg) return '';
-  return `<div class="chart-wrap" tabindex="0" role="group" aria-label="${escape(section.title)} chart. Use the left and right arrow keys to read values by year.">${svg}<div class="chart-card" hidden></div><div class="visually-hidden" aria-live="polite"></div></div>`;
+  const id = `chart-desc-${section.id ?? 'x'}`;
+  return `<div class="chart-wrap" tabindex="0" role="group" aria-label="${escape(section.title)} chart. Use the left and right arrow keys to read values by year." aria-describedby="${id}">${svg}<p class="visually-hidden" id="${id}">${escape(chartDescription(section))}</p><div class="chart-card" hidden></div><div class="visually-hidden" aria-live="polite"></div></div>`;
 }
 
 export function cardHtml(point) {
