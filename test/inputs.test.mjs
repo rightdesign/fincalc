@@ -51,3 +51,13 @@ test('parseRepairs skips blank rows and rejects incomplete or invalid ones', () 
   assert.equal(parseRepairs([{ year: '2.5', amount: '100' }]), null);
   assert.equal(parseRepairs([{ year: '2', amount: '-1' }]), null);
 });
+
+test('the key drivers carry a slider range that contains their default', () => {
+  const sliders = FIELDS.filter((f) => f.slider);
+  assert.deepEqual(sliders.map((f) => f.id).sort(), ['appreciation', 'homeValue', 'investmentGrowth', 'rent', 'rentGrowth']);
+  for (const f of sliders) {
+    assert.ok(f.slider.min < f.slider.max && f.slider.step > 0, f.id);
+    assert.ok(f.default >= f.slider.min && f.default <= f.slider.max, `${f.id} default within range`);
+    assert.equal(f.kind === 'choice', false);
+  }
+});

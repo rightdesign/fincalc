@@ -45,6 +45,27 @@ function renderField(field, value) {
     hint.append(tip);
     text.append(' ', hint);
   }
+  if (field.slider) {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = field.slider.min;
+    slider.max = field.slider.max;
+    slider.step = field.slider.step;
+    slider.value = value;
+    slider.name = `${field.id}-slider`;
+    slider.id = `slider-${field.id}`;
+    slider.setAttribute('aria-label', `${field.label} slider`);
+    // Dragging the slider types into the number field, whose input event reaches the form.
+    slider.addEventListener('input', (e) => {
+      e.stopPropagation();
+      input.value = slider.value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    input.addEventListener('input', () => { slider.value = input.value; });
+    label.classList.add('has-slider');
+    label.append(text, slider, input);
+    return label;
+  }
   label.append(text, input);
   return label;
 }
@@ -148,7 +169,11 @@ export function readInputs(form) {
 
 // Writes saved values back into the form (the inverse of readInputs).
 function writeInputs(form, values) {
-  for (const field of FIELDS) if (values[field.id] != null) form.elements[field.id].value = values[field.id];
+  for (const field of FIELDS) {
+    if (values[field.id] == null) continue;
+    form.elements[field.id].value = values[field.id];
+    if (field.slider) form.elements[`${field.id}-slider`].value = values[field.id];
+  }
   form.querySelectorAll('.repair-row').forEach((r) => r.remove());
   const add = form.querySelector('.repairs > button');
   for (const rep of values.repairs ?? []) {

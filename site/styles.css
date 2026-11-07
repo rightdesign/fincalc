@@ -130,6 +130,25 @@ legend {
   font: inherit;
 }
 
+.field.has-slider {
+  flex-wrap: wrap;
+}
+
+.field.has-slider span {
+  flex: 1 1 100%;
+}
+
+.field.has-slider input[type="range"] {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+}
+
+.field.has-slider input[type="number"] {
+  flex: none;
+}
+
 .result {
   margin: 0 0 var(--gap);
 }

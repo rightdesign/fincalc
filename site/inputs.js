@@ -3,11 +3,12 @@
 
 export const MAX_HORIZON_YEARS = 30;
 
-// kind: 'money' ($), 'percent' (%), 'years', 'choice'.
+// slider: { min, max, step } adds a range slider beside the number field (the
+// field itself still accepts any value). kind: 'money' ($), 'percent' (%), 'years', 'choice'.
 export const FIELDS = [
-  { id: 'homeValue', label: 'Home value', kind: 'money', default: 500000, group: 'Home', hint: "What your home would sell for today. Typical range: your local market value, often $150,000–$1,000,000." },
+  { id: 'homeValue', label: 'Home value', kind: 'money', default: 500000, group: 'Home', slider: { min: 50000, max: 2000000, step: 5000 }, hint: "What your home would sell for today. Typical range: your local market value, often $150,000–$1,000,000." },
   { id: 'costBasis', label: 'Cost basis', kind: 'money', default: 300000, group: 'Home', hint: "What you paid for the home plus purchase closing costs and major improvements. Used to work out your taxable gain. Typically 40–90% of the home value." },
-  { id: 'appreciation', label: 'Appreciation (per year)', kind: 'percent', default: 3, group: 'Home', hint: "Expected yearly rise in your home's value. Long-run US average is about 3–4%; typical range 0–5%." },
+  { id: 'appreciation', label: 'Appreciation (per year)', kind: 'percent', default: 3, group: 'Home', slider: { min: 0, max: 10, step: 0.1 }, hint: "Expected yearly rise in your home's value. Long-run US average is about 3–4%; typical range 0–5%." },
   { id: 'propertyTax', label: 'Property tax (per year)', kind: 'money', default: 5000, group: 'Owning costs', hint: "Annual property tax bill. Typically 0.3–2% of the home value per year." },
   { id: 'insurancePct', label: 'Insurance (% of home value per year)', kind: 'percent', default: 0.5, group: 'Owning costs', hint: "Yearly homeowner's insurance cost as a share of home value. Typical range 0.3–1%." },
   { id: 'propertyTaxGrowth', label: 'Property tax growth (per year)', kind: 'percent', default: 2, group: 'Owning costs', hint: "Expected yearly rise in your property tax. Some states cap it (California's Prop 13 limits it to 2%); elsewhere it follows reassessments. Typical range 1–5%." },
@@ -34,13 +35,13 @@ export const FIELDS = [
     ],
   },
   { id: 'movingCosts', label: 'Moving and storage costs (one time)', kind: 'money', default: 0, group: 'If you sell and invest', hint: "One-time cost of moving out: movers, truck rental, storage and similar. Taken out of your sale proceeds before they are invested. Optional; typical range $1,000–$10,000." },
-  { id: 'investmentGrowth', label: 'Investment growth (per year)', kind: 'percent', default: 6, group: 'If you sell and invest', hint: "Expected yearly return on the money you invest after selling. Stocks have averaged about 7–10% before inflation; typical planning range 4–8%." },
+  { id: 'investmentGrowth', label: 'Investment growth (per year)', kind: 'percent', default: 6, group: 'If you sell and invest', slider: { min: 0, max: 12, step: 0.1 }, hint: "Expected yearly return on the money you invest after selling. Stocks have averaged about 7–10% before inflation; typical planning range 4–8%." },
   { id: 'investmentWithdrawal', label: 'Investment withdrawal (% per year)', kind: 'percent', default: 4, group: 'If you sell and invest', hint: "Share of the investments you take out each year to live on, before tax. The common 'safe withdrawal' guideline is about 4%; typical range 3–5%." },
   { id: 'investmentTaxRate', label: 'Tax on investment growth (%)', kind: 'percent', default: 15, group: 'If you sell and invest', hint: "Tax paid each year on the gains in your invested money, which lowers the growth you keep. Use 0 for a Roth or tax-deferred account. Taxable accounts typically pay 15–25% on dividends and gains." },
   { id: 'withdrawalTaxRate', label: 'Tax on withdrawals (%)', kind: 'percent', default: 0, group: 'If you sell and invest', hint: "Tax paid on the money you take out each year. Use 0 for a taxable or Roth account (growth is taxed above, or never); use your income tax rate for a tax-deferred account such as a traditional IRA or 401(k)." },
   { id: 'rentalUpfront', label: 'Rental deposit and upfront rent (one time)', kind: 'money', default: 0, group: 'If you rent', hint: "Cash due when you sign a lease: security deposit plus first and last month's rent. Counted as spent, so enter only what you do not expect back. Optional; typically one to three months' rent." },
-  { id: 'rent', label: 'Comparable rent (per month)', kind: 'money', default: 2500, group: 'If you rent', hint: "What it would cost to rent a comparable home, per month. Typically 0.4–0.7% of the home value per month." },
-  { id: 'rentGrowth', label: 'Rent growth (per year)', kind: 'percent', default: 3, group: 'If you rent', hint: "Expected yearly rise in your rent. Typical range 2–5%." },
+  { id: 'rent', label: 'Comparable rent (per month)', kind: 'money', default: 2500, group: 'If you rent', slider: { min: 500, max: 8000, step: 50 }, hint: "What it would cost to rent a comparable home, per month. Typically 0.4–0.7% of the home value per month." },
+  { id: 'rentGrowth', label: 'Rent growth (per year)', kind: 'percent', default: 3, group: 'If you rent', slider: { min: 0, max: 10, step: 0.1 }, hint: "Expected yearly rise in your rent. Typical range 2–5%." },
   { id: 'rentersInsurance', label: "Renter's insurance (per year)", kind: 'money', default: 200, group: 'If you rent', hint: "Yearly cost of renter's insurance. Typical range $100–$400." },
   { id: 'newHomePrice', label: 'New home price', kind: 'money', default: 300000, group: 'If you downsize', hint: "What a smaller or cheaper home would cost you today. The third path in the comparison: sell, buy this home, and invest what is left. Typically well below your current home value." },
   { id: 'newBuyingCostsPct', label: 'Buying costs (% of new home price)', kind: 'percent', default: 2, group: 'If you downsize', hint: "Closing costs and fees when buying the new home, as a share of its price, paid up front. Typical range 2–5%." },
