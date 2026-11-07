@@ -9,10 +9,10 @@ test('formats money without cents and without negative zero', () => {
   assert.equal(formatMoney(-5000), '-$5,000');
 });
 
-test('builds the three sections with a table row per year', () => {
+test('builds the four sections with a table row per year', () => {
   const v = defaultValues();
   const { sections } = buildResults(v);
-  assert.deepEqual(sections.map((s) => s.id), ['net-worth', 'cash-flow', 'investable-cash']);
+  assert.deepEqual(sections.map((s) => s.id), ['net-worth', 'cash-flow', 'investable-cash', 'cash-needed']);
   assert.equal(sections[0].rows.length, v.horizon + 1);
   assert.equal(sections[1].rows.length, v.horizon);
   for (const s of sections) for (const r of s.rows) assert.equal(r.length, s.columns.length);
@@ -229,4 +229,16 @@ test('changedInputs lists only inputs that differ from the defaults, plus repair
   assert.equal(list.length, 2);
   assert.deepEqual(list[0], [FIELDS.find((f) => f.id === 'homeValue').label, '123']);
   assert.deepEqual(list[1], ['Major repair', 'year 3, $5,000']);
+});
+
+test('cash-needed section and cost-summary rows surface the out-of-pocket cash', () => {
+  const v = defaultValues();
+  const { sections, costSummary } = buildResults(v);
+  const s = sections[3];
+  assert.equal(s.id, 'cash-needed');
+  assert.equal(s.rows.length, v.horizon);
+  assert.equal(s.series.length, 3);
+  const labels = costSummary.rows.map((r) => r[0]);
+  assert.ok(labels.includes('Monthly cash you must supply (year 1)'));
+  assert.equal(costSummary.rows.find((r) => r[0].endsWith('(year 1)'))[1], s.rows[0][1]);
 });

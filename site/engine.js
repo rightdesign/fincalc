@@ -113,6 +113,11 @@ export function downsizeFunding(v) {
 //   amount is drawn from the investment.
 // - Monthly own cost is the full cash outlay: unrecoverable cost plus
 //   principal (property tax, insurance, maintenance, principal and interest).
+// - Monthly out-of-pocket cash (the cash-flow lens, not net worth) is the year's
+//   housing cash outflow less the after-tax investment income applied to it,
+//   never below zero: stay has no portfolio, so it is the full monthly own
+//   cost; sell is rent + renter's insurance; downsize is the new home's
+//   carrying costs and mortgage payments.
 // - Each year's investment growth is taxed at investmentTaxRate (tax drag on
 //   a taxable account); a year with no gain (or a loss) owes nothing
 //   and a loss is not cushioned.
@@ -154,6 +159,14 @@ export function downsizeFunding(v) {
 //   (including absent) keeps the default, on.
 //   downsizeBreakevenYear is the first year (1 or later) the downsize path is at
 //   or ahead of the stay path, else null.
+// Monthly cash the household must supply for a year's housing outflow: the
+// outflow less the after-tax portfolio withdrawals applied to it. Withdrawals
+// only offset housing (never more than it costs) and a negative portfolio
+// pays nothing.
+function outOfPocket(annualOutflow, annualWithdrawal) {
+  return Math.max(0, annualOutflow - Math.max(0, annualWithdrawal)) / 12;
+}
+
 export function project(values) {
   const v = values;
   const horizon = Math.max(0, Math.floor(v.horizon));
@@ -246,6 +259,9 @@ export function project(values) {
       rentCost,
       monthlyOwnCost: (unrecoverableCost + principal) / 12,
       monthlyRentCost: rentCost / 12,
+      monthlyStayOutOfPocket: (unrecoverableCost + principal) / 12,
+      monthlySellOutOfPocket: outOfPocket(rentCost, investmentIncome),
+      monthlyDownsizeOutOfPocket: outOfPocket(downsizeCost + newPay.principal, downsizeIncome),
       cumulativeUnrecoverableCost: cumulativeStay,
       cumulativeRentCost: cumulativeSell,
       investmentIncome,

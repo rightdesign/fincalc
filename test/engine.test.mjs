@@ -297,3 +297,18 @@ test('downsize path: outside funds are excluded from net worth when a proceeds c
   assert.ok(capped[5].downsizeNetWorth < all[5].downsizeNetWorth + 108000 * 1.5);
   assert.ok(capped[5].downsizeNetWorth > all[5].downsizeNetWorth - 1);
 });
+
+test('out-of-pocket cash: stay pays the full cost, others net off portfolio withdrawals', () => {
+  const v = { ...defaultValues(), horizon: 5 };
+  const { rows } = project(v);
+  for (const r of rows.slice(1)) {
+    assert.ok(Math.abs(r.monthlyStayOutOfPocket - r.monthlyOwnCost) < 1e-9);
+    const sell = Math.max(0, r.rentCost - Math.max(0, r.investmentIncome)) / 12;
+    assert.ok(Math.abs(r.monthlySellOutOfPocket - sell) < 1e-9);
+    assert.ok(r.monthlySellOutOfPocket <= r.monthlyRentCost + 1e-9);
+    assert.ok(r.monthlyDownsizeOutOfPocket >= 0);
+    assert.ok(r.monthlyDownsizeOutOfPocket <= r.monthlyDownsizeCost + 1e-9);
+  }
+  const none = project({ ...v, investmentWithdrawal: 0 }).rows[1];
+  assert.ok(Math.abs(none.monthlySellOutOfPocket - none.monthlyRentCost) < 1e-9);
+});
