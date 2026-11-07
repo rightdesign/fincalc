@@ -1,6 +1,7 @@
 // Entry point for the calculator page. The inputs form mounts into
-// #calculator; the page is stateless, so nothing is persisted.
+// #calculator. Saved scenarios are kept in this browser's localStorage.
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
+import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
 import { buildResults, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
@@ -141,6 +142,65 @@ export function readInputs(form) {
   return out;
 }
 
+// Writes saved values back into the form (the inverse of readInputs).
+function writeInputs(form, values) {
+  for (const field of FIELDS) if (values[field.id] != null) form.elements[field.id].value = values[field.id];
+  form.querySelectorAll('.repair-row').forEach((r) => r.remove());
+  const add = form.querySelector('.repairs > button');
+  for (const rep of values.repairs ?? []) {
+    add.click();
+    const rows = form.querySelectorAll('.repair-row');
+    const row = rows[rows.length - 1];
+    row.querySelector('[name="repair-year"]').value = rep.year;
+    row.querySelector('[name="repair-amount"]').value = rep.amount;
+  }
+}
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+// Save/load/remove named scenarios and a comparison table of their verdicts.
+function mountScenarios(form, update) {
+  const box = document.createElement('section');
+  box.className = 'scenarios';
+  let list = [];
+  try { list = parseStored(localStorage.getItem(STORAGE_KEY)); } catch { /* storage unavailable */ }
+  const persist = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch { /* storage unavailable */ } };
+
+  const render = (message = '') => {
+    const comparison = list.length ? compareScenarios(list) : null;
+    box.innerHTML = `<h2>Scenarios</h2>
+      <p class="hint-note">Save up to ${MAX_SCENARIOS} named variants of your inputs (for example base, optimistic and pessimistic) and compare their verdicts side by side. They are stored only in this browser.</p>
+      <div class="scenario-save"><label class="field"><span>Scenario name</span><input type="text" name="scenario-name" maxlength="40"></label><button type="button" data-act="save">Save current inputs</button></div>
+      <p class="scenario-message" role="status">${esc(message)}</p>
+      <ul class="scenario-list">${list.map((s) => `<li>${esc(s.name)} <button type="button" data-act="load" data-name="${esc(s.name)}">Load</button> <button type="button" data-act="remove" data-name="${esc(s.name)}">Remove</button></li>`).join('')}</ul>
+      ${comparison ? `<div class="table-wrap"><table class="scenario-compare"><thead><tr><th></th>${comparison.names.map((n) => `<th scope="col">${esc(n)}</th>`).join('')}</tr></thead><tbody>${comparison.rows.map(([l, ...c]) => `<tr><th scope="row">${esc(l)}</th>${c.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}`;
+  };
+  box.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const { act, name } = btn.dataset;
+    if (act === 'save') {
+      const values = readInputs(form);
+      const missing = FIELDS.some((f) => values[f.id] == null) || values.repairs == null;
+      if (missing) return render('Fix the inputs before saving; some values are missing or invalid.');
+      const next = addScenario(list, box.querySelector('[name="scenario-name"]').value, values);
+      if (next.error) return render(next.error);
+      list = next;
+      persist();
+      render('Scenario saved.');
+    } else if (act === 'load') {
+      const s = list.find((x) => x.name === name);
+      if (s) { writeInputs(form, s.values); update(); }
+    } else if (act === 'remove') {
+      list = removeScenario(list, name);
+      persist();
+      render();
+    }
+  });
+  render();
+  return box;
+}
+
 function renderResults(container, form) {
   const values = readInputs(form);
   const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
@@ -217,8 +277,8 @@ if (root) {
   const results = document.createElement('div');
   results.id = 'results';
   results.setAttribute('aria-live', 'polite');
-  root.append(results);
   const update = () => renderResults(results, form);
+  root.append(mountScenarios(form, update), results);
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();

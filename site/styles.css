@@ -292,3 +292,27 @@ legend {
   margin: 0 0 0.5rem;
   font-size: 0.9rem;
 }
+
+.scenarios {
+  margin-bottom: 1.5rem;
+}
+.scenario-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+.scenario-list {
+  padding-left: 1.25rem;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.scenario-compare th,
+.scenario-compare td {
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+}
+.scenario-compare tbody th {
+  text-align: left;
+}
