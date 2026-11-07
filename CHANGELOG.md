@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.8.0] — 2026-11-07
+
+- FINC-017 The stay path now includes the tax benefit of deducting mortgage interest and property tax, using your marginal tax rate, the standard deduction and the SALT cap.
+
 ## [0.7.1] — 2026-11-07
 
 - FINC-015 The monthly cash flow cost of owning now includes principal as well as interest, property tax, insurance and maintenance.
