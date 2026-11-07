@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.7.1] — 2026-11-07
+
+- FINC-015 The monthly cash flow cost of owning now includes principal as well as interest, property tax, insurance and maintenance.
+
 ## [0.7.0] — 2026-11-06
 
 - FINC-014 The page now has a night theme that follows the phone's (or computer's) dark mode setting, including the charts, hints and hover cards.
