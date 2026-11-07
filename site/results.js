@@ -20,15 +20,13 @@ export function buildResults(values) {
   const netWorth = {
     id: 'net-worth',
     title: 'Net worth',
-    summary: breakevenYear == null
+    summary: `${breakevenYear == null
       ? 'Selling and investing does not catch up with staying within this time horizon.'
-      : breakevenYear === 0
-        ? 'Selling and investing is ahead from day one.'
-        : `Selling and investing pulls ahead in year ${breakevenYear}.`,
-    columns: ['Year', 'Stay (home equity)', 'Sell (invested)', 'Sell minus stay'],
-    rows: rows.map((r) => [String(r.year), formatMoney(r.equity), formatMoney(r.investmentCapital), formatMoney(r.netWorthGainLoss)]),
+      : `Selling and investing pulls ahead in year ${breakevenYear}.`} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax.`,
+    columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Sell minus stay'],
+    rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.netWorthGainLoss)]),
     series: [
-      series('Stay (home equity)', rows, (r) => r.equity),
+      series('Stay (equity after sale)', rows, (r) => r.stayNetWorth),
       series('Sell (invested)', rows, (r) => r.investmentCapital),
     ],
     tipCols: [1, 2],

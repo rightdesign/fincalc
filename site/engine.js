@@ -82,10 +82,14 @@ export function netSaleProceeds(v) {
 // - Investment income is investmentWithdrawal% of capital at the start of the
 //   year, less withdrawalTaxRate (tax-deferred money is taxed when taken out):
 //   what the portfolio could pay out after tax, not deducted from capital.
-// - Stay net worth is home equity (value minus mortgage balance); sell net
-//   worth is investment capital. Selling costs and taxes are charged up front.
-// - breakevenYear is the first year (0 = today) the sell path is at or ahead
-//   of the stay path, else null.
+// - Stay net worth is what the owner would net by selling at that point:
+//   home value less selling costs and capital-gains tax (same chain as
+//   netSaleProceeds, on the then-current value and mortgage balance). Sell
+//   net worth is investment capital, whose selling costs and taxes were
+//   charged up front, so both paths end after sale and after tax. Year 0 is
+//   therefore level.
+// - breakevenYear is the first year (1 or later) the sell path is at or
+//   ahead of the stay path, else null.
 export function project(values) {
   const v = values;
   const horizon = Math.max(0, Math.floor(v.horizon));
@@ -104,8 +108,9 @@ export function project(values) {
     homeValue,
     mortgageBalance: v.mortgageBalance,
     equity: homeValue - v.mortgageBalance,
+    stayNetWorth: sale.netProceeds,
     investmentCapital: capital,
-    netWorthGainLoss: capital - (homeValue - v.mortgageBalance),
+    netWorthGainLoss: capital - sale.netProceeds,
   }];
 
   for (let y = 1; y <= horizon; y++) {
@@ -125,6 +130,7 @@ export function project(values) {
     capital = capital * (1 + growth) + contribution;
 
     const equity = homeValue - balance;
+    const stayNetWorth = netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds;
     cumulativeStay += unrecoverableCost;
     cumulativeSell += rentCost;
     rows.push({
@@ -132,6 +138,7 @@ export function project(values) {
       homeValue,
       mortgageBalance: balance,
       equity,
+      stayNetWorth,
       propertyTax,
       insurance,
       maintenance,
@@ -147,11 +154,11 @@ export function project(values) {
       investmentIncome,
       monthlyInvestmentIncome: investmentIncome / 12,
       investmentCapital: capital,
-      netWorthGainLoss: capital - equity,
+      netWorthGainLoss: capital - stayNetWorth,
     });
   }
 
-  const breakeven = rows.find((r) => r.netWorthGainLoss >= 0);
+  const breakeven = rows.slice(1).find((r) => r.netWorthGainLoss >= 0);
   return { sale, rows, breakevenYear: breakeven ? breakeven.year : null };
 }
 

@@ -86,11 +86,12 @@ test('investment capital compounds with the owning-vs-renting difference', () =>
   close(y1.monthlyInvestmentIncome, y1.investmentIncome / 12);
 });
 
-test('net worth gain/loss starts at the selling cost and the breakeven year is found', () => {
+test('stay net worth is after selling costs and tax, so year 0 is level and the breakeven year is found', () => {
   const { rows, breakevenYear } = project(defaultValues());
-  close(rows[0].netWorthGainLoss, rows[0].investmentCapital - rows[0].equity);
-  assert.ok(rows[0].netWorthGainLoss < 0);
-  const first = rows.find((r) => r.netWorthGainLoss >= 0);
+  close(rows[0].netWorthGainLoss, 0);
+  close(rows[0].stayNetWorth, rows[0].investmentCapital);
+  assert.ok(rows[1].stayNetWorth < rows[1].equity);
+  const first = rows.slice(1).find((r) => r.netWorthGainLoss >= 0);
   assert.equal(breakevenYear, first ? first.year : null);
 });
 
@@ -152,4 +153,14 @@ test("today's dollars discounts each year by compounded inflation", () => {
   close(real[3].monthlyRentCost, rows[3].monthlyRentCost / 1.03 ** 3);
   assert.equal(real[3].year, 3);
   assert.equal(inTodaysDollars(rows, 0)[3].homeValue, rows[3].homeValue);
+});
+
+test('stay net worth in a later year nets selling costs and capital-gains tax on that year\'s value', () => {
+  const v = { ...defaultValues(), exclusion: 'none', horizon: 5 };
+  const { rows } = project(v);
+  const r = rows[5];
+  const sale = netSaleProceeds({ ...v, homeValue: r.homeValue, mortgageBalance: r.mortgageBalance });
+  close(r.stayNetWorth, sale.netProceeds);
+  assert.ok(sale.taxesDue > 0);
+  close(r.stayNetWorth, r.homeValue * 0.94 - sale.taxesDue - r.mortgageBalance);
 });

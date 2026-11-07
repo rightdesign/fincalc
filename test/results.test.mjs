@@ -23,7 +23,7 @@ test('the net worth summary and marker call out the breakeven year', () => {
   const nw = sections[0];
   assert.equal(nw.markerX, breakevenYear);
   if (breakevenYear == null) assert.match(nw.summary, /does not catch up/);
-  else assert.ok(nw.summary.includes(breakevenYear === 0 ? 'day one' : `year ${breakevenYear}`));
+  else assert.ok(nw.summary.includes(`year ${breakevenYear}`));
 });
 
 test('charts are SVG with one path per series; tables escape text', () => {
@@ -58,7 +58,7 @@ test('card and chart markup carry the values, escaped, with a ring per series', 
   const p = hoverPoints(nw)[2];
   assert.match(cardHtml(p), /Year 2/);
   assert.ok(cardHtml(p).includes(p.items[0].value));
-  assert.match(cardText(p), /^Year 2: Stay \(home equity\) /);
+  assert.match(cardText(p), /^Year 2: Stay \(equity after sale\) /);
   const html = chartHtml(nw);
   assert.match(html, /tabindex="0"/);
   assert.equal(html.match(/class="ring"/g).length, nw.series.length);
