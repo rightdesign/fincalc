@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.30.0] — 2026-11-07
+
+- FINC-041 "What drives the verdict" now also shows the values at which downsizing flips against staying, and it follows the "Use the proceeds" checkbox and cap like the charts and tables do.
+
 ## [0.29.0] — 2026-11-07
 
 - FINC-039 With "Use the proceeds from selling my current home" unchecked, or capped, the downsize net worth, verdict and summary table now leave out the money from outside the model that pays for the new home, so the three paths stay comparable.
