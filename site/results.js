@@ -1,7 +1,7 @@
 // Results view models for the stay vs. sell-and-rent comparison: tables and
 // SVG line charts built from the engine's projection. Pure (strings and
 // plain objects, no DOM) so it runs under node.
-import { project } from './engine.js';
+import { inTodaysDollars, project } from './engine.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 export const formatMoney = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -11,7 +11,9 @@ const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': 
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
-  const { rows, breakevenYear } = project(values);
+  const projection = project(values);
+  const breakevenYear = projection.breakevenYear;
+  const rows = values.todaysDollars === 'real' ? inTodaysDollars(projection.rows, values.inflation) : projection.rows;
   const years = rows.slice(1);
   const series = (label, list, pick) => ({ label, points: list.map((r) => ({ x: r.year, y: pick(r) })) });
 
@@ -61,7 +63,11 @@ export function buildResults(values) {
     markerX: null,
   };
 
-  return { breakevenYear, sections: [netWorth, cashFlow, income] };
+  const sections = [netWorth, cashFlow, income];
+  if (values.todaysDollars === 'real') {
+    for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
+  }
+  return { breakevenYear, sections };
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.

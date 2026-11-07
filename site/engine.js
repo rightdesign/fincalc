@@ -154,3 +154,14 @@ export function project(values) {
   const breakeven = rows.find((r) => r.netWorthGainLoss >= 0);
   return { sale, rows, breakevenYear: breakeven ? breakeven.year : null };
 }
+
+// Restates a projection in today's dollars: every money amount in year y is
+// divided by (1 + inflation) ** y. Year 0 is today, so it is unchanged.
+export function inTodaysDollars(rows, inflationPct) {
+  return rows.map((r) => {
+    const factor = (1 + pct(inflationPct)) ** r.year;
+    const out = {};
+    for (const [k, val] of Object.entries(r)) out[k] = k === 'year' ? val : val / factor;
+    return out;
+  });
+}

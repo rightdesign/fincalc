@@ -35,6 +35,15 @@ export const FIELDS = [
   { id: 'rent', label: 'Comparable rent (per month)', kind: 'money', default: 2500, group: 'If you rent', hint: "What it would cost to rent a comparable home, per month. Typically 0.4–0.7% of the home value per month." },
   { id: 'rentGrowth', label: 'Rent growth (per year)', kind: 'percent', default: 3, group: 'If you rent', hint: "Expected yearly rise in your rent. Typical range 2–5%." },
   { id: 'rentersInsurance', label: "Renter's insurance (per year)", kind: 'money', default: 200, group: 'If you rent', hint: "Yearly cost of renter's insurance. Typical range $100–$400." },
+  { id: 'inflation', label: 'Inflation (per year)', kind: 'percent', default: 3, group: 'Inflation', hint: "Expected yearly rise in prices. Used only when you show results in today's dollars, to discount each future year's amounts. The long-run US average is about 3%; typical range 2–4%." },
+  {
+    id: 'todaysDollars', label: 'Show results in', kind: 'choice', default: 'nominal', group: 'Inflation',
+    hint: "Future dollars (nominal) are the amounts you would actually see in that year. Today's dollars discount them by the inflation rate so they are comparable to money now.",
+    options: [
+      { value: 'nominal', label: 'Future dollars (not adjusted for inflation)' },
+      { value: 'real', label: "Today's dollars (adjusted for inflation)" },
+    ],
+  },
   { id: 'horizon', label: 'Time horizon (years)', kind: 'years', group: 'Time horizon', hint: "How many years to compare the two options. Defaults to the lesser of 30 years or your remaining mortgage term; maximum 30." },
 ];
 

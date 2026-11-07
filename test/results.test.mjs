@@ -64,3 +64,14 @@ test('card and chart markup carry the values, escaped, with a ring per series', 
   assert.equal(html.match(/class="ring"/g).length, nw.series.length);
   assert.equal(chartHtml({ title: 't', series: [], markerX: null }), '');
 });
+
+test("today's dollars option shrinks future amounts and is labelled", () => {
+  const v = { ...defaultValues(), horizon: 10 };
+  const nominal = buildResults(v);
+  const real = buildResults({ ...v, todaysDollars: 'real', inflation: 3 });
+  assert.equal(real.breakevenYear, nominal.breakevenYear);
+  assert.equal(real.sections[0].rows[0][1], nominal.sections[0].rows[0][1]);
+  assert.notEqual(real.sections[0].rows[10][1], nominal.sections[0].rows[10][1]);
+  assert.ok(real.sections.every((s) => s.summary.includes("today's dollars")));
+  assert.ok(nominal.sections.every((s) => !s.summary.includes("today's dollars")));
+});

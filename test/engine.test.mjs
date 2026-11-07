@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { amortizationByYear, monthlyPayment, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
+import { amortizationByYear, inTodaysDollars, monthlyPayment, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
 import { defaultValues } from '../site/inputs.js';
 
 const close = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} !~ ${b}`);
@@ -142,4 +142,14 @@ test('tax on investment growth does not cushion a loss', () => {
   const untaxed = project({ ...v, investmentTaxRate: 0 }).rows[10].investmentCapital;
   const taxed = project({ ...v, investmentTaxRate: 100 }).rows[10].investmentCapital;
   close(taxed, untaxed);
+});
+
+test("today's dollars discounts each year by compounded inflation", () => {
+  const { rows } = project({ ...defaultValues(), horizon: 3 });
+  const real = inTodaysDollars(rows, 3);
+  assert.deepEqual(real[0], rows[0]);
+  close(real[2].homeValue, rows[2].homeValue / 1.03 ** 2);
+  close(real[3].monthlyRentCost, rows[3].monthlyRentCost / 1.03 ** 3);
+  assert.equal(real[3].year, 3);
+  assert.equal(inTodaysDollars(rows, 0)[3].homeValue, rows[3].homeValue);
 });
