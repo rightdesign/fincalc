@@ -58,7 +58,10 @@ function renderField(field, value) {
     input.setAttribute('aria-describedby', tip.id);
     text.append(' ', hint);
     // The checkbox's explanation is always shown, directly under it.
-    if (field.kind === 'checkbox') tip.classList.add('open');
+    if (field.kind === 'checkbox') {
+      tip.classList.add('open');
+      hint.setAttribute('aria-expanded', 'true');
+    }
     label.hintText = tip;
   }
   if (field.slider) {
@@ -218,9 +221,13 @@ export function readInputs(form) {
 // Writes saved values back into the form (the inverse of readInputs).
 function writeInputs(form, values) {
   for (const field of FIELDS) {
+    if (field.kind === 'checkbox') {
+      // A scenario saved before a checkbox existed has no value for it: use the default.
+      form.elements[field.id].checked = (values[field.id] ?? field.default) === 1;
+      continue;
+    }
     if (values[field.id] == null) continue;
-    if (field.kind === 'checkbox') form.elements[field.id].checked = values[field.id] === 1;
-    else form.elements[field.id].value = values[field.id];
+    form.elements[field.id].value = values[field.id];
     if (field.slider) form.elements[`${field.id}-slider`].value = values[field.id];
   }
   form.querySelectorAll('.repair-row').forEach((r) => r.remove());
