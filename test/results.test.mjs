@@ -104,6 +104,10 @@ test('the cost summary lists each category for the three paths and the gaps agai
   assert.deepEqual(costSummary.rows.map((r) => r[0]).slice(0, 4), ['Initial costs', 'Recurring costs', 'Opportunity costs', 'Total costs']);
   for (const r of costSummary.rows) assert.equal(r.length, 4);
   assert.equal(costSummary.rows[0][1], '$0');
+  const total = costSummary.rows.find((r) => /^Total cash you must supply/.test(r[0]));
+  assert.ok(total);
+  const cents = (t) => Number(t.replace(/[^0-9.-]/g, ''));
+  assert.ok(cents(total[1]) > cents(total[2]));
   assert.equal(costSummary.headlines.length, 4);
   assert.match(costSummary.headlines[0], /ahead of staying|behind staying/);
   assert.match(costSummary.headlines[2], /year 1 and .* in year \d+/);

@@ -66,6 +66,7 @@ function costSummary(values, projection, rows) {
   };
   const paths = [costs.stay, costs.sell, costs.downsize];
   const cashRow = (label, r) => [label, ...[r.monthlyStayOutOfPocket, r.monthlySellOutOfPocket, r.monthlyDownsizeOutOfPocket].map(formatMoney)];
+  const totalCash = (pick) => formatMoney(sum((r) => pick(r) * 12));
   const row = (label, pick) => [label, ...paths.map((p) => formatMoney(pick(p)))];
   const gap = (name, net) => {
     const diff = net - end.stayNetWorth;
@@ -96,8 +97,9 @@ function costSummary(values, projection, rows) {
       row(`Net proceeds (year ${end.year})`, (p) => p.net),
       cashRow('Monthly cash you must supply (year 1)', first),
       cashRow(`Monthly cash you must supply (year ${end.year})`, end),
+      [`Total cash you must supply (years 1 to ${end.year})`, totalCash((r) => r.monthlyStayOutOfPocket), totalCash((r) => r.monthlySellOutOfPocket), totalCash((r) => r.monthlyDownsizeOutOfPocket)],
     ],
-    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only. The monthly cash rows are housing outflows less portfolio withdrawals applied to housing; they are a cash-flow measure, not part of the totals.${downsizeFunding(values).outsideFunds > 0.5 ? ' Downsize net proceeds leave out the money from outside this model that pays for the new home.' : ''}${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
+    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only. The monthly cash rows are housing outflows less portfolio withdrawals applied to housing; they are a cash-flow measure, not part of the totals. The total cash row adds those monthly amounts over every year of the horizon: the cash the household has to generate from income or other savings, which net worth does not show.${downsizeFunding(values).outsideFunds > 0.5 ? ' Downsize net proceeds leave out the money from outside this model that pays for the new home.' : ''}${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
   };
 }
 
