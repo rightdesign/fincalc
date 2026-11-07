@@ -78,10 +78,10 @@ test("today's dollars option shrinks future amounts and is labelled", () => {
 
 test('builds a sensitivity list that renders as escaped HTML', () => {
   const { sensitivity } = buildResults(defaultValues());
-  assert.equal(sensitivity.length, 7);
+  assert.equal(sensitivity.length, 8);
   const html = sensitivityHtml(sensitivity);
   assert.match(html, /id="sensitivity"/);
-  assert.equal((html.match(/<li>/g) ?? []).length, 7);
+  assert.equal((html.match(/<li>/g) ?? []).length, 8);
   assert.match(html, /Downsizing vs\. staying/);
 });
 

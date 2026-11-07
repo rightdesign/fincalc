@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultValues } from '../site/inputs.js';
 import { project } from '../site/engine.js';
-import { DRIVERS, flipPoint, sensitivityLines } from '../site/sensitivity.js';
+import { DRIVERS, flipPoint, selfFundingRent, sensitivityLines } from '../site/sensitivity.js';
 
 const base = { ...defaultValues(), repairs: [] };
 const end = (v) => { const r = project(v).rows; return r[r.length - 1].netWorthGainLoss; };
@@ -44,4 +44,25 @@ test('the downsize flip point follows the downsize margin and the proceeds setti
   assert.notEqual(endGap({ ...v, appreciation: flip - 0.01 }) >= 0, endGap({ ...v, appreciation: flip + 0.01 }) >= 0);
   const off = flipPoint({ ...v, useProceeds: 0 }, d, 'downsize');
   assert.ok(off > flip);
+});
+
+test('self-funding rent: income at the breakeven rate equals the first year of rent', () => {
+  const v = { ...base, withdrawalTaxRate: 10 };
+  const line = selfFundingRent(v);
+  const capital = project(v).rows[0].investmentCapital;
+  const annualRent = v.rent * 12 + v.rentersInsurance;
+  assert.ok(Math.abs(capital * (line.rate / 100) * 0.9 - annualRent) < 0.01);
+  const income = capital * (v.investmentWithdrawal / 100) * 0.9;
+  assert.ok(Math.abs(income - v.rentersInsurance - line.rent * 12) < 0.01);
+  assert.match(line.text, /Self-funding rent/);
+});
+
+test('self-funding rent says so when the proceeds cover the rent, or cannot', () => {
+  const covered = selfFundingRent({ ...base, investmentWithdrawal: 100, withdrawalTaxRate: 0 });
+  assert.match(covered.text, /pays the rent in full/);
+  const topUp = selfFundingRent({ ...base, investmentWithdrawal: 0.1 });
+  assert.match(topUp.text, /top up about/);
+  const broke = selfFundingRent({ ...base, homeValue: 100000, mortgageBalance: 100000, movingCosts: 5000 });
+  assert.equal(broke.rate, null);
+  assert.match(broke.text, /cannot pay any rent/);
 });

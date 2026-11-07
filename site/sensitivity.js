@@ -78,4 +78,33 @@ function pathLines(values, path) {
   });
 }
 
-export const sensitivityLines = (values) => [...pathLines(values, 'sell'), ...pathLines(values, 'downsize')];
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+// Cash-flow breakeven for the sell path: the withdrawal rate (or, equivalently,
+// the starting monthly rent) at which the after-tax income from the invested
+// proceeds pays the first year's rent and renter's insurance in full. Not a
+// verdict flip, so it is a separate line placed with the selling drivers.
+export function selfFundingRent(values) {
+  const capital = project(values).rows[0].investmentCapital;
+  const keep = 1 - values.withdrawalTaxRate / 100;
+  const annualRent = values.rent * 12 + values.rentersInsurance;
+  const entered = `you entered ${fmt(values.investmentWithdrawal)} and ${usd.format(values.rent)} a month`;
+  const base = { id: 'selfFunding', path: 'sell', label: 'Self-funding rent' };
+  if (capital <= 0 || keep <= 0) {
+    return { ...base, rate: null, rent: null, text: 'Self-funding rent: the invested proceeds are nothing after moving and rental costs, so they cannot pay any rent.' };
+  }
+  const rate = (annualRent / (capital * keep)) * 100;
+  const rent = Math.max(0, (capital * (values.investmentWithdrawal / 100) * keep - values.rentersInsurance) / 12);
+  const income = capital * (values.investmentWithdrawal / 100) * keep;
+  const result = income >= annualRent
+    ? 'at your inputs the released equity pays the rent in full'
+    : `at your inputs you would top up about ${usd.format((annualRent - income) / 12)} a month`;
+  return {
+    ...base,
+    rate,
+    rent,
+    text: `Self-funding rent: selling pays the first year's rent in full if you withdraw at least ${fmt(rate)} a year of the ${usd.format(capital)} invested, or if the starting rent is at most ${usd.format(rent)} a month (${entered}); ${result}.`,
+  };
+}
+
+export const sensitivityLines = (values) => [...pathLines(values, 'sell'), selfFundingRent(values), ...pathLines(values, 'downsize')];
