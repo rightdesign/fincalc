@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.33.0] — 2026-11-07
+
+- FINC-048 When you would buy the new home with no mortgage, the downsize inputs and the monthly cash summary now say so: no mortgage payment, a monthly cash need of carrying costs only, and the monthly withdrawal the remaining invested proceeds generate.
+- FINC-049 "What drives the verdict" gains a "self-funding rent" breakeven: the withdrawal rate, or starting rent, at which the invested proceeds fully cover the rent, and the monthly top-up at your current inputs.
+
 ## [0.32.2] — 2026-11-07
 
 - FINC-047 The cost summary now shows the total cash the household must supply over the full time horizon for each path.
