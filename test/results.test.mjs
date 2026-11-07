@@ -203,10 +203,38 @@ test('the proceeds setting reaches the year-0 numbers, tables and verdict', () =
   // Unchecked: the full net proceeds are invested, so starting capital is higher,
   // while year-0 net worth stays level because the outside money is left out.
   assert.equal(cell(on, 'net-worth', 0, 3), cell(off, 'net-worth', 0, 3));
-  assert.notEqual(on.sections[2].rows[0][4], off.sections[2].rows[0][4]);
+  assert.notEqual(on.sections[2].rows[0][7], off.sections[2].rows[0][7]);
   assert.match(off.sections[0].summary, /outside this model/);
   assert.doesNotMatch(on.sections[0].summary, /outside this model/);
   assert.match(off.costSummary.headlines[1], /staying\./);
+});
+
+test('the investable cash table shows the rent, how much of it the withdrawals cover and the top-up', () => {
+  const v = { ...defaultValues(), horizon: 3, rent: 12000, rentGrowth: 0, rentersInsurance: 0, withdrawalTaxRate: 0 };
+  const { sections } = buildResults(v);
+  const sec = sections[2];
+  const col = (name) => sec.columns.indexOf(name);
+  assert.ok(col('Rent (per month)') > 0 && col('Rent covered') > 0 && col('Out of pocket (per month)') > 0);
+  const row = sec.rows[0];
+  const income = Number(row[col('Income (per month)')].replace(/[^0-9.-]/g, ''));
+  const covered = Math.round((income / 12000) * 100);
+  assert.equal(row[col('Rent covered')], covered < 100 ? `${covered}% (under 100%)` : `${covered}%`);
+  const top = Number(row[col('Out of pocket (per month)')].replace(/[^0-9.-]/g, ''));
+  assert.ok(Math.abs(top - Math.max(0, 12000 - income)) <= 1);
+  const rich = buildResults({ ...v, rent: 100 }).sections[2];
+  assert.equal(rich.rows[0][col('Out of pocket (per month)')], '$0');
+  assert.ok(!rich.rows[0][col('Rent covered')].includes('under'));
+});
+
+test('negative withdrawal income counts as zero in the rent coverage and top-up', () => {
+  const sec = buildResults({ ...defaultValues(), horizon: 5, rent: 12000 }).sections[2];
+  const col = (name) => sec.columns.indexOf(name);
+  const neg = sec.rows.filter((r) => r[col('Income (per month)')].includes('-'));
+  assert.ok(neg.length > 0);
+  for (const r of neg) {
+    assert.equal(r[col('Rent covered')], '0% (under 100%)');
+    assert.equal(r[col('Out of pocket (per month)')], r[col('Rent (per month)')]);
+  }
 });
 
 test('the headline strip shows both break-even years and the final net worth of the three paths', async () => {

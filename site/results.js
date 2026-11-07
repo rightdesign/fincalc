@@ -101,6 +101,14 @@ function costSummary(values, projection, rows) {
   };
 }
 
+// Share of the month's rent the withdrawal income covers, flagged when under
+// 100% (the cell is read as text in the table and the hover card).
+function rentCoverage(r) {
+  if (!(r.monthlyRentCost > 0)) return '\u2014';
+  const pct = Math.round((Math.max(0, r.monthlyInvestmentIncome) / r.monthlyRentCost) * 100);
+  return pct < 100 ? `${pct}% (under 100%)` : `${pct}%`;
+}
+
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
@@ -145,16 +153,16 @@ export function buildResults(values) {
   const income = {
     id: 'investable-cash',
     title: 'Investable cash',
-    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals, if you sell and rent or if you downsize.'
+    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals, if you sell and rent or if you downsize. Coverage is that income divided by the rent; below 100% the house is not paying for your housing and the difference comes out of pocket.'
       + (downsizeShortfall > 0.5 ? ` Downsizing starts with negative invested capital: ${shortfallNotice(downsizeShortfall)} The downsize columns assume that shortfall is drawn from other savings.` : ''),
-    columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)', 'Downsize investment capital', 'Downsize income (per month)'],
-    rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome), formatMoney(r.downsizeInvestmentCapital), formatMoney(r.monthlyDownsizeInvestmentIncome)]),
+    columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)', 'Rent (per month)', 'Rent covered', 'Out of pocket (per month)', 'Downsize investment capital', 'Downsize income (per month)'],
+    rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome), formatMoney(r.monthlyRentCost), rentCoverage(r), formatMoney(Math.min(r.monthlyRentCost, Math.max(0, r.monthlyRentCost - r.monthlyInvestmentIncome))), formatMoney(r.downsizeInvestmentCapital), formatMoney(r.monthlyDownsizeInvestmentIncome)]),
     series: [
       series('Income (per month)', years, (r) => r.monthlyInvestmentIncome),
       series(downsizeShortfall > 0.5 ? 'Downsize income (per month; starts with a savings shortfall)' : 'Downsize income (per month)', years, (r) => r.monthlyDownsizeInvestmentIncome),
     ],
-    tipCols: [3, 5],
-    tipExtra: null,
+    tipCols: [3, 8],
+    tipExtra: 5,
     markerX: null,
   };
 
