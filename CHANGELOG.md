@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.26.0] — 2026-11-07
+
+- FINC-036 The "If you downsize" inputs now have a "Use the proceeds from selling my current home to buy the new home" checkbox (checked by default); unchecking it invests all the net proceeds and funds the new home from the new mortgage plus outside money. The choice is kept in share links.
+
 ## [0.25.0] — 2026-11-07
 
 - FINC-035 Charts have text descriptions, tables can be expanded all at once, and per-field help text is fully visible instead of truncated.
