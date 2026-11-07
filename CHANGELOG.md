@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.28.1] — 2026-11-07
+
+- FINC-043 Loading a scenario saved before the "Use the proceeds" checkbox existed now resets it to checked, and its help button correctly reports the text as open.
+
 ## [0.28.0] — 2026-11-07
 
 - FINC-040 The "If you downsize" inputs can now cap how much of the sale proceeds go into the new home, as a dollar amount or a percentage of the net proceeds (default "as much as needed"); the rest stays invested and the proceeds breakdown shows any outside funds.
