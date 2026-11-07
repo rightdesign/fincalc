@@ -7,6 +7,7 @@ const REQUIRED = [
   'insurancePct', 'maintenancePct', 'propertyTaxGrowth', 'insuranceGrowth', 'maintenanceGrowth', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
   'investmentGrowth', 'investmentWithdrawal', 'rent', 'rentGrowth', 'rentersInsurance', 'horizon',
   'marginalTaxRate', 'standardDeduction', 'saltCap', 'investmentTaxRate', 'withdrawalTaxRate', 'inflation', 'todaysDollars', 'hoaMonthly', 'hoaGrowth', 'movingCosts', 'rentalUpfront',
+  'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'newMortgageRate', 'newMortgageTerm', 'newPropertyTax', 'newInsurancePct', 'newMaintenancePct', 'newHoaMonthly',
 ];
 
 test('every calculator variable has a field', () => {

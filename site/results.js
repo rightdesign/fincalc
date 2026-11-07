@@ -12,7 +12,7 @@ const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': 
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
   const projection = project(values);
-  const breakevenYear = projection.breakevenYear;
+  const { breakevenYear, downsizeBreakevenYear } = projection;
   const rows = values.todaysDollars === 'real' ? inTodaysDollars(projection.rows, values.inflation) : projection.rows;
   const years = rows.slice(1);
   const series = (label, list, pick) => ({ label, points: list.map((r) => ({ x: r.year, y: pick(r) })) });
@@ -22,29 +22,33 @@ export function buildResults(values) {
     title: 'Net worth',
     summary: `${breakevenYear == null
       ? 'Selling and investing does not catch up with staying within this time horizon.'
-      : `Selling and investing pulls ahead in year ${breakevenYear}.`} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax.`,
-    columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Sell minus stay'],
-    rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.netWorthGainLoss)]),
+      : `Selling and investing pulls ahead in year ${breakevenYear}.`} ${downsizeBreakevenYear == null
+      ? 'Downsizing does not catch up with staying within this time horizon.'
+      : `Downsizing pulls ahead of staying in year ${downsizeBreakevenYear}.`} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.`,
+    columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
+    rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.downsizeNetWorth), formatMoney(r.netWorthGainLoss), formatMoney(r.downsizeGainLoss)]),
     series: [
       series('Stay (equity after sale)', rows, (r) => r.stayNetWorth),
       series('Sell (invested)', rows, (r) => r.investmentCapital),
+      series('Downsize', rows, (r) => r.downsizeNetWorth),
     ],
-    tipCols: [1, 2],
-    tipExtra: 3,
+    tipCols: [1, 2, 3],
+    tipExtra: 4,
     markerX: breakevenYear,
   };
 
   const cashFlow = {
     id: 'cash-flow',
     title: 'Monthly cash flow',
-    summary: 'What each path costs per month: owning (property tax, insurance, maintenance, HOA dues, any major repairs, mortgage principal and interest, less any tax saved by deducting mortgage interest and property tax) vs. renting.',
-    columns: ['Year', 'Own (per month)', 'Rent (per month)', 'Own minus rent'],
-    rows: years.map((r) => [String(r.year), formatMoney(r.monthlyOwnCost), formatMoney(r.monthlyRentCost), formatMoney(r.monthlyOwnCost - r.monthlyRentCost)]),
+    summary: 'What each path costs per month: owning (property tax, insurance, maintenance, HOA dues, any major repairs, mortgage principal and interest, less any tax saved by deducting mortgage interest and property tax) vs. renting vs. owning the new, smaller home (same costs, on the new home).',
+    columns: ['Year', 'Own (per month)', 'Rent (per month)', 'Downsize (per month)', 'Own minus rent'],
+    rows: years.map((r) => [String(r.year), formatMoney(r.monthlyOwnCost), formatMoney(r.monthlyRentCost), formatMoney(r.monthlyDownsizeCost), formatMoney(r.monthlyOwnCost - r.monthlyRentCost)]),
     series: [
       series('Own (per month)', years, (r) => r.monthlyOwnCost),
       series('Rent (per month)', years, (r) => r.monthlyRentCost),
+      series('Downsize (per month)', years, (r) => r.monthlyDownsizeCost),
     ],
-    tipCols: [1, 2],
+    tipCols: [1, 2, 3],
     tipExtra: null,
     markerX: null,
   };
@@ -52,11 +56,14 @@ export function buildResults(values) {
   const income = {
     id: 'investable-cash',
     title: 'Investable cash',
-    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals.',
-    columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)'],
-    rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome)]),
-    series: [series('Income (per month)', years, (r) => r.monthlyInvestmentIncome)],
-    tipCols: [3],
+    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals, if you sell and rent or if you downsize.',
+    columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)', 'Downsize investment capital', 'Downsize income (per month)'],
+    rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome), formatMoney(r.downsizeInvestmentCapital), formatMoney(r.monthlyDownsizeInvestmentIncome)]),
+    series: [
+      series('Income (per month)', years, (r) => r.monthlyInvestmentIncome),
+      series('Downsize income (per month)', years, (r) => r.monthlyDownsizeInvestmentIncome),
+    ],
+    tipCols: [3, 5],
     tipExtra: null,
     markerX: null,
   };
@@ -69,7 +76,7 @@ export function buildResults(values) {
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.
-const COLORS = ['var(--series-1)', 'var(--series-2)'];
+const COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
 const W = 480;
 const H = 260;
 const PAD = { l: 64, r: 12, t: 12, b: 28 };
@@ -118,8 +125,8 @@ export function lineChartSvg(section) {
     out += `<path d="${d}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
   });
   section.series.forEach((s, i) => {
-    out += `<rect x="${PAD.l + 60 + i * 170}" y="${H - 22}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
-    out += `<text x="${PAD.l + 74 + i * 170}" y="${H - 13}" font-size="10">${escape(s.label)}</text>`;
+    out += `<rect x="${PAD.l + i * 140}" y="${H - 22}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
+    out += `<text x="${PAD.l + 14 + i * 140}" y="${H - 13}" font-size="10">${escape(s.label)}</text>`;
   });
   out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${H - PAD.b}"/>`;
   section.series.forEach((s, i) => {

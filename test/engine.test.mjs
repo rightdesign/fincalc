@@ -207,3 +207,40 @@ test('stay net worth in a later year nets selling costs and capital-gains tax on
   assert.ok(sale.taxesDue > 0);
   close(r.stayNetWorth, r.homeValue * 0.94 - sale.taxesDue - r.mortgageBalance);
 });
+
+test('downsize path: year 0 buys the new home from proceeds and invests the rest', () => {
+  const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000 };
+  const { rows, sale } = project(v);
+  // 270,000 net proceeds - 5,000 moving - (200,000 + 4,000 buying) = 61,000 invested.
+  close(rows[0].downsizeInvestmentCapital, sale.netProceeds - 5000 - 204000);
+  assert.equal(rows[0].downsizeMortgageBalance, 0);
+  // Net worth counts the new home after selling costs (no gain, so no tax).
+  close(rows[0].downsizeNetWorth, 61000 + 200000 * 0.94);
+  close(rows[0].downsizeGainLoss, rows[0].downsizeNetWorth - sale.netProceeds);
+});
+
+test('downsize path: a new mortgage lowers the cash paid and adds interest and principal', () => {
+  const base = { ...defaultValues(), horizon: 10, newHomePrice: 250000 };
+  const cash = project({ ...base, newMortgageAmount: 0 });
+  const loan = project({ ...base, newMortgageAmount: 100000, newMortgageRate: 6, newMortgageTerm: 30 });
+  close(loan.rows[0].downsizeInvestmentCapital - cash.rows[0].downsizeInvestmentCapital, 100000);
+  assert.equal(cash.rows[3].monthlyDownsizeCost < loan.rows[3].monthlyDownsizeCost, true);
+  assert.ok(loan.rows[10].downsizeMortgageBalance > 0 && loan.rows[10].downsizeMortgageBalance < 100000);
+});
+
+test('downsize path invests the difference between the stay and downsize cash outlay', () => {
+  const v = { ...defaultValues(), horizon: 1, investmentGrowth: 0, newMortgageAmount: 0 };
+  const { rows } = project(v);
+  const outlay = rows[1].unrecoverableCost + rows[1].mortgagePrincipal;
+  const newCost = rows[1].downsizeUnrecoverableCost;
+  close(rows[1].downsizeInvestmentCapital - rows[0].downsizeInvestmentCapital, outlay - newCost);
+});
+
+test('downsize breakeven is the first year it is at or ahead of staying', () => {
+  const r = project({ ...defaultValues(), horizon: 30 });
+  if (r.downsizeBreakevenYear == null) assert.ok(r.rows.slice(1).every((x) => x.downsizeGainLoss < 0));
+  else {
+    assert.ok(r.rows[r.downsizeBreakevenYear].downsizeGainLoss >= 0);
+    assert.ok(r.rows.slice(1, r.downsizeBreakevenYear).every((x) => x.downsizeGainLoss < 0));
+  }
+});

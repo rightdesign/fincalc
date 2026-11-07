@@ -101,6 +101,19 @@ export function netSaleProceeds(v) {
 //   therefore level.
 // - breakevenYear is the first year (1 or later) the sell path is at or
 //   ahead of the stay path, else null.
+// - The downsize path sells the home (same proceeds and moving costs as the
+//   sell path), buys the new home for newHomePrice plus buying costs, funded by
+//   the sale proceeds and any new mortgage (a shortfall is drawn from the
+//   investments, so capital can start negative), and invests the rest. The new
+//   home appreciates at the same rate as the old one; its property tax,
+//   insurance, maintenance and HOA grow at the same rates as the old home's, and
+//   the same tax-deduction rules apply. Each year it invests the stay path's
+//   cash outlay less its own (unrecoverable cost + principal), so all three paths
+//   cover the same housing need on equal cash out. Its net worth is investment
+//   capital plus the new home's value net of selling costs, capital-gains tax
+//   (cost basis = price paid) and mortgage, the same after-sale basis as stay.
+//   downsizeBreakevenYear is the first year (1 or later) the downsize path is at
+//   or ahead of the stay path, else null.
 export function project(values) {
   const v = values;
   const horizon = Math.max(0, Math.floor(v.horizon));
@@ -110,6 +123,17 @@ export function project(values) {
   const gross = pct(v.investmentGrowth);
   const growth = gross > 0 ? gross * (1 - pct(v.investmentTaxRate)) : gross;
   let capital = sale.netProceeds - v.movingCosts - v.rentalUpfront;
+
+  const newLoan = amortizationByYear({
+    mortgageBalance: v.newMortgageAmount, mortgageRate: v.newMortgageRate, mortgageTerm: v.newMortgageTerm, horizon,
+  });
+  const newNetSale = (homeValue, mortgageBalance) => netSaleProceeds({
+    ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
+  }).netProceeds;
+  const buyingCosts = v.newHomePrice * pct(v.newBuyingCostsPct);
+  let downsizeCapital = sale.netProceeds - v.movingCosts - (v.newHomePrice + buyingCosts - v.newMortgageAmount);
+  let newHomeValue = v.newHomePrice;
+  let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount);
   let homeValue = v.homeValue;
   let cumulativeSell = 0;
   let cumulativeStay = 0;
@@ -122,6 +146,11 @@ export function project(values) {
     stayNetWorth: sale.netProceeds,
     investmentCapital: capital,
     netWorthGainLoss: capital - sale.netProceeds,
+    downsizeHomeValue: newHomeValue,
+    downsizeMortgageBalance: v.newMortgageAmount,
+    downsizeInvestmentCapital: downsizeCapital,
+    downsizeNetWorth,
+    downsizeGainLoss: downsizeNetWorth - sale.netProceeds,
   }];
 
   for (let y = 1; y <= horizon; y++) {
@@ -140,6 +169,18 @@ export function project(values) {
     const investmentIncome = capital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
     const contribution = unrecoverableCost + principal - rentCost;
     capital = capital * (1 + growth) + contribution;
+
+    const newPay = newLoan[y - 1];
+    newHomeValue *= 1 + pct(v.appreciation);
+    const newPropertyTax = v.newPropertyTax * (1 + pct(v.propertyTaxGrowth)) ** (y - 1);
+    const newInsurance = v.newHomePrice * pct(v.newInsurancePct) * (1 + pct(v.insuranceGrowth)) ** (y - 1);
+    const newMaintenance = v.newHomePrice * pct(v.newMaintenancePct) * (1 + pct(v.maintenanceGrowth)) ** (y - 1);
+    const newHoa = v.newHoaMonthly * 12 * (1 + pct(v.hoaGrowth)) ** (y - 1);
+    const newTaxSavings = housingTaxSavings(v, newPay.interest, newPropertyTax);
+    const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
+    const downsizeIncome = downsizeCapital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
+    downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal);
+    downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, newPay.balance);
 
     const equity = homeValue - balance;
     const stayNetWorth = netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds;
@@ -169,11 +210,26 @@ export function project(values) {
       monthlyInvestmentIncome: investmentIncome / 12,
       investmentCapital: capital,
       netWorthGainLoss: capital - stayNetWorth,
+      downsizeHomeValue: newHomeValue,
+      downsizeMortgageBalance: newPay.balance,
+      downsizeUnrecoverableCost: downsizeCost,
+      monthlyDownsizeCost: (downsizeCost + newPay.principal) / 12,
+      downsizeInvestmentIncome: downsizeIncome,
+      monthlyDownsizeInvestmentIncome: downsizeIncome / 12,
+      downsizeInvestmentCapital: downsizeCapital,
+      downsizeNetWorth,
+      downsizeGainLoss: downsizeNetWorth - stayNetWorth,
     });
   }
 
   const breakeven = rows.slice(1).find((r) => r.netWorthGainLoss >= 0);
-  return { sale, rows, breakevenYear: breakeven ? breakeven.year : null };
+  const downsizeBreakeven = rows.slice(1).find((r) => r.downsizeGainLoss >= 0);
+  return {
+    sale,
+    rows,
+    breakevenYear: breakeven ? breakeven.year : null,
+    downsizeBreakevenYear: downsizeBreakeven ? downsizeBreakeven.year : null,
+  };
 }
 
 // Restates a projection in today's dollars: every money amount in year y is

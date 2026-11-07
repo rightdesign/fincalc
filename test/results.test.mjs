@@ -47,7 +47,7 @@ test('hover points snap to each year and reuse the table cells', () => {
   }
   const [nw, cf, inc] = sections;
   assert.equal(hoverPoints(nw)[3].extra.label, 'Sell minus stay');
-  assert.equal(hoverPoints(nw)[3].extra.value, nw.rows[3][3]);
+  assert.equal(hoverPoints(nw)[3].extra.value, nw.rows[3][4]);
   assert.equal(hoverPoints(cf)[0].extra, null);
   assert.equal(hoverPoints(inc)[0].items[0].value, inc.rows[0][3]);
   assert.equal(hoverPoints({ series: [] }).length, 0);
