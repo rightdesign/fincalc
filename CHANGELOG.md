@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.20.0] — 2026-11-07
+
+- FINC-029 A new "Summary of costs by category" section compares staying, selling and renting, and downsizing on initial, recurring and opportunity costs and net proceeds, with the net worth gap at the horizon in dollars and percent and the monthly cost gap in year 1 versus the final year.
+
 ## [0.19.0] — 2026-11-07
 
 - FINC-028 The net worth summary always shows the gap against staying at the end of the horizon and, when selling or downsizing never catches up, the closest-approach year and whether the gap is narrowing or widening.
