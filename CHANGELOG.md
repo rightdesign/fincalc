@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.13.0] — 2026-11-07
+
+- FINC-022 Added monthly HOA dues with their own annual growth rate to the owning costs.
+
 ## [0.12.0] — 2026-11-07
 
 - FINC-021 Property tax, insurance and maintenance can each grow at their own annual rate.
