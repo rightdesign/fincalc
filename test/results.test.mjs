@@ -274,3 +274,12 @@ test('cash-needed section and cost-summary rows surface the out-of-pocket cash',
   assert.ok(labels.includes('Monthly cash you must supply (year 1)'));
   assert.equal(costSummary.rows.find((r) => r[0].endsWith('(year 1)'))[1], s.rows[0][1]);
 });
+
+test('the no-mortgage notice names the carrying-cost-only cash need when the new mortgage is zero', () => {
+  const v = { ...defaultValues(), horizon: 5, newMortgageAmount: 0 };
+  const r = buildResults(v);
+  assert.match(r.noMortgageNotice, /^No mortgage payment on the new home: monthly cash you must supply in year 1 is its carrying costs only, \$[\d,]+ a month, or \$[\d,]+ after withdrawals, against \$[\d,]+ to stay\./);
+  assert.ok(r.sections[3].summary.includes(r.noMortgageNotice));
+  const loan = buildResults({ ...v, newMortgageAmount: 100000 });
+  assert.equal(loan.noMortgageNotice, '');
+});

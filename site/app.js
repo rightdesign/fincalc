@@ -389,11 +389,11 @@ function compareHtml(list) {
 
 // The downsize inputs' notice that the new home is not covered by the sale
 // proceeds and new mortgage; empty text hides it.
-function showShortfall(form, text) {
-  let note = form.querySelector('.shortfall-notice');
+function showShortfall(form, text, cls = 'shortfall-notice') {
+  let note = form.querySelector(`.${cls}`);
   if (!note) {
     note = document.createElement('p');
-    note.className = 'shortfall-notice';
+    note.className = cls;
     note.setAttribute('role', 'status');
     form.querySelector('.group[data-group="If you downsize"] .group-body').append(note);
   }
@@ -447,13 +447,15 @@ function renderResults(container, form, scenarios) {
   }
   if (missing.length) {
     showShortfall(form, '');
+    showShortfall(form, '', 'no-mortgage-notice');
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     shown = [];
     return;
   }
-  const { sections, sensitivity, costSummary, shortfallNotice, headline } = buildResults(values);
+  const { sections, sensitivity, costSummary, shortfallNotice, noMortgageNotice, headline } = buildResults(values);
   shown = sections;
   showShortfall(form, shortfallNotice);
+  showShortfall(form, noMortgageNotice, 'no-mortgage-notice');
   if (shortfallNotice) flag('If you downsize', true);
   const changed = changedInputs(values, FIELDS, defaultValues());
   const printSummary = `<section class="print-summary"><h2>Scenario inputs (changed from default)</h2>${changed.length ? `<ul>${changed.map(([l, v]) => `<li>${esc(l)}: ${esc(v)}</li>`).join('')}</ul>` : '<p>All inputs are at their defaults.</p>'}</section>`;
