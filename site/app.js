@@ -1,6 +1,6 @@
 // Entry point for the calculator page. The inputs form mounts into
 // #calculator; the page is stateless, so nothing is persisted.
-import { FIELDS, defaultHorizon, defaultValues, parseValue } from './inputs.js';
+import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
 import { buildResults, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
@@ -44,6 +44,55 @@ function renderField(field, value) {
   return label;
 }
 
+// Optional one-time repairs on the stay path: rows of year + amount that the
+// user adds and removes. Rows live in the DOM (.repair-row) and are read by
+// readInputs.
+function renderRepairs() {
+  const fieldset = document.createElement('fieldset');
+  fieldset.className = 'repairs';
+  const legend = document.createElement('legend');
+  legend.textContent = 'Major repairs';
+  const note = document.createElement('p');
+  note.className = 'hint-note';
+  note.textContent = 'Optional. Lump-sum costs such as a new roof or HVAC, in that year\'s dollars. They are added to your owning costs in the year you choose.';
+  const list = document.createElement('div');
+  list.className = 'repair-list';
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.textContent = 'Add a repair';
+  const addRow = () => {
+    const row = document.createElement('div');
+    row.className = 'repair-row';
+    const mk = (name, label, step) => {
+      const l = document.createElement('label');
+      l.className = 'field';
+      const t = document.createElement('span');
+      t.textContent = label;
+      const i = document.createElement('input');
+      i.type = 'number';
+      i.min = name === 'year' ? '1' : '0';
+      i.step = step;
+      i.inputMode = 'decimal';
+      i.name = `repair-${name}`;
+      l.append(t, i);
+      return l;
+    };
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = 'Remove';
+    remove.addEventListener('click', () => {
+      row.remove();
+      list.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    row.append(mk('year', 'Repair year', '1'), mk('amount', 'Repair cost', 'any'), remove);
+    list.append(row);
+    row.querySelector('input').focus();
+  };
+  add.addEventListener('click', addRow);
+  fieldset.append(legend, note, list, add);
+  return fieldset;
+}
+
 function renderForm(container) {
   const values = defaultValues();
   const form = document.createElement('form');
@@ -65,6 +114,8 @@ function renderForm(container) {
     fieldset.append(renderField(field, values[field.id]));
   }
 
+  form.append(renderRepairs());
+
   // The horizon follows the mortgage term until the user sets it themselves.
   const term = form.elements.mortgageTerm;
   const horizon = form.elements.horizon;
@@ -82,14 +133,20 @@ function renderForm(container) {
 export function readInputs(form) {
   const out = {};
   for (const field of FIELDS) out[field.id] = parseValue(field, form.elements[field.id].value);
+  const rows = [...form.querySelectorAll('.repair-row')].map((r) => ({
+    year: r.querySelector('[name="repair-year"]').value,
+    amount: r.querySelector('[name="repair-amount"]').value,
+  }));
+  out.repairs = parseRepairs(rows);
   return out;
 }
 
 function renderResults(container, form) {
   const values = readInputs(form);
-  const missing = FIELDS.filter((f) => values[f.id] == null);
+  const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
+  if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
   if (missing.length) {
-    container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.map((f) => f.label).join(', ')}.</p>`;
+    container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     return;
   }
   const { sections } = buildResults(values);

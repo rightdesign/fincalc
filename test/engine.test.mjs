@@ -184,6 +184,20 @@ test('HOA dues grow yearly, count as owning cost and are not tax deductible', ()
   close(rows[1].taxSavings, base[1].taxSavings);
 });
 
+test('major repairs add to the owning cost in their year only, untaxed, and may stack', () => {
+  const v = { ...defaultValues(), horizon: 3 };
+  const base = project(v).rows;
+  const { rows } = project({ ...v, repairs: [{ year: 2, amount: 12000 }, { year: 2, amount: 3000 }, { year: 9, amount: 99999 }] });
+  close(rows[1].repairs, 0);
+  close(rows[2].repairs, 15000);
+  close(rows[2].unrecoverableCost - base[2].unrecoverableCost, 15000);
+  close(rows[2].monthlyOwnCost - base[2].monthlyOwnCost, 1250);
+  close(rows[2].taxSavings, base[2].taxSavings);
+  close(rows[3].unrecoverableCost, base[3].unrecoverableCost);
+  assert.ok(rows[3].netWorthGainLoss > base[3].netWorthGainLoss);
+  close(project(v).rows[2].repairs, 0);
+});
+
 test('stay net worth in a later year nets selling costs and capital-gains tax on that year\'s value', () => {
   const v = { ...defaultValues(), exclusion: 'none', horizon: 5 };
   const { rows } = project(v);

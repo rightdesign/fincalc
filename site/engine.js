@@ -71,8 +71,12 @@ export function netSaleProceeds(v) {
 //   maintenance are their % of today's home value in year 1. Each then grows
 //   at its own rate (propertyTaxGrowth, insuranceGrowth, maintenanceGrowth),
 //   independent of the home's appreciation.
-// - Unrecoverable cost = property tax + maintenance + insurance + HOA dues + mortgage
-//   interest, less the income tax saved by deducting interest and property
+// - Major repairs are optional one-time expenses (v.repairs: [{ year, amount }],
+//   amounts in the year's own dollars, several allowed per year). They are a
+//   cost of owning in that year, not tax deductible and not added to the
+//   cost basis.
+// - Unrecoverable cost = property tax + maintenance + insurance + HOA dues + major
+//   repairs + mortgage interest, less the income tax saved by deducting interest and property
 //   tax (see housingTaxSavings). Principal is not a cost: it builds equity.
 // - Both paths cover the same housing need. Each year the sell path invests
 //   (owner's unrecoverable cost + principal paid) minus (rent + renter's
@@ -128,8 +132,9 @@ export function project(values) {
     const insurance = v.homeValue * pct(v.insurancePct) * (1 + pct(v.insuranceGrowth)) ** (y - 1);
     const maintenance = v.homeValue * pct(v.maintenancePct) * (1 + pct(v.maintenanceGrowth)) ** (y - 1);
     const hoa = v.hoaMonthly * 12 * (1 + pct(v.hoaGrowth)) ** (y - 1);
+    const repairs = (v.repairs ?? []).reduce((sum, e) => (e.year === y ? sum + e.amount : sum), 0);
     const taxSavings = housingTaxSavings(v, interest, propertyTax);
-    const unrecoverableCost = propertyTax + insurance + maintenance + hoa + interest - taxSavings;
+    const unrecoverableCost = propertyTax + insurance + maintenance + hoa + repairs + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
     const investmentIncome = capital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
@@ -150,6 +155,7 @@ export function project(values) {
       insurance,
       maintenance,
       hoa,
+      repairs,
       mortgageInterest: interest,
       taxSavings,
       mortgagePrincipal: principal,

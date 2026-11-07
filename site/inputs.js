@@ -76,3 +76,21 @@ export function parseValue(field, raw) {
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
+
+// Reads the major-repair rows ({ year, amount } raw strings) into
+// [{ year, amount }]. A row left entirely blank is skipped; a row with a
+// missing, negative or non-numeric entry (or a fractional or zero year) makes
+// the whole list invalid (null).
+export function parseRepairs(rows) {
+  const out = [];
+  for (const row of rows) {
+    const year = String(row.year ?? '').trim();
+    const amount = String(row.amount ?? '').trim();
+    if (year === '' && amount === '') continue;
+    const y = year === '' ? NaN : Number(year);
+    const a = amount === '' ? NaN : Number(amount);
+    if (!Number.isInteger(y) || y < 1 || !Number.isFinite(a) || a < 0) return null;
+    out.push({ year: y, amount: a });
+  }
+  return out;
+}

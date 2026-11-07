@@ -278,3 +278,15 @@ legend {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.repair-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+  margin-bottom: 0.5rem;
+}
+.hint-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}

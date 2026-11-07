@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { FIELDS, defaultHorizon, defaultValues, parseValue } from '../site/inputs.js';
+import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from '../site/inputs.js';
 
 const REQUIRED = [
   'homeValue', 'costBasis', 'mortgageBalance', 'mortgageRate', 'mortgageTerm', 'propertyTax',
@@ -39,4 +39,14 @@ test('parseValue reads numbers, rejects blank, negative and junk', () => {
 
 test('every field has a hint describing it', () => {
   for (const f of FIELDS) assert.ok(typeof f.hint === 'string' && f.hint.length > 20, `${f.id} has a hint`);
+});
+
+test('parseRepairs skips blank rows and rejects incomplete or invalid ones', () => {
+  assert.deepEqual(parseRepairs([]), []);
+  assert.deepEqual(parseRepairs([{ year: '', amount: '' }, { year: '5', amount: '15000' }]), [{ year: 5, amount: 15000 }]);
+  assert.equal(parseRepairs([{ year: '5', amount: '' }]), null);
+  assert.equal(parseRepairs([{ year: '', amount: '100' }]), null);
+  assert.equal(parseRepairs([{ year: '0', amount: '100' }]), null);
+  assert.equal(parseRepairs([{ year: '2.5', amount: '100' }]), null);
+  assert.equal(parseRepairs([{ year: '2', amount: '-1' }]), null);
 });
