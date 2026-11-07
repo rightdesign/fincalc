@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.24.0] — 2026-11-07
+
+- FINC-034 Home value, appreciation, investment growth, rent and rent growth now have a slider beside the number field, so you can sweep a value and watch the verdict and break-even move.
+
 ## [0.23.1] — 2026-11-07
 
 - FINC-033 Added test coverage confirming each chart's Y-axis rescales when the time horizon changes (no user-visible change).
