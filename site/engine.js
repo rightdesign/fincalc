@@ -42,8 +42,8 @@ export function amortizationByYear({ mortgageBalance, mortgageRate, mortgageTerm
 // Tax saved by deducting mortgage interest and property tax. Only the part of
 // the itemized deductions above the standard deduction is a benefit of owning;
 // property tax counts up to the SALT cap.
-export function housingTaxSavings(v, interest) {
-  const itemized = interest + Math.min(v.propertyTax, v.saltCap);
+export function housingTaxSavings(v, interest, propertyTax = v.propertyTax) {
+  const itemized = interest + Math.min(propertyTax, v.saltCap);
   return Math.max(0, itemized - v.standardDeduction) * pct(v.marginalTaxRate);
 }
 
@@ -63,10 +63,12 @@ export function netSaleProceeds(v) {
 }
 
 // Modelling rules (the ticket leaves these open):
-// - Property tax and renter's insurance are flat; rent grows at rentGrowth,
-//   year 1 at the quoted rent.
-// - Home insurance and maintenance are % of the home's value at the start of
-//   the year.
+// - Renter's insurance is flat; rent grows at rentGrowth, year 1 at the
+//   quoted rent.
+// - Property tax is the quoted dollars in year 1; home insurance and
+//   maintenance are their % of today's home value in year 1. Each then grows
+//   at its own rate (propertyTaxGrowth, insuranceGrowth, maintenanceGrowth),
+//   independent of the home's appreciation.
 // - Unrecoverable cost = property tax + maintenance + insurance + mortgage
 //   interest, less the income tax saved by deducting interest and property
 //   tax (see housingTaxSavings). Principal is not a cost: it builds equity.
@@ -115,13 +117,12 @@ export function project(values) {
 
   for (let y = 1; y <= horizon; y++) {
     const { interest, principal, balance } = loan[y - 1];
-    const startValue = homeValue;
-    homeValue = startValue * (1 + pct(v.appreciation));
+    homeValue *= 1 + pct(v.appreciation);
 
-    const propertyTax = v.propertyTax;
-    const insurance = startValue * pct(v.insurancePct);
-    const maintenance = startValue * pct(v.maintenancePct);
-    const taxSavings = housingTaxSavings(v, interest);
+    const propertyTax = v.propertyTax * (1 + pct(v.propertyTaxGrowth)) ** (y - 1);
+    const insurance = v.homeValue * pct(v.insurancePct) * (1 + pct(v.insuranceGrowth)) ** (y - 1);
+    const maintenance = v.homeValue * pct(v.maintenancePct) * (1 + pct(v.maintenanceGrowth)) ** (y - 1);
+    const taxSavings = housingTaxSavings(v, interest, propertyTax);
     const unrecoverableCost = propertyTax + insurance + maintenance + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 

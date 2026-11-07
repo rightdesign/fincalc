@@ -67,6 +67,15 @@ test('unrecoverable cost excludes principal and rent grows yearly', () => {
   close(rows[1].homeValue, 500000 * 1.03);
 });
 
+test('property tax, insurance and maintenance each grow at their own rate', () => {
+  const v = { ...defaultValues(), horizon: 3, propertyTaxGrowth: 2, insuranceGrowth: 10, maintenanceGrowth: 0, appreciation: 7 };
+  const { rows } = project(v);
+  close(rows[1].propertyTax, v.propertyTax);
+  close(rows[3].propertyTax, v.propertyTax * 1.02 ** 2);
+  close(rows[3].insurance, v.homeValue * 0.005 * 1.1 ** 2);
+  close(rows[3].maintenance, v.homeValue * 0.01);
+});
+
 test('monthly own cost includes tax, insurance, maintenance, principal and interest', () => {
   const v = { ...defaultValues(), horizon: 1 };
   const y1 = project(v).rows[1];

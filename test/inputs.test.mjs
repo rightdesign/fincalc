@@ -4,7 +4,7 @@ import { FIELDS, defaultHorizon, defaultValues, parseValue } from '../site/input
 
 const REQUIRED = [
   'homeValue', 'costBasis', 'mortgageBalance', 'mortgageRate', 'mortgageTerm', 'propertyTax',
-  'insurancePct', 'maintenancePct', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
+  'insurancePct', 'maintenancePct', 'propertyTaxGrowth', 'insuranceGrowth', 'maintenanceGrowth', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
   'investmentGrowth', 'investmentWithdrawal', 'rent', 'rentGrowth', 'rentersInsurance', 'horizon',
   'marginalTaxRate', 'standardDeduction', 'saltCap', 'investmentTaxRate', 'withdrawalTaxRate', 'inflation', 'todaysDollars',
 ];
