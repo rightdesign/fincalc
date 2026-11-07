@@ -1,7 +1,7 @@
 // Results view models for the stay vs. sell-and-rent comparison: tables and
 // SVG line charts built from the engine's projection. Pure (strings and
 // plain objects, no DOM) so it runs under node.
-import { inTodaysDollars, project } from './engine.js';
+import { downsizeFunding, inTodaysDollars, project } from './engine.js';
 import { sensitivityLines } from './sensitivity.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -283,4 +283,30 @@ export function costSummaryHtml(summary) {
   const head = summary.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
   const body = summary.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
   return `<section class="result" id="${summary.id}"><h2>${escape(summary.title)}</h2><ul>${summary.headlines.map((h) => `<li>${escape(h)}</li>`).join('')}</ul><div class="table-wrap"><table><caption>${escape(summary.title)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="hint-note">${escape(summary.note)}</p></section>`;
+}
+
+// The year-0 funding of the downsize path as a list of steps (label, signed
+// amount) ending in the amount invested, or the shortfall drawn from investments.
+export function downsizeWaterfall(values) {
+  const f = downsizeFunding(values);
+  const steps = [
+    { label: 'Sale price', amount: f.salePrice },
+    { label: 'Selling costs', amount: -f.sellingCosts },
+    { label: 'Capital gains tax', amount: -f.taxesDue },
+    { label: 'Mortgage payoff', amount: -f.mortgagePayoff },
+    { label: 'Net proceeds', amount: f.netProceeds, total: true },
+    ...(values.useProceeds === 0 ? [] : [
+      { label: 'New home price', amount: -f.newHomePrice },
+      { label: 'Buying costs', amount: -f.buyingCosts },
+      { label: 'New mortgage', amount: f.newMortgage },
+    ]),
+    { label: 'Moving costs', amount: -f.movingCosts },
+  ];
+  return { steps, invested: f.invested, shortfall: f.invested < 0, resultLabel: f.invested < 0 ? 'Shortfall drawn from investments' : 'Amount invested at year 0' };
+}
+
+export function downsizeWaterfallHtml(w) {
+  const signed = (n) => (n < 0 ? `\u2212${formatMoney(-n)}` : formatMoney(n));
+  const rows = w.steps.map((s) => `<tr${s.total ? ' class="subtotal"' : ''}><th scope="row">${escape(s.label)}</th><td>${escape(signed(s.amount))}</td></tr>`).join('');
+  return `<table><caption>Where the sale money goes</caption><tbody>${rows}<tr class="total"><th scope="row">${escape(w.resultLabel)}</th><td>${escape(formatMoney(Math.abs(w.invested)))}</td></tr></tbody></table>`;
 }

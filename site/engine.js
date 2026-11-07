@@ -62,6 +62,28 @@ export function netSaleProceeds(v) {
   return { proceeds, sellingCosts, netSales, gain, exclusion, gainAfterExclusion, taxesDue, mortgageBalance: v.mortgageBalance, netProceeds };
 }
 
+// How the downsize path is funded at year 0: the sale proceeds, less the new
+// home, its buying costs and the moving costs, plus any new mortgage. `invested`
+// is what is left to invest, negative for a shortfall drawn from investments.
+export function downsizeFunding(v) {
+  const sale = netSaleProceeds(v);
+  const buyingCosts = v.newHomePrice * pct(v.newBuyingCostsPct);
+  const useProceeds = v.useProceeds !== 0;
+  const invested = sale.netProceeds - v.movingCosts - (useProceeds ? v.newHomePrice + buyingCosts - v.newMortgageAmount : 0);
+  return {
+    salePrice: sale.proceeds,
+    sellingCosts: sale.sellingCosts,
+    taxesDue: sale.taxesDue,
+    mortgagePayoff: sale.mortgageBalance,
+    netProceeds: sale.netProceeds,
+    newHomePrice: v.newHomePrice,
+    buyingCosts,
+    newMortgage: v.newMortgageAmount,
+    movingCosts: v.movingCosts,
+    invested,
+  };
+}
+
 // Modelling rules (the ticket leaves these open):
 // - HOA dues are monthly dues x 12 in year 1 and grow at hoaGrowth; they are not
 //   tax deductible.
@@ -134,9 +156,7 @@ export function project(values) {
   const newNetSale = (homeValue, mortgageBalance) => netSaleProceeds({
     ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
   }).netProceeds;
-  const buyingCosts = v.newHomePrice * pct(v.newBuyingCostsPct);
-  const useProceeds = v.useProceeds !== 0;
-  let downsizeCapital = sale.netProceeds - v.movingCosts - (useProceeds ? v.newHomePrice + buyingCosts - v.newMortgageAmount : 0);
+  let downsizeCapital = downsizeFunding(v).invested;
   let newHomeValue = v.newHomePrice;
   let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount);
   let homeValue = v.homeValue;

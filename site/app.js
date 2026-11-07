@@ -6,7 +6,7 @@ import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from 
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
 import { csvFilename, tableCsv } from './export.js';
 import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
-import { buildResults, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
+import { buildResults, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -167,6 +167,11 @@ function renderForm(container) {
     fieldset.append(renderField(field, values[field.id]));
   }
 
+  const waterfall = document.createElement('div');
+  waterfall.className = 'waterfall table-wrap';
+  waterfall.setAttribute('aria-live', 'polite');
+  form.elements.newHoaMonthly.closest('fieldset').append(waterfall);
+
   form.append(renderRepairs());
 
   // The horizon follows the mortgage term until the user sets it themselves.
@@ -261,6 +266,9 @@ function mountScenarios(form, update) {
   return box;
 }
 
+// Inputs the sale-proceeds breakdown reads; it shows once these are all valid.
+const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion', 'taxRate', 'mortgageBalance', 'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'movingCosts'];
+
 // The sections last rendered, so a CSV button can find its table.
 let shown = [];
 
@@ -268,6 +276,9 @@ function renderResults(container, form) {
   const values = readInputs(form);
   const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
   if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
+  const waterfall = form.querySelector('.waterfall');
+  const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
+  waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
   if (missing.length) {
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     shown = [];

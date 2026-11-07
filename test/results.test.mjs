@@ -141,3 +141,33 @@ test('each chart carries a text equivalent with every line and a pointer to its 
   assert.match(text, /starts at .* ends at .* highest .* lowest/);
   assert.match(text, /table below/);
 });
+
+test('the downsize waterfall adds up to the amount invested at year 0', async () => {
+  const { downsizeWaterfall, downsizeWaterfallHtml } = await import('../site/results.js');
+  const { project } = await import('../site/engine.js');
+  const v = { ...defaultValues(), newMortgageAmount: 50000, movingCosts: 5000 };
+  const w = downsizeWaterfall(v);
+  const at = w.steps.findIndex((x) => x.label === 'Net proceeds');
+  const first = w.steps.slice(0, at).reduce((t, x) => t + x.amount, 0);
+  const rest = w.steps.slice(at + 1).reduce((t, x) => t + x.amount, 0);
+  assert.ok(Math.abs(first - w.steps[at].amount) < 1e-6);
+  assert.ok(Math.abs(w.steps[at].amount + rest - w.invested) < 1e-6);
+  assert.equal(w.invested, project(v).rows[0].downsizeInvestmentCapital);
+  assert.equal(w.shortfall, false);
+  assert.match(downsizeWaterfallHtml(w), /Amount invested at year 0/);
+});
+
+test('the downsize waterfall reports a shortfall when the proceeds do not cover the new home', async () => {
+  const { downsizeWaterfall, downsizeWaterfallHtml } = await import('../site/results.js');
+  const w = downsizeWaterfall({ ...defaultValues(), newHomePrice: 900000 });
+  assert.equal(w.shortfall, true);
+  assert.match(downsizeWaterfallHtml(w), /Shortfall drawn from investments/);
+});
+
+test('the downsize waterfall leaves out the purchase when the proceeds are not used to buy the new home', async () => {
+  const { downsizeWaterfall } = await import('../site/results.js');
+  const v = { ...defaultValues(), useProceeds: 0 };
+  const w = downsizeWaterfall(v);
+  assert.equal(w.steps.some((s) => s.label === 'New home price'), false);
+  assert.equal(w.invested, w.steps.find((s) => s.label === 'Net proceeds').amount - v.movingCosts);
+});

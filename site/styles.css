@@ -388,3 +388,29 @@ legend {
   .table-wrap { overflow: visible; }
   .chart-card { display: none; }
 }
+.waterfall {
+  margin-top: 0.75rem;
+}
+.waterfall caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.25rem;
+}
+.waterfall th,
+.waterfall td {
+  padding: 0.2rem 0.5rem;
+}
+.waterfall th {
+  text-align: left;
+  font-weight: normal;
+}
+.waterfall td {
+  text-align: right;
+}
+.waterfall .subtotal th,
+.waterfall .subtotal td,
+.waterfall .total th,
+.waterfall .total td {
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+}
