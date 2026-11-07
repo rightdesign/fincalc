@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.23.1] — 2026-11-07
+
+- FINC-033 Added test coverage confirming each chart's Y-axis rescales when the time horizon changes (no user-visible change).
+
 ## [0.23.0] — 2026-11-07
 
 - FINC-032 The page now explains its math in a "Methodology and assumptions" section (mortgage amortization, principal versus cost, how costs grow, withdrawals, nominal versus real dollars, break-even) and carries a not-financial-advice disclaimer.
