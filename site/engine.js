@@ -76,8 +76,12 @@ export function netSaleProceeds(v) {
 //   amount is drawn from the investment.
 // - Monthly own cost is the full cash outlay: unrecoverable cost plus
 //   principal (property tax, insurance, maintenance, principal and interest).
+// - Each year's investment growth is taxed at investmentTaxRate (tax drag on
+//   a taxable account); a year with no gain (or a loss) owes nothing
+//   and a loss is not cushioned.
 // - Investment income is investmentWithdrawal% of capital at the start of the
-//   year: what the portfolio could pay out, not deducted from capital.
+//   year, less withdrawalTaxRate (tax-deferred money is taxed when taken out):
+//   what the portfolio could pay out after tax, not deducted from capital.
 // - Stay net worth is home equity (value minus mortgage balance); sell net
 //   worth is investment capital. Selling costs and taxes are charged up front.
 // - breakevenYear is the first year (0 = today) the sell path is at or ahead
@@ -88,7 +92,8 @@ export function project(values) {
   const sale = netSaleProceeds(v);
   const loan = amortizationByYear({ ...v, horizon });
 
-  const growth = pct(v.investmentGrowth);
+  const gross = pct(v.investmentGrowth);
+  const growth = gross > 0 ? gross * (1 - pct(v.investmentTaxRate)) : gross;
   let capital = sale.netProceeds;
   let homeValue = v.homeValue;
   let cumulativeSell = 0;
@@ -115,7 +120,7 @@ export function project(values) {
     const unrecoverableCost = propertyTax + insurance + maintenance + interest - taxSavings;
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
-    const investmentIncome = capital * pct(v.investmentWithdrawal);
+    const investmentIncome = capital * pct(v.investmentWithdrawal) * (1 - pct(v.withdrawalTaxRate));
     const contribution = unrecoverableCost + principal - rentCost;
     capital = capital * (1 + growth) + contribution;
 

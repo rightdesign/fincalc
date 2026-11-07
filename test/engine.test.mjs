@@ -79,9 +79,10 @@ test('investment capital compounds with the owning-vs-renting difference', () =>
   const y1 = rows[1];
   close(
     y1.investmentCapital,
-    sale.netProceeds * 1.06 + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost,
+    sale.netProceeds * (1 + 0.06 * 0.85) + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost,
   );
   close(y1.investmentIncome, sale.netProceeds * 0.04);
+  close(project({ ...v, withdrawalTaxRate: 25 }).rows[1].investmentIncome, sale.netProceeds * 0.04 * 0.75);
   close(y1.monthlyInvestmentIncome, y1.investmentIncome / 12);
 });
 
@@ -125,4 +126,20 @@ test('tax savings reduce the owner\'s unrecoverable cost and monthly cost', () =
   close(y1.taxSavings, (y1.mortgageInterest + v.propertyTax - 10000) * 0.24);
   close(y1.unrecoverableCost, gross - y1.taxSavings);
   close(y1.monthlyOwnCost * 12, gross - y1.taxSavings + y1.mortgagePrincipal);
+});
+
+test('tax on investment growth lowers the capital it compounds to', () => {
+  const v = { ...defaultValues(), horizon: 10 };
+  const untaxed = project({ ...v, investmentTaxRate: 0 }).rows[10].investmentCapital;
+  const taxed = project({ ...v, investmentTaxRate: 25 }).rows[10].investmentCapital;
+  assert.ok(taxed < untaxed);
+  const y1 = project({ ...v, horizon: 1, investmentTaxRate: 100 }).rows[1];
+  close(y1.investmentCapital, project(v).sale.netProceeds + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost);
+});
+
+test('tax on investment growth does not cushion a loss', () => {
+  const v = { ...defaultValues(), horizon: 10, investmentGrowth: -10 };
+  const untaxed = project({ ...v, investmentTaxRate: 0 }).rows[10].investmentCapital;
+  const taxed = project({ ...v, investmentTaxRate: 100 }).rows[10].investmentCapital;
+  close(taxed, untaxed);
 });

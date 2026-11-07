@@ -52,7 +52,7 @@ export function buildResults(values) {
   const income = {
     id: 'investable-cash',
     title: 'Investable cash',
-    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate.',
+    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals.',
     columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)'],
     rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome)]),
     series: [series('Income (per month)', years, (r) => r.monthlyInvestmentIncome)],
