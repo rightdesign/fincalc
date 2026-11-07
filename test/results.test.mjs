@@ -114,3 +114,20 @@ test('the cost summary is absent with no years and noted in today\'s dollars', (
   assert.equal(costSummaryHtml(null), '');
   assert.match(buildResults({ ...defaultValues(), todaysDollars: 'real' }).costSummary.note, /today's dollars/);
 });
+
+test('every chart axis rescales to the visible data when the horizon shrinks', () => {
+  const axisLabels = (h) => buildResults({ ...defaultValues(), horizon: h }).sections.map((s) => {
+    const svg = lineChartSvg(s);
+    const peak = Math.max(...s.series.flatMap((x) => x.points.map((p) => p.y)));
+    return { svg, peak, xs: Math.max(...s.series.flatMap((x) => x.points.map((p) => p.x))) };
+  });
+  const long = axisLabels(25);
+  const short = axisLabels(10);
+  short.forEach((s, i) => {
+    assert.ok(s.peak < long[i].peak);
+    assert.notEqual(s.svg, long[i].svg);
+    assert.ok(s.svg.includes(`Year ${s.xs}`));
+    assert.ok(s.svg.includes(formatMoney(s.peak)), 'top y-axis label is the 10-year maximum');
+    assert.ok(!s.svg.includes(formatMoney(long[i].peak)), 'old 25-year maximum is gone');
+  });
+});
