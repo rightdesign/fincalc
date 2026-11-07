@@ -316,3 +316,6 @@ legend {
 .scenario-compare tbody th {
   text-align: left;
 }
+
+.share { margin: 0 0 1rem; }
+.share-message { margin-left: 0.5rem; }

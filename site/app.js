@@ -1,7 +1,10 @@
 // Entry point for the calculator page. The inputs form mounts into
-// #calculator. Saved scenarios are kept in this browser's localStorage.
+// #calculator. Saved scenarios and the current inputs are kept in this
+// browser's localStorage; the current inputs are also mirrored into the URL
+// fragment so the page can be bookmarked and shared.
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
+import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
 import { buildResults, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
@@ -272,13 +275,60 @@ function attachHover(wrap, section) {
   });
 }
 
+// Keeps the URL fragment and localStorage in step with the form, restores them
+// on load (a link beats stored inputs) and adds Copy link / Reset buttons.
+function mountSharing(form, update) {
+  const box = document.createElement('div');
+  box.className = 'share';
+  box.innerHTML = `<button type="button" data-act="copy">Copy link to these inputs</button> <button type="button" data-act="reset">Reset to defaults</button> <span class="share-message" role="status"></span>`;
+  const message = box.querySelector('.share-message');
+  const say = (text) => { message.textContent = text; };
+
+  const restore = (text) => {
+    writeInputs(form, decodeInputs(text));
+    update();
+  };
+  let stored = null;
+  try { stored = localStorage.getItem(INPUTS_KEY); } catch { /* storage unavailable */ }
+  const fromLink = location.hash.length > 1;
+  if (fromLink || stored) restore(fromLink ? location.hash : stored);
+
+  const save = () => {
+    const values = readInputs(form);
+    if (FIELDS.some((f) => values[f.id] == null) || values.repairs == null) return;
+    const text = encodeInputs(values);
+    try { localStorage.setItem(INPUTS_KEY, text); } catch { /* storage unavailable */ }
+    try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
+  };
+  form.addEventListener('input', save);
+  form.addEventListener('change', save);
+  window.addEventListener('hashchange', () => { if (location.hash.length > 1) restore(location.hash); });
+  save();
+  box.save = save;
+
+  box.addEventListener('click', async (e) => {
+    const act = e.target.closest('button[data-act]')?.dataset.act;
+    if (act === 'copy') {
+      save();
+      try { await navigator.clipboard.writeText(location.href); say('Link copied.'); } catch { say('Copy failed; copy the address from the browser bar instead.'); }
+    } else if (act === 'reset') {
+      restore('');
+      save();
+      say('Inputs reset to defaults.');
+    }
+  });
+  return box;
+}
+
 if (root) {
   const form = renderForm(root);
   const results = document.createElement('div');
   results.id = 'results';
   results.setAttribute('aria-live', 'polite');
   const update = () => renderResults(results, form);
-  root.append(mountScenarios(form, update), results);
+  const sharing = mountSharing(form, update);
+  // Loading a scenario rewrites the form without form events, so save explicitly.
+  root.append(sharing, mountScenarios(form, () => { update(); sharing.save(); }), results);
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();
