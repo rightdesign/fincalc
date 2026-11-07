@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.18.0] — 2026-11-07
+
+- FINC-027 A new "What drives the verdict" section shows the value of home appreciation, investment return, rent growth and capital gains tax rate at which selling and staying swap places.
+
 ## [0.17.0] — 2026-11-07
 
 - FINC-026 Scenario comparison test coverage.
