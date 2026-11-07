@@ -388,6 +388,16 @@ legend {
   .table-wrap { overflow: visible; }
   .chart-card { display: none; }
 }
+
+.shortfall-notice {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--series-2);
+  border-left-width: 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
 .waterfall {
   margin-top: 0.75rem;
 }

@@ -142,6 +142,16 @@ test('each chart carries a text equivalent with every line and a pointer to its 
   assert.match(text, /table below/);
 });
 
+test('the shortfall notice states the amount and labels the investable cash section', () => {
+  const v = { ...defaultValues(), horizon: 5, homeValue: 5500000, sellingCostsPct: 0, costBasis: 5500000, mortgageBalance: 2443000, newHomePrice: 3000000, newMortgageAmount: 0, movingCosts: 20000 };
+  const r = buildResults(v);
+  assert.match(r.shortfallNotice, /^Shortfall of \$23,000 — increase the new mortgage, or it will be drawn from other savings\.$/);
+  assert.ok(r.sections[2].summary.includes(r.shortfallNotice));
+  assert.match(r.sections[2].series[1].name ?? r.sections[2].series[1].label, /shortfall/);
+  const none = buildResults({ ...v, newHomePrice: 100000 });
+  assert.equal(none.shortfallNotice, '');
+});
+
 test('the downsize waterfall adds up to the amount invested at year 0', async () => {
   const { downsizeWaterfall, downsizeWaterfallHtml } = await import('../site/results.js');
   const { project } = await import('../site/engine.js');

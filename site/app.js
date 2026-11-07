@@ -266,6 +266,20 @@ function mountScenarios(form, update) {
   return box;
 }
 
+// The downsize inputs' notice that the new home is not covered by the sale
+// proceeds and new mortgage; empty text hides it.
+function showShortfall(form, text) {
+  let note = form.querySelector('.shortfall-notice');
+  if (!note) {
+    note = document.createElement('p');
+    note.className = 'shortfall-notice';
+    note.setAttribute('role', 'status');
+    [...form.querySelectorAll('legend')].find((l) => l.textContent === 'If you downsize').parentElement.append(note);
+  }
+  note.textContent = text;
+  note.hidden = !text;
+}
+
 // Inputs the sale-proceeds breakdown reads; it shows once these are all valid.
 const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion', 'taxRate', 'mortgageBalance', 'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'movingCosts'];
 
@@ -280,12 +294,14 @@ function renderResults(container, form) {
   const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
   waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
   if (missing.length) {
+    showShortfall(form, '');
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     shown = [];
     return;
   }
-  const { sections, sensitivity, costSummary } = buildResults(values);
+  const { sections, sensitivity, costSummary, shortfallNotice } = buildResults(values);
   shown = sections;
+  showShortfall(form, shortfallNotice);
   const expand = container.querySelector('#expand-tables');
   const expanded = expand ? expand.checked : false;
   container.innerHTML = '<label class="toggle-all"><input type="checkbox" id="expand-tables"> Expand all tables</label>' + costSummaryHtml(costSummary) + sections.map((s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details><summary>Table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download table as CSV</button></p></section>`).join('') + sensitivityHtml(sensitivity);

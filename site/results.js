@@ -9,6 +9,14 @@ export const formatMoney = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
 
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+// Said wherever the downsize path starts with negative invested capital: the
+// sale proceeds and new mortgage do not cover the new home, buying and moving
+// costs, and the model draws the rest from other savings.
+export function shortfallNotice(shortfall) {
+  if (!(shortfall > 0.5)) return '';
+  return `Shortfall of ${formatMoney(shortfall)} \u2014 increase the new mortgage, or it will be drawn from other savings.`;
+}
+
 // One path's standing against staying: when it pulls ahead (if ever), the
 // gap at the horizon and how it is moving, and the year it came closest.
 // `rows` hold each path's net worth minus staying, so a positive gap is ahead.
@@ -94,7 +102,7 @@ function costSummary(values, projection, rows) {
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
   const projection = project(values);
-  const { breakevenYear, downsizeBreakevenYear } = projection;
+  const { breakevenYear, downsizeBreakevenYear, downsizeShortfall } = projection;
   const rows = values.todaysDollars === 'real' ? inTodaysDollars(projection.rows, values.inflation) : projection.rows;
   const years = rows.slice(1);
   const series = (label, list, pick) => ({ label, points: list.map((r) => ({ x: r.year, y: pick(r) })) });
@@ -134,12 +142,13 @@ export function buildResults(values) {
   const income = {
     id: 'investable-cash',
     title: 'Investable cash',
-    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals, if you sell and rent or if you downsize.',
+    summary: 'Income the invested net proceeds could pay out each month at the withdrawal rate, after any tax on withdrawals, if you sell and rent or if you downsize.'
+      + (downsizeShortfall > 0.5 ? ` Downsizing starts with negative invested capital: ${shortfallNotice(downsizeShortfall)} The downsize columns assume that shortfall is drawn from other savings.` : ''),
     columns: ['Year', 'Investment capital', 'Income (per year)', 'Income (per month)', 'Downsize investment capital', 'Downsize income (per month)'],
     rows: years.map((r) => [String(r.year), formatMoney(r.investmentCapital), formatMoney(r.investmentIncome), formatMoney(r.monthlyInvestmentIncome), formatMoney(r.downsizeInvestmentCapital), formatMoney(r.monthlyDownsizeInvestmentIncome)]),
     series: [
       series('Income (per month)', years, (r) => r.monthlyInvestmentIncome),
-      series('Downsize income (per month)', years, (r) => r.monthlyDownsizeInvestmentIncome),
+      series(downsizeShortfall > 0.5 ? 'Downsize income (per month; starts with a savings shortfall)' : 'Downsize income (per month)', years, (r) => r.monthlyDownsizeInvestmentIncome),
     ],
     tipCols: [3, 5],
     tipExtra: null,
@@ -150,7 +159,7 @@ export function buildResults(values) {
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
-  return { breakevenYear, sections, costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
+  return { breakevenYear, sections, shortfallNotice: shortfallNotice(downsizeShortfall), costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
 }
 
 // CSS custom properties (see styles.css), so the night theme can recolour the series.

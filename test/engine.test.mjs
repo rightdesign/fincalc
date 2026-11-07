@@ -245,6 +245,18 @@ test('downsize breakeven is the first year it is at or ahead of staying', () => 
   }
 });
 
+test('reports the downsize shortfall when proceeds and new mortgage do not cover the purchase', () => {
+  const v = {
+    ...defaultValues(), horizon: 3, homeValue: 5500000, sellingCostsPct: 0, costBasis: 5500000, mortgageBalance: 2443000, newHomePrice: 3000000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 20000,
+  };
+  const p = project(v);
+  assert.equal(p.sale.netProceeds, 3057000);
+  assert.equal(p.downsizeShortfall, 23000);
+  assert.equal(p.rows[0].downsizeInvestmentCapital, -23000);
+  const covered = project({ ...v, newMortgageAmount: p.downsizeShortfall });
+  assert.equal(covered.downsizeShortfall, 0);
+});
+
 test('downsize path: with useProceeds off the full net proceeds are invested', () => {
   const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000, useProceeds: 0 };
   const { rows, sale } = project(v);

@@ -126,7 +126,8 @@ export function downsizeFunding(v) {
 // - The downsize path sells the home (same proceeds and moving costs as the
 //   sell path), buys the new home for newHomePrice plus buying costs, funded by
 //   the sale proceeds and any new mortgage (a shortfall is drawn from the
-//   investments, so capital can start negative), and invests the rest. The new
+//   investments, so capital can start negative; `downsizeShortfall` reports
+//   how much, so the page can say so), and invests the rest. The new
 //   home appreciates at the same rate as the old one; its property tax,
 //   insurance, maintenance and HOA grow at the same rates as the old home's, and
 //   the same tax-deduction rules apply. Each year it invests the stay path's
@@ -157,6 +158,7 @@ export function project(values) {
     ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
   }).netProceeds;
   let downsizeCapital = downsizeFunding(v).invested;
+  const downsizeShortfall = v.useProceeds !== 0 ? Math.max(0, -downsizeCapital) : 0;
   let newHomeValue = v.newHomePrice;
   let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount);
   let homeValue = v.homeValue;
@@ -255,6 +257,7 @@ export function project(values) {
     investmentGrowth: growth,
     breakevenYear: breakeven ? breakeven.year : null,
     downsizeBreakevenYear: downsizeBreakeven ? downsizeBreakeven.year : null,
+    downsizeShortfall,
   };
 }
 
