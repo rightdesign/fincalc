@@ -432,8 +432,24 @@ function selectTab(container, id, focus = false) {
     btn.setAttribute('aria-selected', String(on));
     btn.tabIndex = on ? 0 : -1;
     if (on && focus) btn.focus();
+    if (on) revealTab(btn);
   }
   for (const panel of container.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.dataset.tab !== id;
+}
+
+// Keeps a tab inside the strip's visible range (the strip has no scrollbar).
+function revealTab(btn) {
+  const strip = btn.parentElement;
+  if (btn.offsetLeft < strip.scrollLeft) strip.scrollLeft = btn.offsetLeft;
+  else if (btn.offsetLeft + btn.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = btn.offsetLeft + btn.offsetWidth - strip.clientWidth;
+}
+
+// Shows the edge indicators only on a side that has more tabs hidden past it.
+function updateTabIndicators(bar) {
+  const strip = bar.querySelector('.tabs');
+  const max = strip.scrollWidth - strip.clientWidth;
+  bar.querySelector('.tabs-more-start').hidden = strip.scrollLeft < 1;
+  bar.querySelector('.tabs-more-end').hidden = strip.scrollLeft > max - 1;
 }
 
 function renderResults(container, form, scenarios) {
@@ -480,9 +496,27 @@ function renderResults(container, form, scenarios) {
   };
   const tabs = TABS.map(([id, label]) => `<button type="button" role="tab" class="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`).join('');
   const body = TABS.map(([id]) => `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`).join('');
-  container.innerHTML = `${headlineHtml(headline)}${printSummary}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${body}`;
+  const stripLeft = container.querySelector('.tabs')?.scrollLeft ?? 0;
+  const more = (side, label, glyph) => `<button type="button" class="tabs-more tabs-more-${side}" data-scroll="${side === 'start' ? -1 : 1}" aria-label="${label}" tabindex="-1" hidden>${glyph}</button>`;
+  container.innerHTML = `${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
+  const bar = container.querySelector('.tabs-bar');
+  const strip = bar.querySelector('.tabs');
+  strip.scrollLeft = stripLeft;
+  strip.addEventListener('scroll', () => updateTabIndicators(bar), { passive: true });
+  new ResizeObserver(() => updateTabIndicators(bar)).observe(strip);
+  // A vertical wheel pans the strip sideways; sideways input (trackpad, Shift+wheel) is left to the browser.
+  strip.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const max = strip.scrollWidth - strip.clientWidth;
+    if (max < 1) return;
+    const next = Math.min(max, Math.max(0, strip.scrollLeft + e.deltaY));
+    if (next === strip.scrollLeft) return;
+    strip.scrollLeft = next;
+    e.preventDefault();
+  }, { passive: false });
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
   selectTab(container, ui.tab);
+  updateTabIndicators(bar);
 }
 
 // Saves one section's table as a CSV file.
@@ -639,6 +673,12 @@ if (root) {
   const update = () => renderResults(results, form, scenarios);
   scenarios = mountScenarios(form, () => { update(); sharing.save(); });
   results.addEventListener('click', (e) => {
+    const more = e.target.closest('.tabs-more');
+    if (more) {
+      const strip = results.querySelector('.tabs');
+      strip.scrollBy({ left: Number(more.dataset.scroll) * strip.clientWidth * 0.75, behavior: 'smooth' });
+      return;
+    }
     const tab = e.target.closest('[role="tab"]');
     if (tab) { selectTab(results, tab.dataset.tab); sharing.save(); return; }
     const id = e.target.closest('button[data-csv]')?.dataset.csv;

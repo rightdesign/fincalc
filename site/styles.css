@@ -413,17 +413,58 @@ legend {
   font-size: 1.0625rem;
 }
 
+.tabs-bar {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+/* No scrollbars: the strip pans by wheel, touch or the edge indicators. The
+   rule is an inset shadow so the strip has nothing that overflows vertically. */
 .tabs {
   display: flex;
   gap: 0.25rem;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid var(--rule);
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  box-shadow: inset 0 -2px 0 var(--rule);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs-more {
+  position: absolute;
+  top: 0;
+  bottom: 2px;
+  z-index: 1;
+  width: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tabs-more[hidden] {
+  display: none;
+}
+
+.tabs-more-start {
+  left: 0;
+  background: linear-gradient(to right, var(--bg) 60%, transparent);
+}
+
+.tabs-more-end {
+  right: 0;
+  background: linear-gradient(to left, var(--bg) 60%, transparent);
 }
 
 .tab {
   flex: none;
-  margin-bottom: -2px;
   padding: 0.5rem 0.75rem;
   border: 0;
   border-bottom: 2px solid transparent;
