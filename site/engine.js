@@ -108,9 +108,11 @@ export function downsizeFunding(v) {
 //   repairs + mortgage interest, less the income tax saved by deducting interest and property
 //   tax (see housingTaxSavings). Principal is not a cost: it builds equity.
 // - Both paths cover the same housing need. Each year the sell path invests
-//   (owner's unrecoverable cost + principal paid) minus (rent + renter's
-//   insurance), so the two paths are compared on equal cash out. A negative
-//   amount is drawn from the investment.
+//   (owner's unrecoverable cost + principal paid) minus the out-of-pocket cash
+//   the household pays toward rent + renter's insurance, less the gross
+//   withdrawal, so the two paths are compared on equal cash out. The rent is
+//   paid once: the part the withdrawals cover comes from the portfolio, the
+//   rest (out of pocket) from the household, never both for the same dollar.
 // - Monthly own cost is the full cash outlay: unrecoverable cost plus
 //   principal (property tax, insurance, maintenance, principal and interest).
 // - Monthly out-of-pocket cash (the cash-flow lens, not net worth) is the year's
@@ -169,8 +171,8 @@ export function downsizeFunding(v) {
 // outflow less the after-tax portfolio withdrawals applied to it. Withdrawals
 // only offset housing (never more than it costs) and a negative portfolio
 // pays nothing.
-function outOfPocket(annualOutflow, annualWithdrawal) {
-  return Math.max(0, annualOutflow - Math.max(0, annualWithdrawal)) / 12;
+function annualOutOfPocket(annualOutflow, annualWithdrawal) {
+  return Math.max(0, annualOutflow - Math.max(0, annualWithdrawal));
 }
 
 // Gross amount taken out of a portfolio in a year. Normally the withdrawal rate
@@ -183,17 +185,6 @@ function withdrawn(v, capital, need) {
   if (v.withdrawToCoverRent !== 1) return pos * pct(v.investmentWithdrawal);
   const keep = 1 - pct(v.withdrawalTaxRate);
   return keep > 0 ? Math.min(Math.max(0, need) / keep, pos) : 0;
-}
-
-// What a year's withdrawal takes out of the portfolio on top of the housing
-// outflow the projection already deducts. With a percentage withdrawal that is
-// the whole gross amount. With v.withdrawToCoverRent === 1 the withdrawal IS
-// the payment of `need` (already deducted as rent or carrying cost), so only
-// the tax on it leaves the portfolio extra; deducting it all would pay the
-// housing bill twice.
-function spentWithdrawal(v, capital, need) {
-  const gross = withdrawn(v, capital, need);
-  return v.withdrawToCoverRent === 1 ? gross * pct(v.withdrawalTaxRate) : gross;
 }
 
 // After-tax portfolio income for a year: the gross withdrawal less tax on it.
@@ -259,8 +250,11 @@ export function project(values) {
     const rentCost = v.rent * 12 * (1 + pct(v.rentGrowth)) ** (y - 1) + v.rentersInsurance;
 
     const investmentIncome = portfolioIncome(v, capital, rentCost);
-    const contribution = unrecoverableCost + principal - rentCost;
-    capital = capital * (1 + growth) + contribution - spentWithdrawal(v, capital, rentCost);
+    // The household pays the rent the withdrawals do not cover (out of what
+    // owning would have cost it); the portfolio is charged only the gross
+    // withdrawal, so the rent is paid once, by one payer or the other.
+    const sellOutOfPocket = annualOutOfPocket(rentCost, investmentIncome);
+    capital = capital * (1 + growth) + (unrecoverableCost + principal - sellOutOfPocket) - withdrawn(v, capital, rentCost);
 
     const newPay = newLoan[y - 1];
     newHomeValue *= 1 + pct(v.appreciation);
@@ -271,7 +265,8 @@ export function project(values) {
     const newTaxSavings = housingTaxSavings(v, newPay.interest, newPropertyTax);
     const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
     const downsizeIncome = portfolioIncome(v, downsizeCapital, downsizeCost + newPay.principal);
-    downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal) - spentWithdrawal(v, downsizeCapital, downsizeCost + newPay.principal);
+    const downsizeOutOfPocket = annualOutOfPocket(downsizeCost + newPay.principal, downsizeIncome);
+    downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeOutOfPocket) - withdrawn(v, downsizeCapital, downsizeCost + newPay.principal);
     const lastYear = y === horizon;
     downsizeNetWorth = downsizeCapital - outsideFunds
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
@@ -299,8 +294,8 @@ export function project(values) {
       monthlyOwnCost: (unrecoverableCost + principal) / 12,
       monthlyRentCost: rentCost / 12,
       monthlyStayOutOfPocket: (unrecoverableCost + principal) / 12,
-      monthlySellOutOfPocket: outOfPocket(rentCost, investmentIncome),
-      monthlyDownsizeOutOfPocket: outOfPocket(downsizeCost + newPay.principal, downsizeIncome),
+      monthlySellOutOfPocket: sellOutOfPocket / 12,
+      monthlyDownsizeOutOfPocket: downsizeOutOfPocket / 12,
       cumulativeUnrecoverableCost: cumulativeStay,
       cumulativeRentCost: cumulativeSell,
       investmentIncome,

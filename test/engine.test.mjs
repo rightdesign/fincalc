@@ -101,8 +101,11 @@ test('the withdrawal is spent: it leaves the portfolio and stops compounding', (
   const v = { ...defaultValues(), horizon: 1 };
   const none = project({ ...v, investmentWithdrawal: 0 });
   const y1 = project(v).rows[1];
-  close(y1.investmentCapital, none.rows[1].investmentCapital - none.rows[0].investmentCapital * 0.04);
-  close(y1.downsizeInvestmentCapital, none.rows[1].downsizeInvestmentCapital - Math.max(0, project(v).rows[0].downsizeInvestmentCapital) * 0.04);
+  // the gross withdrawal leaves the portfolio; the part applied to rent spares the household that much out of pocket
+  close(y1.investmentCapital, none.rows[1].investmentCapital - none.rows[0].investmentCapital * 0.04 + Math.min(y1.investmentIncome, y1.rentCost));
+  const dGross = Math.max(0, y1 && project(v).rows[0].downsizeInvestmentCapital) * 0.04;
+  const dApplied = Math.min(Math.max(0, y1.downsizeInvestmentIncome), y1.monthlyDownsizeCost * 12);
+  close(y1.downsizeInvestmentCapital, none.rows[1].downsizeInvestmentCapital - dGross + dApplied);
 });
 
 test('with withdraw-to-cover-rent the rent is deducted once, plus tax on the withdrawal', () => {
@@ -350,4 +353,22 @@ test('withdraw-to-cover-rent sets income to the rent, ignoring the withdrawal pe
   // capped at what the capital can pay after tax
   const tiny = project({ ...v, withdrawToCoverRent: 1, rent: 1e7 }).rows[1];
   close(tiny.investmentIncome, project(v).rows[0].investmentCapital * 0.8);
+});
+
+test('rent is paid once: portfolio is charged the withdrawal, the household the out-of-pocket rest', () => {
+  for (const extra of [{ investmentWithdrawal: 4 }, { investmentWithdrawal: 0 }, { withdrawToCoverRent: 1 }]) {
+    const v = { ...defaultValues(), horizon: 3, ...extra };
+    const { rows, investmentGrowth } = project(v);
+    for (let y = 1; y < rows.length; y++) {
+      const prev = rows[y - 1];
+      const r = rows[y];
+      const oop = r.monthlySellOutOfPocket * 12;
+      const income = Math.max(0, r.investmentIncome);
+      // household pays rent less withdrawals; the withdrawals come from the portfolio
+      close(oop + Math.min(income, r.rentCost), r.rentCost);
+      const gross = extra.withdrawToCoverRent ? income / (1 - v.withdrawalTaxRate / 100) : Math.max(0, prev.investmentCapital) * v.investmentWithdrawal / 100;
+      const expected = prev.investmentCapital * (1 + investmentGrowth) + (r.unrecoverableCost + r.mortgagePrincipal - oop) - gross;
+      close(r.investmentCapital, expected);
+    }
+  }
 });
