@@ -386,3 +386,20 @@ test('rent is paid once: portfolio is charged the withdrawal, the household the 
     }
   }
 });
+
+test('cash-needed contribution columns are what feeds each path\'s investment, with and without withdrawals', () => {
+  for (const extra of [{ investmentWithdrawal: 0 }, { investmentWithdrawal: 4 }, { withdrawToCoverRent: 1 }]) {
+    const v = { ...defaultValues(), horizon: 5, ...extra };
+    const { rows, investmentGrowth } = project(v);
+    for (let y = 1; y < rows.length; y++) {
+      const prev = rows[y - 1];
+      const r = rows[y];
+      // stay's cash needed less the path's is the contribution
+      close(r.monthlyStayOutOfPocket - r.monthlySellOutOfPocket, r.monthlySellContribution);
+      close(r.monthlyStayOutOfPocket - r.monthlyDownsizeOutOfPocket, r.monthlyDownsizeContribution);
+      // capital change, growth removed, is the contribution less the gross withdrawal
+      const sellGross = extra.withdrawToCoverRent ? Math.max(0, r.investmentIncome) / (1 - v.withdrawalTaxRate / 100) : Math.max(0, prev.investmentCapital) * v.investmentWithdrawal / 100;
+      close(r.investmentCapital - prev.investmentCapital * (1 + investmentGrowth), r.monthlySellContribution * 12 - sellGross);
+    }
+  }
+});

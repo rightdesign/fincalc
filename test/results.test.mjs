@@ -270,6 +270,8 @@ test('cash-needed section and cost-summary rows surface the out-of-pocket cash',
   assert.equal(s.id, 'cash-needed');
   assert.equal(s.rows.length, v.horizon);
   assert.equal(s.series.length, 3);
+  assert.equal(s.columns.length, 6);
+  assert.ok(s.rows.every((r) => r.length === 6));
   const labels = costSummary.rows.map((r) => r[0]);
   assert.ok(labels.includes('Monthly cash you must supply (year 1)'));
   assert.equal(costSummary.rows.find((r) => r[0].endsWith('(year 1)'))[1], s.rows[0][1]);

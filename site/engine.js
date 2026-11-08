@@ -113,6 +113,12 @@ export function downsizeFunding(v) {
 //   withdrawal, so the two paths are compared on equal cash out. The rent is
 //   paid once: the part the withdrawals cover comes from the portfolio, the
 //   rest (out of pocket) from the household, never both for the same dollar.
+// - monthlySellContribution / monthlyDownsizeContribution are that same
+//   equal-cash-out amount per month, (owner's unrecoverable cost + principal)
+//   minus the path's out-of-pocket housing cash: exactly what is added to the
+//   path's investment each year before the gross withdrawal is taken out of it.
+//   Beside the cash-needed figures they reconcile: stay's cash needed less the
+//   path's equals the contribution.
 // - Monthly own cost is the full cash outlay: unrecoverable cost plus
 //   principal (property tax, insurance, maintenance, principal and interest).
 // - Monthly out-of-pocket cash (the cash-flow lens, not net worth) is the year's
@@ -309,7 +315,9 @@ export function project(values) {
       monthlyRentCost: rentCost / 12,
       monthlyStayOutOfPocket: (unrecoverableCost + principal) / 12,
       monthlySellOutOfPocket: sellOutOfPocket / 12,
+      monthlySellContribution: (unrecoverableCost + principal - sellOutOfPocket) / 12,
       monthlyDownsizeOutOfPocket: downsizeOutOfPocket / 12,
+      monthlyDownsizeContribution: (unrecoverableCost + principal - downsizeOutOfPocket) / 12,
       cumulativeUnrecoverableCost: cumulativeStay,
       cumulativeRentCost: cumulativeSell,
       investmentIncome,
