@@ -246,8 +246,33 @@ export function buildResults(values) {
 // CSS custom properties (see styles.css), so the night theme can recolour the series.
 const COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
 const W = 480;
-const H = 260;
 const PAD = { l: 64, r: 12, t: 12, b: 28 };
+// The legend sits on its own rows below the year labels, so the chart grows
+// by one row per line of legend rather than overlapping the axis.
+const PLOT_H = 260;
+const LEGEND_ROW = 16;
+const CHAR_W = 6;
+const SWATCH_GAP = 14;
+const ITEM_GAP = 18;
+
+// Legend item positions, wrapped to the chart width: [{ x, row }] per series.
+function legendLayout(series) {
+  const maxX = W - PAD.r;
+  let x = PAD.l;
+  let row = 0;
+  return series.map((s) => {
+    const width = SWATCH_GAP + s.label.length * CHAR_W;
+    if (x > PAD.l && x + width > maxX) { x = PAD.l; row++; }
+    const item = { x, row };
+    x += width + ITEM_GAP;
+    return item;
+  });
+}
+
+function chartHeight(series) {
+  const rows = Math.max(...legendLayout(series).map((l) => l.row), 0) + 1;
+  return PLOT_H + 6 + rows * LEGEND_ROW;
+}
 
 // Chart geometry shared by the SVG and the hover model, so a ring always
 // lands on its line.
@@ -264,7 +289,7 @@ function chartScale(section) {
     yMin,
     yMax,
     sx: (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r)),
-    sy: (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b),
+    sy: (y) => PLOT_H - PAD.b - ((y - yMin) / (yMax - yMin)) * (PLOT_H - PAD.t - PAD.b),
   };
 }
 
@@ -276,16 +301,18 @@ export function lineChartSvg(section) {
   const { xMin, xMax, yMin, yMax, sx, sy } = chartScale(section);
   const f = (n) => n.toFixed(1);
 
+  const H = chartHeight(section.series);
+  const legend = legendLayout(section.series);
   let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escape(section.title)} chart" class="chart">`;
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
     out += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(formatMoney(y))}</text>`;
   }
-  out += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
-  out += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  out += `<text x="${PAD.l}" y="${PLOT_H - 8}" font-size="10">Year ${xMin}</text>`;
+  out += `<text x="${W - PAD.r}" y="${PLOT_H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
   if (section.markerX != null) {
-    out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${H - PAD.b}"/>`;
+    out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${PLOT_H - PAD.b}"/>`;
     out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="10">Breakeven: year ${section.markerX}</text>`;
   }
   section.series.forEach((s, i) => {
@@ -293,10 +320,11 @@ export function lineChartSvg(section) {
     out += `<path d="${d}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
   });
   section.series.forEach((s, i) => {
-    out += `<rect x="${PAD.l + i * 140}" y="${H - 22}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
-    out += `<text x="${PAD.l + 14 + i * 140}" y="${H - 13}" font-size="10">${escape(s.label)}</text>`;
+    const top = PLOT_H + 2 + legend[i].row * LEGEND_ROW;
+    out += `<rect x="${legend[i].x}" y="${top}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
+    out += `<text x="${legend[i].x + SWATCH_GAP}" y="${top + 9}" font-size="10">${escape(s.label)}</text>`;
   });
-  out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${H - PAD.b}"/>`;
+  out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${PLOT_H - PAD.b}"/>`;
   section.series.forEach((s, i) => {
     out += `<circle class="ring" r="4" style="stroke:${COLORS[i]}" stroke-width="2"/>`;
   });
