@@ -130,12 +130,13 @@ export function downsizeFunding(v) {
 // - Leaving costs the sell path two one-time amounts up front, taken out of
 //   the net proceeds before investing: moving costs and the rental's upfront
 //   cash (security deposit, first/last month's rent), counted as spent.
-// - Stay net worth is what the owner would net by selling at that point:
-//   home value less selling costs and capital-gains tax (same chain as
-//   netSaleProceeds, on the then-current value and mortgage balance). Sell
-//   net worth is investment capital, whose selling costs and taxes were
-//   charged up front, so both paths end after sale and after tax. Year 0 is
-//   therefore level.
+// - Stay net worth compounds before taxes until the period ends: in years 1 up
+//   to the horizon it is the home's equity (value less mortgage). Only in the
+//   final year is the home sold: value less selling costs and capital-gains
+//   tax (same chain as netSaleProceeds, on the then-current value and mortgage
+//   balance). Year 0 is shown after sale, as if selling today, so it is level
+//   with the sell path, whose investment capital had its selling costs and
+//   taxes charged up front.
 // - breakevenYear is the first year (1 or later) the sell path is at or
 //   ahead of the stay path, else null.
 // - The downsize path sells the home (same proceeds and moving costs as the
@@ -148,8 +149,9 @@ export function downsizeFunding(v) {
 //   the same tax-deduction rules apply. Each year it invests the stay path's
 //   cash outlay less its own (unrecoverable cost + principal), so all three paths
 //   cover the same housing need on equal cash out. Its net worth is investment
-//   capital plus the new home's value net of selling costs, capital-gains tax
-//   (cost basis = price paid) and mortgage, the same after-sale basis as stay.
+//   capital plus the new home's value less mortgage; in year 0 and the final
+//   year the value is also net of selling costs and capital-gains tax (cost
+//   basis = price paid), the same basis as stay.
 //   With useProceeds off (v.useProceeds === 0) the purchase is not drawn from the
 //   sale proceeds: the net proceeds less moving costs are invested at year 0 as
 //   in the sell path, and the new mortgage plus funds outside the model pay for
@@ -249,10 +251,12 @@ export function project(values) {
     const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
     const downsizeIncome = portfolioIncome(v, downsizeCapital, downsizeCost + newPay.principal);
     downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal);
-    downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, newPay.balance) - outsideFunds;
+    const lastYear = y === horizon;
+    downsizeNetWorth = downsizeCapital - outsideFunds
+      + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
 
     const equity = homeValue - balance;
-    const stayNetWorth = netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds;
+    const stayNetWorth = lastYear ? netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds : equity;
     cumulativeStay += unrecoverableCost;
     cumulativeSell += rentCost;
     rows.push({

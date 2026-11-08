@@ -95,11 +95,13 @@ test('investment capital compounds with the owning-vs-renting difference', () =>
   close(y1.monthlyInvestmentIncome, y1.investmentIncome / 12);
 });
 
-test('stay net worth is after selling costs and tax, so year 0 is level and the breakeven year is found', () => {
+test('stay net worth compounds before tax until the final year, which is after selling costs and tax', () => {
   const { rows, breakevenYear } = project(defaultValues());
   close(rows[0].netWorthGainLoss, 0);
   close(rows[0].stayNetWorth, rows[0].investmentCapital);
-  assert.ok(rows[1].stayNetWorth < rows[1].equity);
+  close(rows[1].stayNetWorth, rows[1].equity);
+  const last = rows[rows.length - 1];
+  assert.ok(last.stayNetWorth < last.equity);
   const first = rows.slice(1).find((r) => r.netWorthGainLoss >= 0);
   assert.equal(breakevenYear, first ? first.year : null);
 });
@@ -198,7 +200,7 @@ test('major repairs add to the owning cost in their year only, untaxed, and may 
   close(project(v).rows[2].repairs, 0);
 });
 
-test('stay net worth in a later year nets selling costs and capital-gains tax on that year\'s value', () => {
+test('stay net worth in the final year nets selling costs and capital-gains tax on that year\'s value', () => {
   const v = { ...defaultValues(), exclusion: 'none', horizon: 5 };
   const { rows } = project(v);
   const r = rows[5];
@@ -206,6 +208,7 @@ test('stay net worth in a later year nets selling costs and capital-gains tax on
   close(r.stayNetWorth, sale.netProceeds);
   assert.ok(sale.taxesDue > 0);
   close(r.stayNetWorth, r.homeValue * 0.94 - sale.taxesDue - r.mortgageBalance);
+  close(rows[4].stayNetWorth, rows[4].homeValue - rows[4].mortgageBalance);
 });
 
 test('downsize path: year 0 buys the new home from proceeds and invests the rest', () => {
