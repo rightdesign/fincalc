@@ -146,6 +146,15 @@ export function downsizeFunding(v) {
 //   balance). Year 0 is shown after sale, as if selling today, so it is level
 //   with the sell path, whose investment capital had its selling costs and
 //   taxes charged up front.
+// - Equal cash contribution (the equalSell*/equalDownsize* fields): every path
+//   receives the same cash each year, what staying needs for its mortgage and
+//   carrying costs (unrecoverable cost + principal). The sell and downsize paths
+//   pay their own housing outflow (rent and renter's insurance, or the new
+//   home's costs and mortgage) first from the after-tax portfolio income per the
+//   withdrawal setting (never more than the outflow; the gross amount taken
+//   leaves the portfolio), then from the contribution, and invest what is left;
+//   a shortfall is drawn from the portfolio. Year 0 and the net worth basis are
+//   as above; stay is unchanged.
 // - Pure net worth (the pureSell / pureDownsize fields) is the same projection
 //   with no annual cash-flow credit: the sell and downsize portfolios only grow
 //   and have their gross withdrawals spent (the whole withdrawal, also when it
@@ -206,6 +215,21 @@ function portfolioIncome(v, capital, need) {
   return withdrawn(v, capital, need) * keep;
 }
 
+// One year of the equal-contribution comparison for a path with `capital` in
+// its portfolio: the household contributes `contribution` (what staying costs
+// in cash that year), and `housing` is the path's own housing outflow. The
+// after-tax portfolio income is applied to housing (never more than it costs),
+// the contribution pays the rest, and whatever is left over is invested. The
+// gross amount taken out to produce the applied income leaves the portfolio. A
+// shortfall (contribution short of housing) is drawn from the portfolio.
+function equalYear(v, capital, growth, contribution, housing) {
+  const keep = 1 - pct(v.withdrawalTaxRate);
+  const income = portfolioIncome(v, capital, housing);
+  const applied = Math.max(0, Math.min(housing, income));
+  const gross = keep > 0 ? applied / keep : 0;
+  return capital * (1 + growth) + contribution - (housing - applied) - gross;
+}
+
 export function project(values) {
   const v = values;
   const horizon = Math.max(0, Math.floor(v.horizon));
@@ -228,6 +252,9 @@ export function project(values) {
   const downsizeShortfall = v.useProceeds !== 0 ? Math.max(0, -downsizeCapital) : 0;
   let newHomeValue = v.newHomePrice;
   let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount) - outsideFunds;
+  let equalSellCapital = capital;
+  let equalDownsizeCapital = downsizeCapital;
+  let equalDownsizeNetWorth = downsizeNetWorth;
   let homeValue = v.homeValue;
   let pureCapital = capital;
   let pureDownsizeCapital = downsizeCapital;
@@ -247,6 +274,10 @@ export function project(values) {
     downsizeInvestmentCapital: downsizeCapital,
     downsizeNetWorth,
     downsizeGainLoss: downsizeNetWorth - sale.netProceeds,
+    equalSellNetWorth: equalSellCapital,
+    equalDownsizeNetWorth,
+    equalSellGainLoss: equalSellCapital - sale.netProceeds,
+    equalDownsizeGainLoss: equalDownsizeNetWorth - sale.netProceeds,
     pureSellNetWorth: capital,
     pureDownsizeNetWorth: downsizeNetWorth,
     pureSellGainLoss: capital - sale.netProceeds,
@@ -287,11 +318,16 @@ export function project(values) {
     downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeOutOfPocket) - withdrawn(v, downsizeCapital, downsizeCost + newPay.principal);
     pureDownsizeCapital = pureDownsizeCapital * (1 + growth) - withdrawn(v, pureDownsizeCapital, downsizeCost + newPay.principal);
     const lastYear = y === horizon;
+    const stayOutlay = unrecoverableCost + principal;
+    equalSellCapital = equalYear(v, equalSellCapital, growth, stayOutlay, rentCost);
+    equalDownsizeCapital = equalYear(v, equalDownsizeCapital, growth, stayOutlay, downsizeCost + newPay.principal);
     downsizeNetWorth = downsizeCapital - outsideFunds
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
 
     const equity = homeValue - balance;
     const stayNetWorth = lastYear ? netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds : equity;
+    equalDownsizeNetWorth = equalDownsizeCapital - outsideFunds
+      + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
     const pureDownsizeNetWorth = downsizeNetWorth - downsizeCapital + pureDownsizeCapital;
     cumulativeStay += unrecoverableCost;
     cumulativeSell += rentCost;
@@ -333,6 +369,11 @@ export function project(values) {
       downsizeInvestmentCapital: downsizeCapital,
       downsizeNetWorth,
       downsizeGainLoss: downsizeNetWorth - stayNetWorth,
+      monthlyEqualContribution: stayOutlay / 12,
+      equalSellNetWorth: equalSellCapital,
+      equalDownsizeNetWorth,
+      equalSellGainLoss: equalSellCapital - stayNetWorth,
+      equalDownsizeGainLoss: equalDownsizeNetWorth - stayNetWorth,
       pureSellNetWorth: pureCapital,
       pureDownsizeNetWorth,
       pureSellGainLoss: pureCapital - stayNetWorth,

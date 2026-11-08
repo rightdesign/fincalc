@@ -409,13 +409,14 @@ const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion
 // The sections last rendered, so a CSV button can find its table.
 let shown = [];
 
-// The result tabs, in order. The first five are charts.
+// The result tabs, in order. The first six are charts.
 const TABS = [
   ['net-worth', 'Net worth'],
   ['pure-net-worth', 'Pure net worth'],
   ['cash-flow', 'Monthly cash flow'],
   ['investable-cash', 'Investable cash'],
   ['cash-needed', 'Cash you must supply'],
+  ['equal-cash', 'Equal cash contributions'],
   ['cost-summary', 'Cost summary'],
   ['compare', 'Compare scenarios'],
   ['tables', 'Tables'],
@@ -472,6 +473,7 @@ function renderResults(container, form, scenarios) {
     'cash-flow': chartPanel(sections[1]),
     'investable-cash': chartPanel(sections[2]),
     'cash-needed': chartPanel(sections[3]),
+    'equal-cash': chartPanel(sections[5]),
     'cost-summary': costSummaryHtml(costSummary) + sensitivityHtml(sensitivity),
     compare: compareHtml(scenarios.state.list),
     tables: sections.map((s) => `<section class="result"><h2>${s.title}</h2>${tableHtml(s)}<p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`).join(''),

@@ -9,10 +9,10 @@ test('formats money without cents and without negative zero', () => {
   assert.equal(formatMoney(-5000), '-$5,000');
 });
 
-test('builds the five sections with a table row per year', () => {
+test('builds the six sections with a table row per year', () => {
   const v = defaultValues();
   const { sections } = buildResults(v);
-  assert.deepEqual(sections.map((s) => s.id), ['net-worth', 'cash-flow', 'investable-cash', 'cash-needed', 'pure-net-worth']);
+  assert.deepEqual(sections.map((s) => s.id), ['net-worth', 'cash-flow', 'investable-cash', 'cash-needed', 'pure-net-worth', 'equal-cash']);
   assert.equal(sections[0].rows.length, v.horizon + 1);
   assert.equal(sections[1].rows.length, v.horizon);
   for (const s of sections) for (const r of s.rows) assert.equal(r.length, s.columns.length);

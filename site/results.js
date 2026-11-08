@@ -202,6 +202,22 @@ export function buildResults(values) {
     markerX: null,
   };
 
+  const equalCash = {
+    id: 'equal-cash',
+    title: 'Net worth with equal cash contributions',
+    summary: `Every path gets the same cash each year: what staying needs to fund its mortgage and carrying costs (${formatMoney(years[0]?.monthlyEqualContribution ?? 0)} a month in year 1). Selling and renting pays the rent, and downsizing pays the new home's costs and mortgage, first from portfolio withdrawals at your withdrawal setting (never more than the housing costs) and then from that contribution, and invests whatever is left over. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.equalSellGainLoss, (rows.slice(1).find((r) => r.equalSellGainLoss >= 0) ?? {}).year)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.equalDownsizeGainLoss, (rows.slice(1).find((r) => r.equalDownsizeGainLoss >= 0) ?? {}).year)} Staying is counted as if you sold the home that year, as in the net worth chart.${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
+    rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.equalSellNetWorth), formatMoney(r.equalDownsizeNetWorth), formatMoney(r.equalSellGainLoss), formatMoney(r.equalDownsizeGainLoss)]),
+    series: [
+      series('Stay (equity after sale)', rows, (r) => r.stayNetWorth),
+      series('Sell (invested)', rows, (r) => r.equalSellNetWorth),
+      series('Downsize', rows, (r) => r.equalDownsizeNetWorth),
+    ],
+    tipCols: [1, 2, 3],
+    tipExtra: 4,
+    markerX: null,
+  };
+
   const pureNetWorth = {
     id: 'pure-net-worth',
     title: 'Pure net worth',
@@ -218,12 +234,12 @@ export function buildResults(values) {
     markerX: pureCross(rows, 'pureSellGainLoss'),
   };
 
-  const sections = [netWorth, cashFlow, income, cashNeeded, pureNetWorth];
+  const sections = [netWorth, cashFlow, income, cashNeeded, pureNetWorth, equalCash];
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
   const end = rows[rows.length - 1];
-  const headline = { breakevenYear, downsizeBreakevenYear, year: end.year, stay: end.stayNetWorth, sell: end.investmentCapital, downsize: end.downsizeNetWorth };
+  const headline = { breakevenYear, downsizeBreakevenYear, year: end.year, stay: end.stayNetWorth, sell: end.investmentCapital, downsize: end.downsizeNetWorth, equalSell: end.equalSellNetWorth, equalDownsize: end.equalDownsizeNetWorth };
   return { breakevenYear, headline, sections, shortfallNotice: shortfallNotice(downsizeShortfall), noMortgageNotice: noMortgage, costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
 }
 
@@ -356,7 +372,7 @@ export function sensitivityHtml(lines) {
 export function headlineHtml(h) {
   const year = (y) => (y == null ? 'Not within horizon' : `Year ${y}`);
   const card = (label, value) => `<div class="kpi"><span class="kpi-label">${escape(label)}</span><strong>${escape(value)}</strong></div>`;
-  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear))}${card('Downsize pulls ahead', year(h.downsizeBreakevenYear))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(formatMoney).join(' / '))}</div>`;
+  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear))}${card('Downsize pulls ahead', year(h.downsizeBreakevenYear))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(formatMoney).join(' / '))}${card(`Net worth, equal cash contributions, year ${h.year} (stay / sell / downsize)`, [h.stay, h.equalSell, h.equalDownsize].map(formatMoney).join(' / '))}</div>`;
 }
 
 // The inputs that differ from their defaults, as [label, formatted value]

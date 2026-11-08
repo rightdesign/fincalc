@@ -357,6 +357,30 @@ test('withdraw-to-cover-rent sets income to the rent, ignoring the withdrawal pe
   close(tiny.investmentIncome, project(v).rows[0].investmentCapital * 0.8);
 });
 
+test('equal cash contribution: with no withdrawals the sell path invests contribution minus rent', () => {
+  const v = { ...defaultValues(), horizon: 3, investmentWithdrawal: 0, withdrawToCoverRent: 0 };
+  const { rows, investmentGrowth } = project(v);
+  let capital = rows[0].investmentCapital;
+  for (const r of rows.slice(1)) {
+    capital = capital * (1 + investmentGrowth) + (r.monthlyEqualContribution * 12 - r.rentCost);
+    close(r.equalSellNetWorth, capital);
+  }
+  close(rows[0].equalSellNetWorth, rows[0].investmentCapital);
+  close(rows[0].equalDownsizeNetWorth, rows[0].downsizeNetWorth);
+});
+
+test('equal cash contribution: withdrawals pay housing and leave the portfolio, capped at the housing cost', () => {
+  const v = { ...defaultValues(), horizon: 1, withdrawToCoverRent: 1, withdrawalTaxRate: 0 };
+  const p = project(v);
+  const r = p.rows[1];
+  // Withdrawals cover the rent exactly, so the whole contribution is invested.
+  const start = p.rows[0].investmentCapital;
+  close(r.equalSellNetWorth, start * (1 + p.investmentGrowth) + r.monthlyEqualContribution * 12 - r.rentCost);
+  const rich = project({ ...v, withdrawToCoverRent: 0, investmentWithdrawal: 100 }).rows[1];
+  // A 100% withdrawal still only takes out the rent.
+  close(rich.equalSellNetWorth, start * (1 + p.investmentGrowth) + rich.monthlyEqualContribution * 12 - rich.rentCost);
+});
+
 test('pure net worth spends withdrawals and credits no cash-flow difference', () => {
   const v = { ...defaultValues(), investmentWithdrawal: 4, withdrawalTaxRate: 0, investmentTaxRate: 0 };
   const { rows, investmentGrowth } = project(v);
