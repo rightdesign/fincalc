@@ -438,6 +438,9 @@ function renderResults(container, form, scenarios) {
   const values = readInputs(form);
   const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
   if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
+  // A new mortgage needs a term; a term of 0 is only tolerated while there is no new mortgage.
+  const termInvalid = values.newMortgageAmount > 0 && values.newMortgageTerm != null && values.newMortgageTerm < 1;
+  if (termInvalid) missing.push('New mortgage term (years) (at least 1 when there is a new mortgage amount)');
   const waterfall = form.querySelector('.waterfall');
   const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
   waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
@@ -445,7 +448,7 @@ function renderResults(container, form, scenarios) {
   const flag = (title, on) => { const dot = form.querySelector(`.group[data-group="${title}"] .group-dot`); if (dot) dot.hidden = !on; };
   for (const g of form.querySelectorAll('.group')) {
     const title = g.dataset.group;
-    flag(title, FIELDS.some((f) => (GROUP_TITLES[f.group] ?? f.group) === title && values[f.id] == null) || (title === 'Major repairs' && values.repairs == null));
+    flag(title, FIELDS.some((f) => (GROUP_TITLES[f.group] ?? f.group) === title && values[f.id] == null) || (title === 'If you downsize' && termInvalid) || (title === 'Major repairs' && values.repairs == null));
   }
   if (missing.length) {
     showShortfall(form, '');

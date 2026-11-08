@@ -9,6 +9,8 @@ test('monthly payment matches the standard amortization formula', () => {
   close(monthlyPayment(200000, 6, 30), 1199.1, 0.01);
   close(monthlyPayment(120000, 0, 10), 1000);
   assert.equal(monthlyPayment(0, 5, 30), 0);
+  assert.equal(monthlyPayment(100000, 5, 0), 0);
+  assert.equal(monthlyPayment(100000, 5, NaN), 0);
 });
 
 test('amortization splits interest and principal and pays off at term', () => {

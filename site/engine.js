@@ -9,7 +9,7 @@ const pct = (n) => n / 100;
 // Monthly payment that amortizes `balance` over `termYears` at `ratePct`.
 export function monthlyPayment(balance, ratePct, termYears) {
   const n = Math.round(termYears * 12);
-  if (balance <= 0 || n <= 0) return 0;
+  if (!(balance > 0) || !(n > 0)) return 0;
   const r = pct(ratePct) / 12;
   if (r === 0) return balance / n;
   return (balance * r) / (1 - (1 + r) ** -n);
