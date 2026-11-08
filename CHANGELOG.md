@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.36.0] — 2026-11-08
+
+- FINC-052 Withdrawals from the sell and downsize investments are now spent rather than compounding, and when withdrawals are set to cover the rent the housing bill is deducted only once.
+
 ## [0.35.0] — 2026-11-08
 
 - FINC-053 Under the stay scenario the home's value now compounds before selling costs and taxes; those are applied only at the end of the period, when the home is sold.
