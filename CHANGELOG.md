@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.38.0] — 2026-11-08
+
+- FINC-058 A new "Equal cash contributions" tab (chart and table) and headline card compare net worth for staying, selling and renting, and downsizing when every path receives the same yearly cash contribution, the amount staying needs for its mortgage and carrying costs.
+
 ## [0.37.0] — 2026-11-08
 
 - FINC-057 Added a "Pure net worth" result (chart, table and CSV) where withdrawals are spent and no cash-flow difference is credited to the sell paths.
