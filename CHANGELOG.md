@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.36.2] — 2026-11-08
+
+- FINC-056 Rent is now paid once: the household pays the part the withdrawals do not cover, and the portfolio is charged only the withdrawals, so the out-of-pocket figures and investment balances no longer double-count the shortfall.
+
 ## [0.36.1] — 2026-11-08
 
 - FINC-055 The Methodology "Withdrawals" section now correctly states that the gross withdrawal is spent and deducted from capital each year, matching the calculation.
