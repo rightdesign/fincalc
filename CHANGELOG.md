@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.37.0] — 2026-11-08
+
+- FINC-057 Added a "Pure net worth" result (chart, table and CSV) where withdrawals are spent and no cash-flow difference is credited to the sell paths.
+- FINC-059 The "Cash you must supply" table now shows each path's monthly contribution versus staying, the same equal-cash-out definition behind the net worth comparison, so the cash figures and the equalized results reconcile.
+
 ## [0.36.3] — 2026-11-08
 
 - FINC-060 A new mortgage amount now requires a new mortgage term of at least 1 year, and the payment calculation is guarded against zero or invalid terms.
