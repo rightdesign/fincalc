@@ -83,16 +83,37 @@ test('monthly own cost includes tax, insurance, maintenance, principal and inter
 });
 
 test('investment capital compounds with the owning-vs-renting difference', () => {
-  const v = { ...defaultValues(), horizon: 1 };
+  const v = { ...defaultValues(), horizon: 1, investmentWithdrawal: 0 };
   const { sale, rows } = project(v);
   const y1 = rows[1];
   close(
     y1.investmentCapital,
     sale.netProceeds * (1 + 0.06 * 0.85) + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost,
   );
-  close(y1.investmentIncome, sale.netProceeds * 0.04);
-  close(project({ ...v, withdrawalTaxRate: 25 }).rows[1].investmentIncome, sale.netProceeds * 0.04 * 0.75);
-  close(y1.monthlyInvestmentIncome, y1.investmentIncome / 12);
+  const w = { ...v, investmentWithdrawal: 4 };
+  const r1 = project(w).rows[1];
+  close(r1.investmentIncome, sale.netProceeds * 0.04);
+  close(project({ ...w, withdrawalTaxRate: 25 }).rows[1].investmentIncome, sale.netProceeds * 0.04 * 0.75);
+  close(r1.monthlyInvestmentIncome, r1.investmentIncome / 12);
+});
+
+test('the withdrawal is spent: it leaves the portfolio and stops compounding', () => {
+  const v = { ...defaultValues(), horizon: 1 };
+  const none = project({ ...v, investmentWithdrawal: 0 });
+  const y1 = project(v).rows[1];
+  close(y1.investmentCapital, none.rows[1].investmentCapital - none.rows[0].investmentCapital * 0.04);
+  close(y1.downsizeInvestmentCapital, none.rows[1].downsizeInvestmentCapital - Math.max(0, project(v).rows[0].downsizeInvestmentCapital) * 0.04);
+});
+
+test('with withdraw-to-cover-rent the rent is deducted once, plus tax on the withdrawal', () => {
+  const v = { ...defaultValues(), horizon: 1, investmentGrowth: 0, investmentWithdrawal: 0, withdrawalTaxRate: 0 };
+  const base = project(v).rows[1];
+  const free = project({ ...v, withdrawToCoverRent: 1 }).rows[1];
+  close(free.investmentCapital, base.investmentCapital);
+  close(free.downsizeInvestmentCapital, base.downsizeInvestmentCapital);
+  const taxed = project({ ...v, withdrawToCoverRent: 1, withdrawalTaxRate: 20 }).rows[1];
+  const gross = base.rentCost / 0.8;
+  close(taxed.investmentCapital, base.investmentCapital - gross * 0.2);
 });
 
 test('stay net worth compounds before tax until the final year, which is after selling costs and tax', () => {
@@ -107,7 +128,7 @@ test('stay net worth compounds before tax until the final year, which is after s
 });
 
 test('strong investment growth against a flat home reaches breakeven; weak never does', () => {
-  const strong = project({ ...defaultValues(), appreciation: 0, investmentGrowth: 10, horizon: 30 });
+  const strong = project({ ...defaultValues(), appreciation: 0, investmentGrowth: 10, investmentWithdrawal: 0, horizon: 30 });
   assert.ok(strong.breakevenYear > 0);
   const weak = project({ ...defaultValues(), appreciation: 8, investmentGrowth: 0, rent: 6000, horizon: 30 });
   assert.equal(weak.breakevenYear, null);
@@ -141,7 +162,7 @@ test('tax savings reduce the owner\'s unrecoverable cost and monthly cost', () =
 });
 
 test('tax on investment growth lowers the capital it compounds to', () => {
-  const v = { ...defaultValues(), horizon: 10 };
+  const v = { ...defaultValues(), horizon: 10, investmentWithdrawal: 0 };
   const untaxed = project({ ...v, investmentTaxRate: 0 }).rows[10].investmentCapital;
   const taxed = project({ ...v, investmentTaxRate: 25 }).rows[10].investmentCapital;
   assert.ok(taxed < untaxed);
@@ -167,7 +188,7 @@ test("today's dollars discounts each year by compounded inflation", () => {
 });
 
 test('moving costs and rental upfront cash reduce the starting investment', () => {
-  const v = { ...defaultValues(), horizon: 1 };
+  const v = { ...defaultValues(), horizon: 1, investmentWithdrawal: 0 };
   const base = project(v);
   const costly = project({ ...v, movingCosts: 5000, rentalUpfront: 7500 });
   close(costly.rows[0].investmentCapital, base.rows[0].investmentCapital - 12500);

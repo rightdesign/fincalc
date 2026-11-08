@@ -4,7 +4,7 @@ import { defaultValues } from '../site/inputs.js';
 import { project } from '../site/engine.js';
 import { DRIVERS, flipPoint, selfFundingRent, sensitivityLines } from '../site/sensitivity.js';
 
-const base = { ...defaultValues(), repairs: [] };
+const base = { ...defaultValues(), repairs: [], investmentWithdrawal: 0 };
 const end = (v) => { const r = project(v).rows; return r[r.length - 1].netWorthGainLoss; };
 
 test('the flip point sits on the sign change of the end-of-horizon margin', () => {
@@ -47,7 +47,7 @@ test('the downsize flip point follows the downsize margin and the proceeds setti
 });
 
 test('self-funding rent: income at the breakeven rate equals the first year of rent', () => {
-  const v = { ...base, withdrawalTaxRate: 10 };
+  const v = { ...base, investmentWithdrawal: 4, withdrawalTaxRate: 10 };
   const line = selfFundingRent(v);
   const capital = project(v).rows[0].investmentCapital;
   const annualRent = v.rent * 12 + v.rentersInsurance;

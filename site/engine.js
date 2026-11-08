@@ -123,7 +123,8 @@ export function downsizeFunding(v) {
 //   and a loss is not cushioned.
 // - Investment income is investmentWithdrawal% of capital at the start of the
 //   year, less withdrawalTaxRate (tax-deferred money is taxed when taken out):
-//   what the portfolio could pay out after tax, not deducted from capital.
+//   what the portfolio could pay out after tax. The gross withdrawal is spent:
+//   it is deducted from capital each year and no longer compounds.
 // - With withdrawToCoverRent on, the income is instead just what pays that
 //   year's rent (the downsize path: its housing outflow), capped at what the
 //   capital can pay after tax; the withdrawal rate is ignored.
@@ -172,15 +173,35 @@ function outOfPocket(annualOutflow, annualWithdrawal) {
   return Math.max(0, annualOutflow - Math.max(0, annualWithdrawal)) / 12;
 }
 
-// After-tax portfolio income for a year. Normally the withdrawal rate times
-// the capital at the start of the year, less tax on withdrawals. With
-// v.withdrawToCoverRent === 1 the rate is ignored: the household withdraws just
-// enough to pay `need` (the rent, or the new home's housing outflow), capped at
-// what the capital can pay after tax, and nothing when capital is not positive.
+// Gross amount taken out of a portfolio in a year. Normally the withdrawal rate
+// times the capital at the start of the year (none from a negative portfolio).
+// With v.withdrawToCoverRent === 1 the rate is ignored: just enough to pay
+// `need` (the rent, or the new home's housing outflow) after tax, capped at the
+// capital. It is spent, so it leaves the portfolio and stops compounding.
+function withdrawn(v, capital, need) {
+  const pos = Math.max(0, capital);
+  if (v.withdrawToCoverRent !== 1) return pos * pct(v.investmentWithdrawal);
+  const keep = 1 - pct(v.withdrawalTaxRate);
+  return keep > 0 ? Math.min(Math.max(0, need) / keep, pos) : 0;
+}
+
+// What a year's withdrawal takes out of the portfolio on top of the housing
+// outflow the projection already deducts. With a percentage withdrawal that is
+// the whole gross amount. With v.withdrawToCoverRent === 1 the withdrawal IS
+// the payment of `need` (already deducted as rent or carrying cost), so only
+// the tax on it leaves the portfolio extra; deducting it all would pay the
+// housing bill twice.
+function spentWithdrawal(v, capital, need) {
+  const gross = withdrawn(v, capital, need);
+  return v.withdrawToCoverRent === 1 ? gross * pct(v.withdrawalTaxRate) : gross;
+}
+
+// After-tax portfolio income for a year: the gross withdrawal less tax on it.
+// (A negative portfolio still reports its negative rate-based income.)
 function portfolioIncome(v, capital, need) {
   const keep = 1 - pct(v.withdrawalTaxRate);
   if (v.withdrawToCoverRent !== 1) return capital * pct(v.investmentWithdrawal) * keep;
-  return Math.min(Math.max(0, need), Math.max(0, capital) * keep);
+  return withdrawn(v, capital, need) * keep;
 }
 
 export function project(values) {
@@ -239,7 +260,7 @@ export function project(values) {
 
     const investmentIncome = portfolioIncome(v, capital, rentCost);
     const contribution = unrecoverableCost + principal - rentCost;
-    capital = capital * (1 + growth) + contribution;
+    capital = capital * (1 + growth) + contribution - spentWithdrawal(v, capital, rentCost);
 
     const newPay = newLoan[y - 1];
     newHomeValue *= 1 + pct(v.appreciation);
@@ -250,7 +271,7 @@ export function project(values) {
     const newTaxSavings = housingTaxSavings(v, newPay.interest, newPropertyTax);
     const downsizeCost = newPropertyTax + newInsurance + newMaintenance + newHoa + newPay.interest - newTaxSavings;
     const downsizeIncome = portfolioIncome(v, downsizeCapital, downsizeCost + newPay.principal);
-    downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal);
+    downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeCost - newPay.principal) - spentWithdrawal(v, downsizeCapital, downsizeCost + newPay.principal);
     const lastYear = y === horizon;
     downsizeNetWorth = downsizeCapital - outsideFunds
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
