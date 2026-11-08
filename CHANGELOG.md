@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.36.1] — 2026-11-08
+
+- FINC-055 The Methodology "Withdrawals" section now correctly states that the gross withdrawal is spent and deducted from capital each year, matching the calculation.
+
 ## [0.36.0] — 2026-11-08
 
 - FINC-052 Withdrawals from the sell and downsize investments are now spent rather than compounding, and when withdrawals are set to cover the rent the housing bill is deducted only once.
