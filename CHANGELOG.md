@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.38.2] — 2026-11-08
+
+- FINC-061 Result tabs no longer show scrollbars; edge indicators appear when more tabs are off-screen and can be clicked to scroll, and the strip pans by wheel or touch.
+
 ## [0.38.1] — 2026-11-08
 
 - FINC-062 Chart legends no longer overlap the "Year" axis labels; the legend now has its own row (wrapping if needed) below them.
