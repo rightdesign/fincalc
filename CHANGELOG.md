@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.35.0] — 2026-11-08
+
+- FINC-053 Under the stay scenario the home's value now compounds before selling costs and taxes; those are applied only at the end of the period, when the home is sold.
+
 ## [0.34.0] — 2026-11-07
 
 - FINC-054 An optional checkbox sets the yearly withdrawal to just cover the rent (or the new home's housing costs when downsizing), overriding the flat withdrawal percentage.
