@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.38.1] — 2026-11-08
+
+- FINC-062 Chart legends no longer overlap the "Year" axis labels; the legend now has its own row (wrapping if needed) below them.
+
 ## [0.38.0] — 2026-11-08
 
 - FINC-058 A new "Equal cash contributions" tab (chart and table) and headline card compare net worth for staying, selling and renting, and downsizing when every path receives the same yearly cash contribution, the amount staying needs for its mortgage and carrying costs.
