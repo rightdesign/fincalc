@@ -140,6 +140,11 @@ export function downsizeFunding(v) {
 //   balance). Year 0 is shown after sale, as if selling today, so it is level
 //   with the sell path, whose investment capital had its selling costs and
 //   taxes charged up front.
+// - Pure net worth (the pureSell / pureDownsize fields) is the same projection
+//   with no annual cash-flow credit: the sell and downsize portfolios only grow
+//   and have their gross withdrawals spent (the whole withdrawal, also when it
+//   is sized to cover the rent), so each path is what it would be worth if the
+//   portfolio paid its own way. Stay is unchanged: it has no portfolio.
 // - breakevenYear is the first year (1 or later) the sell path is at or
 //   ahead of the stay path, else null.
 // - The downsize path sells the home (same proceeds and moving costs as the
@@ -218,6 +223,8 @@ export function project(values) {
   let newHomeValue = v.newHomePrice;
   let downsizeNetWorth = downsizeCapital + newNetSale(newHomeValue, v.newMortgageAmount) - outsideFunds;
   let homeValue = v.homeValue;
+  let pureCapital = capital;
+  let pureDownsizeCapital = downsizeCapital;
   let cumulativeSell = 0;
   let cumulativeStay = 0;
 
@@ -234,6 +241,10 @@ export function project(values) {
     downsizeInvestmentCapital: downsizeCapital,
     downsizeNetWorth,
     downsizeGainLoss: downsizeNetWorth - sale.netProceeds,
+    pureSellNetWorth: capital,
+    pureDownsizeNetWorth: downsizeNetWorth,
+    pureSellGainLoss: capital - sale.netProceeds,
+    pureDownsizeGainLoss: downsizeNetWorth - sale.netProceeds,
   }];
 
   for (let y = 1; y <= horizon; y++) {
@@ -255,6 +266,7 @@ export function project(values) {
     // withdrawal, so the rent is paid once, by one payer or the other.
     const sellOutOfPocket = annualOutOfPocket(rentCost, investmentIncome);
     capital = capital * (1 + growth) + (unrecoverableCost + principal - sellOutOfPocket) - withdrawn(v, capital, rentCost);
+    pureCapital = pureCapital * (1 + growth) - withdrawn(v, pureCapital, rentCost);
 
     const newPay = newLoan[y - 1];
     newHomeValue *= 1 + pct(v.appreciation);
@@ -267,12 +279,14 @@ export function project(values) {
     const downsizeIncome = portfolioIncome(v, downsizeCapital, downsizeCost + newPay.principal);
     const downsizeOutOfPocket = annualOutOfPocket(downsizeCost + newPay.principal, downsizeIncome);
     downsizeCapital = downsizeCapital * (1 + growth) + (unrecoverableCost + principal - downsizeOutOfPocket) - withdrawn(v, downsizeCapital, downsizeCost + newPay.principal);
+    pureDownsizeCapital = pureDownsizeCapital * (1 + growth) - withdrawn(v, pureDownsizeCapital, downsizeCost + newPay.principal);
     const lastYear = y === horizon;
     downsizeNetWorth = downsizeCapital - outsideFunds
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
 
     const equity = homeValue - balance;
     const stayNetWorth = lastYear ? netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds : equity;
+    const pureDownsizeNetWorth = downsizeNetWorth - downsizeCapital + pureDownsizeCapital;
     cumulativeStay += unrecoverableCost;
     cumulativeSell += rentCost;
     rows.push({
@@ -311,6 +325,10 @@ export function project(values) {
       downsizeInvestmentCapital: downsizeCapital,
       downsizeNetWorth,
       downsizeGainLoss: downsizeNetWorth - stayNetWorth,
+      pureSellNetWorth: pureCapital,
+      pureDownsizeNetWorth,
+      pureSellGainLoss: pureCapital - stayNetWorth,
+      pureDownsizeGainLoss: pureDownsizeNetWorth - stayNetWorth,
     });
   }
 

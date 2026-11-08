@@ -409,9 +409,10 @@ const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion
 // The sections last rendered, so a CSV button can find its table.
 let shown = [];
 
-// The result tabs, in order. The first four are charts.
+// The result tabs, in order. The first five are charts.
 const TABS = [
   ['net-worth', 'Net worth'],
+  ['pure-net-worth', 'Pure net worth'],
   ['cash-flow', 'Monthly cash flow'],
   ['investable-cash', 'Investable cash'],
   ['cash-needed', 'Cash you must supply'],
@@ -467,6 +468,7 @@ function renderResults(container, form, scenarios) {
   const chartPanel = (s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details class="chart-table"><summary>Show table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`;
   const panels = {
     'net-worth': chartPanel(sections[0]),
+    'pure-net-worth': chartPanel(sections[4]),
     'cash-flow': chartPanel(sections[1]),
     'investable-cash': chartPanel(sections[2]),
     'cash-needed': chartPanel(sections[3]),

@@ -357,6 +357,18 @@ test('withdraw-to-cover-rent sets income to the rent, ignoring the withdrawal pe
   close(tiny.investmentIncome, project(v).rows[0].investmentCapital * 0.8);
 });
 
+test('pure net worth spends withdrawals and credits no cash-flow difference', () => {
+  const v = { ...defaultValues(), investmentWithdrawal: 4, withdrawalTaxRate: 0, investmentTaxRate: 0 };
+  const { rows, investmentGrowth } = project(v);
+  assert.equal(rows[0].pureSellNetWorth, rows[0].investmentCapital);
+  const r1 = rows[1];
+  const expected = rows[0].investmentCapital * (1 + investmentGrowth) - rows[0].investmentCapital * 0.04;
+  assert.ok(Math.abs(r1.pureSellNetWorth - expected) < 1e-6);
+  assert.equal(r1.pureSellGainLoss, r1.pureSellNetWorth - r1.stayNetWorth);
+  const off = project({ ...v, investmentWithdrawal: 0 }).rows[1];
+  assert.ok(Math.abs(off.pureSellNetWorth - rows[0].investmentCapital * (1 + investmentGrowth)) < 1e-6);
+});
+
 test('rent is paid once: portfolio is charged the withdrawal, the household the out-of-pocket rest', () => {
   for (const extra of [{ investmentWithdrawal: 4 }, { investmentWithdrawal: 0 }, { withdrawToCoverRent: 1 }]) {
     const v = { ...defaultValues(), horizon: 3, ...extra };

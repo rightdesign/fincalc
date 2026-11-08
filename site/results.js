@@ -122,6 +122,12 @@ function rentCoverage(r) {
   return pct < 100 ? `${pct}% (under 100%)` : `${pct}%`;
 }
 
+// First year (1 or later) a gap field is at or above zero, else null.
+function pureCross(rows, field) {
+  const hit = rows.slice(1).find((r) => r[field] >= 0);
+  return hit ? hit.year : null;
+}
+
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
@@ -196,7 +202,23 @@ export function buildResults(values) {
     markerX: null,
   };
 
-  const sections = [netWorth, cashFlow, income, cashNeeded];
+  const pureNetWorth = {
+    id: 'pure-net-worth',
+    title: 'Pure net worth',
+    summary: `Pure net worth: what each path is worth at the end if the portfolio pays its own way. Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no credit for the yearly difference in cash flow between owning and their housing, so nothing is equalized between the paths. This differs from the Net worth chart, which assumes each path spends the same cash on housing. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.pureSellGainLoss, pureCross(rows, 'pureSellGainLoss'))} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.pureDownsizeGainLoss, pureCross(rows, 'pureDownsizeGainLoss'))}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
+    rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.pureSellNetWorth), formatMoney(r.pureDownsizeNetWorth), formatMoney(r.pureSellGainLoss), formatMoney(r.pureDownsizeGainLoss)]),
+    series: [
+      series('Stay (equity after sale)', rows, (r) => r.stayNetWorth),
+      series('Sell (invested)', rows, (r) => r.pureSellNetWorth),
+      series('Downsize', rows, (r) => r.pureDownsizeNetWorth),
+    ],
+    tipCols: [1, 2, 3],
+    tipExtra: 4,
+    markerX: pureCross(rows, 'pureSellGainLoss'),
+  };
+
+  const sections = [netWorth, cashFlow, income, cashNeeded, pureNetWorth];
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
