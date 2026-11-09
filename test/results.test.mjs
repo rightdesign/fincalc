@@ -287,6 +287,14 @@ test('the no-mortgage notice names the carrying-cost-only cash need when the new
   assert.equal(loan.noMortgageNotice, '');
 });
 
+test('unchecked proceeds mode: summaries reconcile year-0 Downsize net worth with the outside funds', () => {
+  const r = buildResults({ ...defaultValues(), newHomePrice: 300000, newMortgageAmount: 0, useProceeds: 0 });
+  for (const id of ['net-worth', 'equal-cash', 'pure-net-worth']) {
+    const sec = r.sections.find((x) => x.id === id);
+    assert.match(sec.summary, /At year 0, Downsize net worth is .* paid from outside funds/);
+  }
+});
+
 test('the final year is presented as a net-of-sale point with a terminal adjustment', () => {
   const { sections } = buildResults(defaultValues());
   for (const id of ['net-worth', 'equal-cash', 'pure-net-worth']) {

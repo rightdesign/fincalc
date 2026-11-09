@@ -153,7 +153,7 @@ function costSummary(values, projection, rows) {
       cashRow(`Monthly cash you must supply (year ${end.year})`, end),
       [`Total cash you must supply (years 1 to ${end.year})`, totalCash((r) => r.monthlyStayOutOfPocket), totalCash((r) => r.monthlySellOutOfPocket), totalCash((r) => r.monthlyDownsizeOutOfPocket)],
     ],
-    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only. The monthly cash rows are housing outflows less portfolio withdrawals applied to housing; they are a cash-flow measure, not part of the totals. The total cash row adds those monthly amounts over every year of the horizon: the cash the household has to generate from income or other savings, which net worth does not show.${downsizeFunding(values).outsideFunds > 0.5 ? ' Downsize net proceeds leave out the money from outside this model that pays for the new home.' : ''}${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
+    note: `Amounts cover years 1 to ${end.year}. Initial costs are selling costs, capital-gains tax and moving, plus the rental's upfront cash or the new home's buying costs. Recurring costs are running housing costs (net of tax savings) or rent. Opportunity costs are the investment return forgone on the money left in your home, or the home appreciation forgone by selling. Net proceeds are net worth at the end of the horizon, after sale costs and taxes. Total costs add the first three rows only. The monthly cash rows are housing outflows less portfolio withdrawals applied to housing; they are a cash-flow measure, not part of the totals. The total cash row adds those monthly amounts over every year of the horizon: the cash the household has to generate from income or other savings, which net worth does not show.${downsizeFunding(values).outsideFunds > 0.5 ? ` Downsize net proceeds leave out the money from outside this model that pays for the new home. ${outsideReconciliation(values, rows[0])}` : ''}${values.todaysDollars === 'real' ? " All amounts are in today's dollars." : ''}`,
   };
 }
 
@@ -187,6 +187,14 @@ function pureCross(rows, field) {
   return hit ? hit.year : null;
 }
 
+// Why year-0 Downsize net worth does not move with the proceeds setting: the
+// capital invested rises by exactly the outside money that then pays for the home.
+function outsideReconciliation(values, year0) {
+  const f = downsizeFunding(values);
+  const homeNet = year0.downsizeNetWorth - f.invested + f.outsideFunds;
+  return `At year 0, Downsize net worth is ${formatMoney(year0.downsizeNetWorth)}: ${formatMoney(f.invested)} invested plus the new home's ${formatMoney(homeNet)} after sale costs, less ${formatMoney(f.outsideFunds)} paid from outside funds. Using the sale proceeds for the purchase instead lowers the amount invested and the outside funds by the same amount, so net worth does not change.`;
+}
+
 // Each section: title, a summary line, table (columns + rows of formatted
 // cells) and chart series ({ label, points: [{ x, y }] }).
 export function buildResults(values) {
@@ -210,7 +218,7 @@ export function buildResults(values) {
   const netWorth = {
     id: 'net-worth',
     title: 'Net worth',
-    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear, projection.breakevenTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear, projection.downsizeBreakevenTerminal)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out, so the three paths stay comparable.' : ''}`,
+    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear, projection.breakevenTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear, projection.downsizeBreakevenTerminal)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ` The money from outside this model that pays for the new home is left out, so the three paths stay comparable. ${outsideReconciliation(values, rows[0])}` : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.downsizeNetWorth), formatMoney(r.netWorthGainLoss), formatMoney(r.downsizeGainLoss)]),
     series: [
@@ -277,7 +285,7 @@ export function buildResults(values) {
   const equalCash = {
     id: 'equal-cash',
     title: 'Net worth with equal cash contributions',
-    summary: `Every path gets the same cash each year: what staying needs to fund its mortgage and carrying costs (${formatMoney(years[0]?.monthlyEqualContribution ?? 0)} a month in year 1). Selling and renting pays the rent, and downsizing pays the new home's costs and mortgage, first from portfolio withdrawals at your withdrawal setting (never more than the housing costs) and then from that contribution, and invests whatever is left over. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.equalSellGainLoss, (rows.slice(1).find((r) => r.equalSellGainLoss >= 0) ?? {}).year, equalSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.equalDownsizeGainLoss, (rows.slice(1).find((r) => r.equalDownsizeGainLoss >= 0) ?? {}).year, equalDownsizeTerminal)} Staying is counted as if you sold the home that year, as in the net worth chart.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    summary: `Every path gets the same cash each year: what staying needs to fund its mortgage and carrying costs (${formatMoney(years[0]?.monthlyEqualContribution ?? 0)} a month in year 1). Selling and renting pays the rent, and downsizing pays the new home's costs and mortgage, first from portfolio withdrawals at your withdrawal setting (never more than the housing costs) and then from that contribution, and invests whatever is left over. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.equalSellGainLoss, (rows.slice(1).find((r) => r.equalSellGainLoss >= 0) ?? {}).year, equalSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.equalDownsizeGainLoss, (rows.slice(1).find((r) => r.equalDownsizeGainLoss >= 0) ?? {}).year, equalDownsizeTerminal)} Staying is counted as if you sold the home that year, as in the net worth chart.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ` The money from outside this model that pays for the new home is left out. ${outsideReconciliation(values, rows[0])}` : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.equalSellNetWorth), formatMoney(r.equalDownsizeNetWorth), formatMoney(r.equalSellGainLoss), formatMoney(r.equalDownsizeGainLoss)]),
     series: [
@@ -295,7 +303,7 @@ export function buildResults(values) {
   const pureNetWorth = {
     id: 'pure-net-worth',
     title: 'Pure net worth',
-    summary: `Pure net worth: what each path is worth at the end if the portfolio pays its own way. Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no credit for the yearly difference in cash flow between owning and their housing, so nothing is equalized between the paths. This differs from the Net worth chart, which assumes each path spends the same cash on housing. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.pureSellGainLoss, pureCross(rows, 'pureSellGainLoss'), pureSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.pureDownsizeGainLoss, pureCross(rows, 'pureDownsizeGainLoss'), pureDownsizeTerminal)}${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    summary: `Pure net worth: what each path is worth at the end if the portfolio pays its own way. Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no credit for the yearly difference in cash flow between owning and their housing, so nothing is equalized between the paths. This differs from the Net worth chart, which assumes each path spends the same cash on housing. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.pureSellGainLoss, pureCross(rows, 'pureSellGainLoss'), pureSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.pureDownsizeGainLoss, pureCross(rows, 'pureDownsizeGainLoss'), pureDownsizeTerminal)}${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ` The money from outside this model that pays for the new home is left out. ${outsideReconciliation(values, rows[0])}` : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.pureSellNetWorth), formatMoney(r.pureDownsizeNetWorth), formatMoney(r.pureSellGainLoss), formatMoney(r.pureDownsizeGainLoss)]),
     series: [
