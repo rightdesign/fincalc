@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.39.1] — 2026-11-09
+
+- FINC-068 Results tabs wrap onto extra rows at desktop widths so every tab is fully visible without scroll buttons.
+
 ## [0.39.0] — 2026-11-09
 
 - FINC-063 Cost Summary now breaks out the cash deployed at sale and purchase (including the downsize home price and any shortfall) and the opportunity costs by component, and its bullets use the same monthly-cash measure as the table.
