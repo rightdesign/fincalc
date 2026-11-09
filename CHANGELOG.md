@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.40.2] — 2026-11-09
+
+- FINC-066 The downsize note no longer claims nothing is invested when proceeds fall short; it states the negative starting capital, and the waterfall always shows "Amount invested at year 0", including when negative.
+
 ## [0.40.1] — 2026-11-09
 
 - FINC-065 The net worth, pure net worth and equal-cash summaries now show a year-0 reconciliation of Downsize net worth (invested plus new home, less outside funds), explaining why it stays the same when the "use sale proceeds" checkbox is toggled.
