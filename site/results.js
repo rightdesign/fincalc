@@ -24,7 +24,9 @@ export function noMortgageNotice(values, first, funding) {
   if (!(values.newMortgageAmount <= 0) || !first) return '';
   const invested = funding.invested > 0.5
     ? ` ${formatMoney(funding.invested)} stays invested after the purchase and can withdraw ${formatMoney(first.monthlyDownsizeInvestmentIncome)} a month after tax.`
-    : ' Nothing is left invested after the purchase.';
+    : funding.invested < -0.5
+      ? ` Invested capital starts at \u2212${formatMoney(-funding.invested)}, drawn from other savings.`
+      : ' Nothing is left invested after the purchase.';
   return `No mortgage payment on the new home: monthly cash you must supply in year 1 is its carrying costs only, ${formatMoney(first.monthlyDownsizeCost)} a month, or ${formatMoney(first.monthlyDownsizeOutOfPocket)} after withdrawals, against ${formatMoney(first.monthlyStayOutOfPocket)} to stay.${invested}`;
 }
 
@@ -538,11 +540,11 @@ export function downsizeWaterfall(values) {
     ...(values.useProceeds !== 0 && f.outsideFunds > 0.5 ? [{ label: 'Paid from outside funds', amount: f.outsideFunds }] : []),
     { label: 'Moving costs', amount: -f.movingCosts },
   ];
-  return { steps, invested: f.invested, shortfall: f.invested < 0, resultLabel: f.invested < 0 ? 'Shortfall drawn from investments' : 'Amount invested at year 0' };
+  return { steps, invested: f.invested, shortfall: f.invested < 0, resultLabel: 'Amount invested at year 0' };
 }
 
 export function downsizeWaterfallHtml(w) {
   const signed = (n) => (n < 0 ? `\u2212${formatMoney(-n)}` : formatMoney(n));
   const rows = w.steps.map((s) => `<tr${s.total ? ' class="subtotal"' : ''}><th scope="row">${escape(s.label)}</th><td>${escape(signed(s.amount))}</td></tr>`).join('');
-  return `<table><caption>Where the sale money goes</caption><tbody>${rows}<tr class="total"><th scope="row">${escape(w.resultLabel)}</th><td>${escape(formatMoney(Math.abs(w.invested)))}</td></tr></tbody></table>`;
+  return `<table><caption>Where the sale money goes</caption><tbody>${rows}${w.shortfall ? `<tr><th scope="row">Shortfall drawn from investments</th><td>${escape(formatMoney(-w.invested))}</td></tr>` : ''}<tr class="total"><th scope="row">${escape(w.resultLabel)}</th><td>${escape(signed(w.invested))}</td></tr></tbody></table>`;
 }

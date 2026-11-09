@@ -177,7 +177,9 @@ test('the downsize waterfall reports a shortfall when the proceeds do not cover 
   const { downsizeWaterfall, downsizeWaterfallHtml } = await import('../site/results.js');
   const w = downsizeWaterfall({ ...defaultValues(), newHomePrice: 900000 });
   assert.equal(w.shortfall, true);
-  assert.match(downsizeWaterfallHtml(w), /Shortfall drawn from investments/);
+  const html = downsizeWaterfallHtml(w);
+  assert.match(html, /Shortfall drawn from investments/);
+  assert.match(html, /Amount invested at year 0<\/th><td>\u2212\$/);
 });
 
 test('the downsize waterfall leaves out the purchase when the proceeds are not used to buy the new home', async () => {
@@ -285,6 +287,14 @@ test('the no-mortgage notice names the carrying-cost-only cash need when the new
   assert.ok(r.sections[3].summary.includes(r.noMortgageNotice));
   const loan = buildResults({ ...v, newMortgageAmount: 100000 });
   assert.equal(loan.noMortgageNotice, '');
+});
+
+test('the no-mortgage notice states a negative starting balance instead of saying nothing is invested', async () => {
+  const { noMortgageNotice } = await import('../site/results.js');
+  const v = { newMortgageAmount: 0 };
+  const first = { monthlyDownsizeCost: 1, monthlyDownsizeOutOfPocket: 1, monthlyStayOutOfPocket: 1, monthlyDownsizeInvestmentIncome: 0 };
+  assert.match(noMortgageNotice(v, first, { invested: -42250 }), /Invested capital starts at \u2212\$42,250, drawn from other savings/);
+  assert.match(noMortgageNotice(v, first, { invested: 0 }), /Nothing is left invested/);
 });
 
 test('unchecked proceeds mode: summaries reconcile year-0 Downsize net worth with the outside funds', () => {
