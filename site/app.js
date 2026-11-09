@@ -454,11 +454,16 @@ function updateTabIndicators(bar) {
 
 function renderResults(container, form, scenarios) {
   const values = readInputs(form);
-  const missing = FIELDS.filter((f) => values[f.id] == null).map((f) => f.label);
+  const inDownsize = (f) => (GROUP_TITLES[f.group] ?? f.group) === 'If you downsize';
+  const missing = FIELDS.filter((f) => values[f.id] == null && !inDownsize(f)).map((f) => f.label);
   if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
   // A new mortgage needs a term; a term of 0 is only tolerated while there is no new mortgage.
   const termInvalid = values.newMortgageAmount > 0 && values.newMortgageTerm != null && values.newMortgageTerm < 1;
-  if (termInvalid) missing.push('New mortgage term (years) (at least 1 when there is a new mortgage amount)');
+  const downsizeBad = FIELDS.filter((f) => values[f.id] == null && inDownsize(f)).map((f) => f.label);
+  if (termInvalid) downsizeBad.push('New mortgage term (years) (at least 1 when there is a new mortgage amount)');
+  // Invalid downsize inputs only take the downsize path out; stay and sell still show.
+  const downsizeUnavailable = downsizeBad.length > 0 && !missing.length;
+  if (!downsizeUnavailable) missing.push(...downsizeBad);
   const waterfall = form.querySelector('.waterfall');
   const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
   waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
@@ -475,7 +480,8 @@ function renderResults(container, form, scenarios) {
     shown = [];
     return;
   }
-  const { sections, sensitivity, costSummary, shortfallNotice, noMortgageNotice, headline } = buildResults(values);
+  const standIn = downsizeUnavailable ? { ...defaultValues(), ...values, ...Object.fromEntries(FIELDS.filter((f) => inDownsize(f)).map((f) => [f.id, defaultValues()[f.id]])) } : values;
+  const { sections, sensitivity, costSummary, shortfallNotice, noMortgageNotice, headline } = buildResults(standIn, { downsizeUnavailable });
   shown = sections;
   showShortfall(form, shortfallNotice);
   showShortfall(form, noMortgageNotice, 'no-mortgage-notice');
@@ -498,7 +504,8 @@ function renderResults(container, form, scenarios) {
   const body = TABS.map(([id]) => `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`).join('');
   const stripLeft = container.querySelector('.tabs')?.scrollLeft ?? 0;
   const more = (side, label, glyph) => `<button type="button" class="tabs-more tabs-more-${side}" data-scroll="${side === 'start' ? -1 : 1}" aria-label="${label}" tabindex="-1" hidden>${glyph}</button>`;
-  container.innerHTML = `${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
+  const unavailableNote = downsizeUnavailable ? `<p class="placeholder downsize-unavailable" role="status">Downsize results are unavailable. Enter a valid value for: ${esc(downsizeBad.join(', '))}.</p>` : '';
+  container.innerHTML = `${unavailableNote}${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
   const bar = container.querySelector('.tabs-bar');
   const strip = bar.querySelector('.tabs');
   strip.scrollLeft = stripLeft;

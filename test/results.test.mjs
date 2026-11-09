@@ -289,6 +289,34 @@ test('the no-mortgage notice names the carrying-cost-only cash need when the new
   assert.equal(loan.noMortgageNotice, '');
 });
 
+test('with downsizeUnavailable every downsize figure is blanked and stay/sell are unchanged', () => {
+  const v = defaultValues();
+  const full = buildResults(v);
+  const r = buildResults(v, { downsizeUnavailable: true });
+  assert.equal(r.sections.length, full.sections.length);
+  for (const [i, s] of r.sections.entries()) {
+    assert.ok(s.summary.startsWith('Downsizing is unavailable'));
+    assert.ok(s.series.every((x) => !/downsiz/i.test(x.label)));
+    s.columns.forEach((c, k) => {
+      for (const row of s.rows) {
+        if (/downsiz/i.test(c)) assert.equal(row[k], '—');
+        else assert.equal(row[k], full.sections[i].rows[s.rows.indexOf(row)][k]);
+      }
+    });
+    assert.doesNotThrow(() => hoverPoints(s));
+  }
+  assert.ok(r.sensitivity.every((l) => l.path !== 'downsize'));
+  assert.ok(!sensitivityHtml(r.sensitivity).includes('Downsizing vs. staying'));
+  assert.ok(r.costSummary.rows.every((row) => row[3] === '—'));
+  assert.ok(!costSummaryHtml(r.costSummary).includes('Downsizing ends'));
+  for (const x of r.costSummary.extras) {
+    const k = x.columns.findIndex((c) => /downsiz/i.test(c));
+    assert.ok(x.rows.every((row) => row[k] === '—'));
+    assert.ok(!/shortfall/i.test(x.note));
+  }
+  assert.equal(r.shortfallNotice, '');
+});
+
 test('the no-mortgage notice states a negative starting balance instead of saying nothing is invested', async () => {
   const { noMortgageNotice } = await import('../site/results.js');
   const v = { newMortgageAmount: 0 };
@@ -351,4 +379,36 @@ test('the cost summary breaks out the cash deployed at sale and purchase and the
   assert.match(costSummary.headlines[4], /uses \$3,0\d\d,\d{3} of cash to buy the new home/);
   assert.match(costSummaryHtml(costSummary), /Cash deployed at sale and purchase/);
   assert.match(costSummary.headlines[2], /monthly cash you must supply/);
+});
+
+test('no downsize figure leaks into any summary when downsizing is unavailable', () => {
+  const v = { ...defaultValues(), homeValue: 5500000, newHomePrice: 3000000, newMortgageAmount: 500000, newMortgageTerm: 0 };
+  const r = buildResults(v, { downsizeUnavailable: true });
+  for (const s of r.sections) {
+    const body = s.summary.replace(/^Downsizing is unavailable until its inputs are valid\.\s*/, '');
+    assert.doesNotMatch(body, /downsiz/i, s.id);
+    assert.doesNotMatch(body, /\.[A-Z]/, `${s.id}: sentences run together`);
+    for (const row of s.footRows ?? []) {
+      s.columns.forEach((c, k) => {
+        if (/downsiz/i.test(c)) assert.equal(row[k], '—');
+      });
+    }
+  }
+});
+
+test('no year-0 reconciliation or outside-funds text appears when downsizing is unavailable', () => {
+  const v = { ...defaultValues(), newHomePrice: 300000, newMortgageAmount: 0, useProceeds: 0 };
+  const r = buildResults(v, { downsizeUnavailable: true });
+  for (const s of r.sections) {
+    assert.doesNotMatch(s.summary, /At year 0|outside funds|outside this model/, s.id);
+  }
+});
+
+test('with downsizeUnavailable, no-mortgage and unchecked proceeds, no summary or note carries downsize text', () => {
+  const v = { ...defaultValues(), newMortgageAmount: 0, newMortgageTerm: 0, useProceeds: 0 };
+  const r = buildResults(v, { downsizeUnavailable: true });
+  const texts = [...r.sections.map((s) => s.summary), r.costSummary.note, r.noMortgageNotice];
+  for (const t of texts) {
+    assert.doesNotMatch(t, /Downsize net (worth|proceeds)|outside funds|No mortgage payment|stays invested after the purchase/i);
+  }
 });
