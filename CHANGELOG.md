@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.40.0] — 2026-11-09
+
+- FINC-064 The final-year net worth point is now presented as a net-of-sale value, with a terminal sale adjustment shown in the table and chart.
+
 ## [0.39.1] — 2026-11-09
 
 - FINC-068 Results tabs wrap onto extra rows at desktop widths so every tab is fully visible without scroll buttons.
