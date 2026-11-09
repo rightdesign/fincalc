@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.40.3] — 2026-11-09
+
+- FINC-067 An invalid new-mortgage term (or other downsize input) no longer hides the whole results area; the results show with downsize figures marked unavailable.
+
 ## [0.40.2] — 2026-11-09
 
 - FINC-066 The downsize note no longer claims nothing is invested when proceeds fall short; it states the negative starting capital, and the waterfall always shows "Amount invested at year 0", including when negative.
