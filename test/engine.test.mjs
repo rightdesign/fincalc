@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { amortizationByYear, inTodaysDollars, monthlyPayment, downsizeFunding, netSaleProceeds, project, housingTaxSavings } from '../site/engine.js';
+import { amortizationByYear, inTodaysDollars, monthlyPayment, downsizeFunding, netSaleProceeds, project, housingTaxSavings, terminalDriven } from '../site/engine.js';
 import { defaultValues } from '../site/inputs.js';
 
 const close = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} !~ ${b}`);
@@ -426,4 +426,20 @@ test('cash-needed contribution columns are what feeds each path\'s investment, w
       close(r.investmentCapital - prev.investmentCapital * (1 + investmentGrowth), r.monthlySellContribution * 12 - sellGross);
     }
   }
+});
+
+test('a crossover that exists only because of the terminal sale charge is flagged', () => {
+  const rows = [
+    { year: 0 },
+    { year: 1, g: -5 },
+    { year: 2, g: 10, stayTerminalCharge: 100, downsizeTerminalCharge: 20 },
+  ];
+  assert.equal(terminalDriven(rows, 'g', 'sell'), true);
+  assert.equal(terminalDriven(rows, 'g', 'downsize'), true);
+  rows[2].g = 200;
+  assert.equal(terminalDriven(rows, 'g', 'sell'), false);
+  // already ahead before the final year: a normal crossover
+  rows[1].g = 1;
+  rows[2].g = 10;
+  assert.equal(terminalDriven(rows, 'g', 'sell'), false);
 });

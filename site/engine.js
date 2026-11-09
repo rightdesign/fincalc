@@ -230,6 +230,20 @@ function equalYear(v, capital, growth, contribution, housing) {
   return capital * (1 + growth) + contribution - (housing - applied) - gross;
 }
 
+// True when a path first pulls ahead of staying in the final year only
+// because staying carries the terminal sale charge: measured before each
+// home's selling costs and tax, the path is still behind. `gapField` is the
+// row's path-minus-stay field and `kind` is 'sell' (no home to sell) or
+// 'downsize' (its own terminal charge is added back too).
+export function terminalDriven(rows, gapField, kind) {
+  const years = rows.slice(1);
+  const first = years.find((r) => r[gapField] >= 0);
+  const end = years[years.length - 1];
+  if (!first || first !== end || end.stayTerminalCharge == null) return false;
+  const addBack = kind === 'downsize' ? end.downsizeTerminalCharge : 0;
+  return end[gapField] + addBack - end.stayTerminalCharge < 0;
+}
+
 export function project(values) {
   const v = values;
   const horizon = Math.max(0, Math.floor(v.horizon));
@@ -243,9 +257,10 @@ export function project(values) {
   const newLoan = amortizationByYear({
     mortgageBalance: v.newMortgageAmount, mortgageRate: v.newMortgageRate, mortgageTerm: v.newMortgageTerm, horizon,
   });
-  const newNetSale = (homeValue, mortgageBalance) => netSaleProceeds({
+  const newSale = (homeValue, mortgageBalance) => netSaleProceeds({
     ...v, homeValue, costBasis: v.newHomePrice, mortgageBalance,
-  }).netProceeds;
+  });
+  const newNetSale = (homeValue, mortgageBalance) => newSale(homeValue, mortgageBalance).netProceeds;
   const funding = downsizeFunding(v);
   const outsideFunds = funding.outsideFunds;
   let downsizeCapital = funding.invested;
@@ -325,7 +340,12 @@ export function project(values) {
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
 
     const equity = homeValue - balance;
-    const stayNetWorth = lastYear ? netSaleProceeds({ ...v, homeValue, mortgageBalance: balance }).netProceeds : equity;
+    // In the last year each home is valued as if sold at the horizon; the
+    // selling costs and capital-gains tax are reported apart as the terminal
+    // sale adjustment, so the final point is not read as an ordinary year.
+    const staySale = netSaleProceeds({ ...v, homeValue, mortgageBalance: balance });
+    const downsizeSale = newSale(newHomeValue, newPay.balance);
+    const stayNetWorth = lastYear ? staySale.netProceeds : equity;
     equalDownsizeNetWorth = equalDownsizeCapital - outsideFunds
       + (lastYear ? newNetSale(newHomeValue, newPay.balance) : newHomeValue - newPay.balance);
     const pureDownsizeNetWorth = downsizeNetWorth - downsizeCapital + pureDownsizeCapital;
@@ -369,6 +389,14 @@ export function project(values) {
       downsizeInvestmentCapital: downsizeCapital,
       downsizeNetWorth,
       downsizeGainLoss: downsizeNetWorth - stayNetWorth,
+      ...(lastYear ? {
+        stayTerminalSellingCosts: staySale.sellingCosts,
+        stayTerminalTax: staySale.taxesDue,
+        stayTerminalCharge: staySale.sellingCosts + staySale.taxesDue,
+        downsizeTerminalSellingCosts: downsizeSale.sellingCosts,
+        downsizeTerminalTax: downsizeSale.taxesDue,
+        downsizeTerminalCharge: downsizeSale.sellingCosts + downsizeSale.taxesDue,
+      } : {}),
       monthlyEqualContribution: stayOutlay / 12,
       equalSellNetWorth: equalSellCapital,
       equalDownsizeNetWorth,
@@ -386,6 +414,8 @@ export function project(values) {
   return {
     sale,
     rows,
+    breakevenTerminal: terminalDriven(rows, 'netWorthGainLoss', 'sell'),
+    downsizeBreakevenTerminal: terminalDriven(rows, 'downsizeGainLoss', 'downsize'),
     investmentGrowth: growth,
     breakevenYear: breakeven ? breakeven.year : null,
     downsizeBreakevenYear: downsizeBreakeven ? downsizeBreakeven.year : null,

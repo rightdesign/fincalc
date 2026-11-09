@@ -711,3 +711,9 @@ legend {
   font-weight: 700;
   border-top: 1px solid var(--border);
 }
+
+.card-note {
+  margin-top: 0.25rem;
+  font-size: 0.8em;
+  font-style: italic;
+}

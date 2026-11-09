@@ -1,7 +1,7 @@
 // Results view models for the stay vs. sell-and-rent comparison: tables and
 // SVG line charts built from the engine's projection. Pure (strings and
 // plain objects, no DOM) so it runs under node.
-import { downsizeFunding, inTodaysDollars, project } from './engine.js';
+import { downsizeFunding, inTodaysDollars, project, terminalDriven } from './engine.js';
 import { sensitivityLines } from './sensitivity.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -31,12 +31,13 @@ export function noMortgageNotice(values, first, funding) {
 // One path's standing against staying: when it pulls ahead (if ever), the
 // gap at the horizon and how it is moving, and the year it came closest.
 // `rows` hold each path's net worth minus staying, so a positive gap is ahead.
-function gapNote(subject, short, rows, gap, crossYear) {
+function gapNote(subject, short, rows, gap, crossYear, terminal = false) {
   const years = rows.slice(1);
   if (!years.length) return '';
   const end = years[years.length - 1];
   const endGap = gap(end);
   const side = (g) => `${formatMoney(Math.abs(g))} ${g >= 0 ? 'ahead of' : 'behind'} staying`;
+  if (crossYear != null && terminal) return `${subject} is ahead of staying only in year ${crossYear}, and only because of the end-of-horizon sale assumption (staying is charged selling costs and capital-gains tax on the whole gain that year); before that charge it is still behind. This is not a normal crossover.`;
   if (crossYear != null) return `${subject} pulls ahead of staying in year ${crossYear}; by year ${end.year} it is ${side(endGap)}.`;
   const closest = years.reduce((best, r) => (Math.abs(gap(r)) < Math.abs(gap(best)) ? r : best));
   const prev = years.length > 1 ? years[years.length - 2] : null;
@@ -165,6 +166,22 @@ function rentCoverage(r) {
 }
 
 // First year (1 or later) a gap field is at or above zero, else null.
+const TERMINAL_LABEL = 'Final point: net of sale costs and tax if sold at horizon';
+
+// The final-year sale adjustment as extra table rows (the year's own row is
+// already net of sale): the values before the sale and each charge
+// kind; the sell column and the gap columns are blank.
+function terminalRows(end, beforeDownsize, beforeStay) {
+  const m = (n) => formatMoney(-n);
+  const row = (label, stay, down) => [label, stay, '\u2014', down, '', ''];
+  return [
+    row(`Year ${end.year} before sale`, formatMoney(beforeStay), formatMoney(beforeDownsize)),
+    row('Terminal sale: selling costs', m(end.stayTerminalSellingCosts), m(end.downsizeTerminalSellingCosts)),
+    row('Terminal sale: capital-gains tax', m(end.stayTerminalTax), m(end.downsizeTerminalTax)),
+    row('Terminal sale: total charge', m(end.stayTerminalCharge), m(end.downsizeTerminalCharge)),
+  ];
+}
+
 function pureCross(rows, field) {
   const hit = rows.slice(1).find((r) => r[field] >= 0);
   return hit ? hit.year : null;
@@ -180,10 +197,20 @@ export function buildResults(values) {
   const noMortgage = noMortgageNotice(values, years[0], downsizeFunding(values));
   const series = (label, list, pick) => ({ label, points: list.map((r) => ({ x: r.year, y: pick(r) })) });
 
+  const end = rows[rows.length - 1];
+  const terminal = years.length > 0 && end.stayTerminalCharge != null;
+  const terminalNote = terminal ? ` The year-${end.year} figures are net of the selling costs and capital-gains tax you would pay if you sold the home at the horizon (${formatMoney(end.stayTerminalCharge)} for staying, ${formatMoney(end.downsizeTerminalCharge)} for downsizing); earlier years count the home at full value less the mortgage. The table lists this terminal sale adjustment apart.` : '';
+  const foot = (downField) => (terminal ? terminalRows(end, end[downField] + end.downsizeTerminalCharge, end.stayNetWorth + end.stayTerminalCharge) : []);
+  const terminalX = terminal ? end.year : null;
+  const equalSellTerminal = terminalDriven(rows, 'equalSellGainLoss', 'sell');
+  const equalDownsizeTerminal = terminalDriven(rows, 'equalDownsizeGainLoss', 'downsize');
+  const pureSellTerminal = terminalDriven(rows, 'pureSellGainLoss', 'sell');
+  const pureDownsizeTerminal = terminalDriven(rows, 'pureDownsizeGainLoss', 'downsize');
+
   const netWorth = {
     id: 'net-worth',
     title: 'Net worth',
-    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out, so the three paths stay comparable.' : ''}`,
+    summary: `${gapNote('Selling and investing', 'Selling', rows, (r) => r.netWorthGainLoss, breakevenYear, projection.breakevenTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.downsizeGainLoss, downsizeBreakevenYear, projection.downsizeBreakevenTerminal)} Staying is counted as if you sold the home that year, after selling costs and capital-gains tax; downsizing counts the new home the same way, plus your investments.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out, so the three paths stay comparable.' : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.investmentCapital), formatMoney(r.downsizeNetWorth), formatMoney(r.netWorthGainLoss), formatMoney(r.downsizeGainLoss)]),
     series: [
@@ -194,6 +221,9 @@ export function buildResults(values) {
     tipCols: [1, 2, 3],
     tipExtra: 4,
     markerX: breakevenYear,
+    markerTerminal: projection.breakevenTerminal,
+    terminalX,
+    footRows: foot('downsizeNetWorth'),
   };
 
   const cashFlow = {
@@ -247,7 +277,7 @@ export function buildResults(values) {
   const equalCash = {
     id: 'equal-cash',
     title: 'Net worth with equal cash contributions',
-    summary: `Every path gets the same cash each year: what staying needs to fund its mortgage and carrying costs (${formatMoney(years[0]?.monthlyEqualContribution ?? 0)} a month in year 1). Selling and renting pays the rent, and downsizing pays the new home's costs and mortgage, first from portfolio withdrawals at your withdrawal setting (never more than the housing costs) and then from that contribution, and invests whatever is left over. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.equalSellGainLoss, (rows.slice(1).find((r) => r.equalSellGainLoss >= 0) ?? {}).year)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.equalDownsizeGainLoss, (rows.slice(1).find((r) => r.equalDownsizeGainLoss >= 0) ?? {}).year)} Staying is counted as if you sold the home that year, as in the net worth chart.${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    summary: `Every path gets the same cash each year: what staying needs to fund its mortgage and carrying costs (${formatMoney(years[0]?.monthlyEqualContribution ?? 0)} a month in year 1). Selling and renting pays the rent, and downsizing pays the new home's costs and mortgage, first from portfolio withdrawals at your withdrawal setting (never more than the housing costs) and then from that contribution, and invests whatever is left over. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.equalSellGainLoss, (rows.slice(1).find((r) => r.equalSellGainLoss >= 0) ?? {}).year, equalSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.equalDownsizeGainLoss, (rows.slice(1).find((r) => r.equalDownsizeGainLoss >= 0) ?? {}).year, equalDownsizeTerminal)} Staying is counted as if you sold the home that year, as in the net worth chart.${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.equalSellNetWorth), formatMoney(r.equalDownsizeNetWorth), formatMoney(r.equalSellGainLoss), formatMoney(r.equalDownsizeGainLoss)]),
     series: [
@@ -258,12 +288,14 @@ export function buildResults(values) {
     tipCols: [1, 2, 3],
     tipExtra: 4,
     markerX: null,
+    terminalX,
+    footRows: foot('equalDownsizeNetWorth'),
   };
 
   const pureNetWorth = {
     id: 'pure-net-worth',
     title: 'Pure net worth',
-    summary: `Pure net worth: what each path is worth at the end if the portfolio pays its own way. Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no credit for the yearly difference in cash flow between owning and their housing, so nothing is equalized between the paths. This differs from the Net worth chart, which assumes each path spends the same cash on housing. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.pureSellGainLoss, pureCross(rows, 'pureSellGainLoss'))} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.pureDownsizeGainLoss, pureCross(rows, 'pureDownsizeGainLoss'))}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
+    summary: `Pure net worth: what each path is worth at the end if the portfolio pays its own way. Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no credit for the yearly difference in cash flow between owning and their housing, so nothing is equalized between the paths. This differs from the Net worth chart, which assumes each path spends the same cash on housing. ${gapNote('Selling and investing', 'Selling', rows, (r) => r.pureSellGainLoss, pureCross(rows, 'pureSellGainLoss'), pureSellTerminal)} ${gapNote('Downsizing', 'Downsizing', rows, (r) => r.pureDownsizeGainLoss, pureCross(rows, 'pureDownsizeGainLoss'), pureDownsizeTerminal)}${terminalNote}${downsizeFunding(values).outsideFunds > 0.5 ? ' The money from outside this model that pays for the new home is left out.' : ''}`,
     columns: ['Year', 'Stay (equity after sale)', 'Sell (invested)', 'Downsize (new home + invested)', 'Sell minus stay', 'Downsize minus stay'],
     rows: rows.map((r) => [String(r.year), formatMoney(r.stayNetWorth), formatMoney(r.pureSellNetWorth), formatMoney(r.pureDownsizeNetWorth), formatMoney(r.pureSellGainLoss), formatMoney(r.pureDownsizeGainLoss)]),
     series: [
@@ -274,14 +306,16 @@ export function buildResults(values) {
     tipCols: [1, 2, 3],
     tipExtra: 4,
     markerX: pureCross(rows, 'pureSellGainLoss'),
+    markerTerminal: pureSellTerminal,
+    terminalX,
+    footRows: foot('pureDownsizeNetWorth'),
   };
 
   const sections = [netWorth, cashFlow, income, cashNeeded, pureNetWorth, equalCash];
   if (values.todaysDollars === 'real') {
     for (const sec of sections) sec.summary += " All amounts are in today's dollars.";
   }
-  const end = rows[rows.length - 1];
-  const headline = { breakevenYear, downsizeBreakevenYear, year: end.year, stay: end.stayNetWorth, sell: end.investmentCapital, downsize: end.downsizeNetWorth, equalSell: end.equalSellNetWorth, equalDownsize: end.equalDownsizeNetWorth };
+  const headline = { breakevenYear, breakevenTerminal: projection.breakevenTerminal, downsizeBreakevenYear, downsizeBreakevenTerminal: projection.downsizeBreakevenTerminal, year: end.year, stay: end.stayNetWorth, sell: end.investmentCapital, downsize: end.downsizeNetWorth, equalSell: end.equalSellNetWorth, equalDownsize: end.equalDownsizeNetWorth };
   return { breakevenYear, headline, sections, shortfallNotice: shortfallNotice(downsizeShortfall), noMortgageNotice: noMortgage, costSummary: costSummary(values, projection, rows), sensitivity: sensitivityLines(values) };
 }
 
@@ -355,12 +389,19 @@ export function lineChartSvg(section) {
   out += `<text x="${W - PAD.r}" y="${PLOT_H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
   if (section.markerX != null) {
     out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${PLOT_H - PAD.b}"/>`;
-    out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="10">Breakeven: year ${section.markerX}</text>`;
+    const note = section.markerTerminal ? ' (only from the end-of-horizon sale)' : '';
+    out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="10">Breakeven: year ${section.markerX}${note}</text>`;
   }
   section.series.forEach((s, i) => {
-    const d = s.points.map((p, j) => `${j ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p.y))}`).join('');
-    out += `<path d="${d}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
+    const path = (pts) => pts.map((p, j) => `${j ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p.y))}`).join('');
+    const dashed = section.terminalX != null && s.points.length > 1;
+    const solid = dashed ? s.points.slice(0, -1) : s.points;
+    out += `<path d="${path(solid)}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
+    if (dashed) out += `<path class="terminal-segment" d="${path(s.points.slice(-2))}" fill="none" stroke-dasharray="4 4" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
   });
+  if (section.terminalX != null) {
+    out += `<text class="terminal-label" x="${W - PAD.r}" y="${PAD.t + 22}" text-anchor="end" font-size="10">${escape(TERMINAL_LABEL)}</text>`;
+  }
   section.series.forEach((s, i) => {
     const top = PLOT_H + 2 + legend[i].row * LEGEND_ROW;
     out += `<rect x="${legend[i].x}" y="${top}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
@@ -388,6 +429,7 @@ export function hoverPoints(section) {
       ys: section.series.map((s) => sy(s.points[i].y)),
       items: section.tipCols.map((col, k) => ({ ...cell(row, col), label: section.series[k].label, color: COLORS[k] })),
       extra: section.tipExtra == null ? null : cell(row, section.tipExtra),
+      note: section.terminalX === p.x ? TERMINAL_LABEL.replace('Final point: n', 'N') : null,
     };
   });
 }
@@ -404,8 +446,9 @@ export function chartDescription(section) {
     const low = s.points.reduce((a, p) => (p.y < a.y ? p : a));
     return `${s.label}: starts at ${fmt(first)}, ends at ${fmt(last)}, highest ${fmt(high)}, lowest ${fmt(low)}.`;
   });
-  const marker = section.markerX != null ? ` The breakeven year is ${section.markerX}.` : '';
-  return `${section.title} line chart. ${lines.join(' ')}${marker} The full values for every year are in the table below.`;
+  const marker = section.markerX != null ? ` The breakeven year is ${section.markerX}${section.markerTerminal ? ', reached only because of the end-of-horizon sale assumption' : ''}.` : '';
+  const terminal = section.terminalX != null ? ` The final point, year ${section.terminalX}, is ${TERMINAL_LABEL.replace('Final point: n', 'n')}, and its segment is dashed.` : '';
+  return `${section.title} line chart. ${lines.join(' ')}${marker}${terminal} The full values for every year are in the table below.`;
 }
 
 // The chart plus its hover card and a live region for keyboard moves.
@@ -419,7 +462,8 @@ export function chartHtml(section) {
 export function cardHtml(point) {
   const rows = point.items.map((i) => `<div class="card-row"><span class="swatch" style="background:${i.color}"></span><span class="card-label">${escape(i.label)}</span><strong>${escape(i.value)}</strong></div>`).join('');
   const extra = point.extra ? `<div class="card-row card-extra"><span class="card-label">${escape(point.extra.label)}</span><strong>${escape(point.extra.value)}</strong></div>` : '';
-  return `<div class="card-year">Year ${point.year}</div>${rows}${extra}`;
+  const note = point.note ? `<div class="card-note">${escape(point.note)}</div>` : '';
+  return `<div class="card-year">Year ${point.year}</div>${rows}${extra}${note}`;
 }
 
 export function cardText(point) {
@@ -428,7 +472,7 @@ export function cardText(point) {
 
 export function tableHtml(section) {
   const head = section.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
-  const body = section.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
+  const body = [...section.rows, ...(section.footRows ?? [])].map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
   return `<table><caption>${escape(section.title)} by year</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
@@ -440,9 +484,9 @@ export function sensitivityHtml(lines) {
 
 // The three key numbers kept above the result tabs.
 export function headlineHtml(h) {
-  const year = (y) => (y == null ? 'Not within horizon' : `Year ${y}`);
+  const year = (y, terminal) => (y == null ? 'Not within horizon' : `Year ${y}${terminal ? ' (end-of-horizon sale only)' : ''}`);
   const card = (label, value) => `<div class="kpi"><span class="kpi-label">${escape(label)}</span><strong>${escape(value)}</strong></div>`;
-  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear))}${card('Downsize pulls ahead', year(h.downsizeBreakevenYear))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(formatMoney).join(' / '))}${card(`Net worth, equal cash contributions, year ${h.year} (stay / sell / downsize)`, [h.stay, h.equalSell, h.equalDownsize].map(formatMoney).join(' / '))}</div>`;
+  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear, h.breakevenTerminal))}${card('Downsize pulls ahead', year(h.downsizeBreakevenYear, h.downsizeBreakevenTerminal))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(formatMoney).join(' / '))}${card(`Net worth, equal cash contributions, year ${h.year} (stay / sell / downsize)`, [h.stay, h.equalSell, h.equalDownsize].map(formatMoney).join(' / '))}</div>`;
 }
 
 // The inputs that differ from their defaults, as [label, formatted value]

@@ -30,7 +30,8 @@ test('charts are SVG with one path per series; tables escape text', () => {
   const nw = buildResults(defaultValues()).sections[0];
   const svg = lineChartSvg(nw);
   assert.ok(svg.startsWith('<svg'));
-  assert.equal(svg.match(/<path /g).length, nw.series.length);
+  // each series is drawn solid, with its final (net-of-sale) segment dashed
+  assert.equal(svg.match(/<path /g).length, nw.series.length * 2);
   assert.equal(lineChartSvg({ title: 't', series: [], markerX: null }), '');
   const html = tableHtml({ title: 'A<b>', columns: ['Year'], rows: [['1']] });
   assert.ok(html.includes('A&lt;b&gt;'));
@@ -284,6 +285,34 @@ test('the no-mortgage notice names the carrying-cost-only cash need when the new
   assert.ok(r.sections[3].summary.includes(r.noMortgageNotice));
   const loan = buildResults({ ...v, newMortgageAmount: 100000 });
   assert.equal(loan.noMortgageNotice, '');
+});
+
+test('the final year is presented as a net-of-sale point with a terminal adjustment', () => {
+  const { sections } = buildResults(defaultValues());
+  for (const id of ['net-worth', 'equal-cash', 'pure-net-worth']) {
+    const sec = sections.find((s) => s.id === id);
+    const last = sec.series[0].points[sec.series[0].points.length - 1].x;
+    assert.equal(sec.terminalX, last);
+    assert.equal(sec.footRows.length, 4);
+    assert.match(sec.footRows[3][0], /total charge/);
+    for (const r of sec.footRows) assert.equal(r.length, sec.columns.length);
+    assert.match(tableHtml(sec), /Terminal sale: capital-gains tax/);
+    assert.match(lineChartSvg(sec), /terminal-segment/);
+    assert.match(lineChartSvg(sec), /net of sale costs and tax if sold at horizon/);
+    assert.match(sec.summary, /terminal sale adjustment/);
+  }
+  const cash = sections.find((s) => s.id === 'cash-flow');
+  assert.equal(cash.terminalX, undefined);
+  assert.doesNotMatch(lineChartSvg(cash), /terminal-segment/);
+});
+
+test('the terminal charge is the gap between the held and the sold final value', () => {
+  const { sections } = buildResults(defaultValues());
+  const nw = sections[0];
+  const before = Number(nw.footRows[0][1].replace(/[^0-9.-]/g, ''));
+  const after = Number(nw.rows[nw.rows.length - 1][1].replace(/[^0-9.-]/g, ''));
+  const charge = Number(nw.footRows[3][1].replace(/[^0-9.-]/g, ''));
+  assert.ok(Math.abs(before + charge - after) <= 1);
 });
 
 test('the cost summary breaks out the cash deployed at sale and purchase and the opportunity components', () => {

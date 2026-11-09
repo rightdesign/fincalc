@@ -44,8 +44,8 @@ export function compareScenarios(list) {
   const last = (p) => p.rows[p.rows.length - 1];
   const lines = [
     ['Time horizon', (s, p) => `${s.values.horizon} years`],
-    ['Sell and invest pulls ahead', (s, p) => yearText(p.breakevenYear)],
-    ['Downsizing pulls ahead', (s, p) => yearText(p.downsizeBreakevenYear)],
+    ['Sell and invest pulls ahead', (s, p) => yearText(p.breakevenYear) + (p.breakevenTerminal ? ' (end-of-horizon sale only)' : '')],
+    ['Downsizing pulls ahead', (s, p) => yearText(p.downsizeBreakevenYear) + (p.downsizeBreakevenTerminal ? ' (end-of-horizon sale only)' : '')],
     ['Stay: net worth at end', (s, p) => formatMoney(last(p).stayNetWorth)],
     ['Sell (invested): net worth at end', (s, p) => formatMoney(last(p).investmentCapital)],
     ['Downsize: net worth at end', (s, p) => formatMoney(last(p).downsizeNetWorth)],
