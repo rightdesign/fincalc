@@ -433,6 +433,14 @@ legend {
   display: none;
 }
 
+/* At desktop widths every tab is shown: the strip wraps onto more rows instead of scrolling. */
+@media (min-width: 50.01rem) {
+  .tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
 .tabs-more {
   position: absolute;
   top: 0;
