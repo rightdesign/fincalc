@@ -108,7 +108,7 @@ test('the cost summary lists each category for the three paths and the gaps agai
   assert.ok(total);
   const cents = (t) => Number(t.replace(/[^0-9.-]/g, ''));
   assert.ok(cents(total[1]) > cents(total[3]));
-  assert.equal(costSummary.headlines.length, 4);
+  assert.equal(costSummary.headlines.length, 5);
   assert.match(costSummary.headlines[0], /ahead of staying|behind staying/);
   assert.match(costSummary.headlines[2], /year 1 and .* in year \d+/);
   assert.match(costSummaryHtml(costSummary), /<th scope="row">Initial costs<\/th>/);
@@ -284,4 +284,24 @@ test('the no-mortgage notice names the carrying-cost-only cash need when the new
   assert.ok(r.sections[3].summary.includes(r.noMortgageNotice));
   const loan = buildResults({ ...v, newMortgageAmount: 100000 });
   assert.equal(loan.noMortgageNotice, '');
+});
+
+test('the cost summary breaks out the cash deployed at sale and purchase and the opportunity components', () => {
+  const v = { ...defaultValues(), newHomePrice: 3000000, newMortgageAmount: 0 };
+  const { costSummary } = buildResults(v);
+  const [deploy, opp] = costSummary.extras;
+  const cell = (rows, label, col) => rows.find((r) => r[0].startsWith(label))[col];
+  assert.equal(cell(deploy.rows, 'New home price', 2), '−$3,000,000');
+  assert.match(cell(deploy.rows, 'Cash used to buy the new home', 2), /^−\$3,0/);
+  assert.equal(cell(deploy.rows, 'New home price', 1), '—');
+  assert.match(cell(deploy.rows, 'Invested at year 0', 2), /\$/);
+  const cents = (t) => Number(t.replace(/[^0-9.]/g, ''));
+  for (const col of [1, 2, 3]) {
+    const parts = opp.rows.slice(0, -1).reduce((t, r) => t + (r[col] === '—' ? 0 : (r[col].startsWith('−') ? -1 : 1) * cents(r[col])), 0);
+    const total = opp.rows[opp.rows.length - 1][col];
+    assert.ok(Math.abs(parts - (total.startsWith('−') ? -1 : 1) * cents(total)) <= 3, `column ${col}`);
+  }
+  assert.match(costSummary.headlines[4], /uses \$3,0\d\d,\d{3} of cash to buy the new home/);
+  assert.match(costSummaryHtml(costSummary), /Cash deployed at sale and purchase/);
+  assert.match(costSummary.headlines[2], /monthly cash you must supply/);
 });

@@ -84,11 +84,51 @@ function costSummary(values, projection, rows) {
     const pct = end.stayNetWorth > 0 ? ` (${diff >= 0 ? '+' : '-'}${(Math.abs(diff / end.stayNetWorth) * 100).toFixed(1)}%)` : '';
     return `${name} ends year ${end.year} ${formatMoney(Math.abs(diff))}${pct} ${diff >= 0 ? 'ahead of' : 'behind'} staying.`;
   };
+  // Same measure as the "Monthly cash you must supply" rows below: housing
+  // outflows less portfolio withdrawals applied to housing.
   const month = (name, own, other) => {
     const d1 = own(first) - other(first);
     const dn = own(end) - other(end);
     const fmt = (d) => `${formatMoney(Math.abs(d))} ${d >= 0 ? 'more' : 'less'}`;
-    return `Staying costs ${fmt(d1)} per month than ${name} in year 1 and ${fmt(dn)} in year ${end.year}.`;
+    return `Staying needs ${fmt(d1)} monthly cash you must supply than ${name} in year 1 and ${fmt(dn)} in year ${end.year}.`;
+  };
+  const funding = downsizeFunding(values);
+  const signed = (n) => (n < 0 ? `\u2212${formatMoney(-n)}` : formatMoney(n));
+  const dash = '\u2014';
+  const sellInvested = sale.netProceeds - values.movingCosts - values.rentalUpfront;
+  const deployRow = (label, sell, down) => [label, sell == null ? dash : signed(sell), down == null ? dash : signed(down)];
+  const buyCash = funding.newHomePrice + funding.buyingCosts;
+  const deployment = {
+    title: 'Cash deployed at sale and purchase (year 0)',
+    columns: ['', 'Sell and rent', 'Downsize'],
+    rows: [
+      deployRow('Sale price', funding.salePrice, funding.salePrice),
+      deployRow('Selling costs', -funding.sellingCosts, -funding.sellingCosts),
+      deployRow('Capital gains tax', -funding.taxesDue, -funding.taxesDue),
+      deployRow('Mortgage payoff', -funding.mortgagePayoff, -funding.mortgagePayoff),
+      deployRow('Net proceeds', funding.netProceeds, funding.netProceeds),
+      deployRow('Moving costs', -values.movingCosts, -values.movingCosts),
+      deployRow('Rental upfront cash', -values.rentalUpfront, null),
+      deployRow('New home price', null, -funding.newHomePrice),
+      deployRow('Buying costs', null, -funding.buyingCosts),
+      deployRow('Cash used to buy the new home (price plus buying costs)', null, -buyCash),
+      deployRow('New mortgage', null, funding.newMortgage),
+      ...(funding.outsideFunds > 0.5 ? [deployRow('Paid from outside funds', null, funding.outsideFunds)] : []),
+      deployRow(funding.invested < 0 || sellInvested < 0 ? 'Invested at year 0 (negative is a shortfall)' : 'Invested at year 0', sellInvested, funding.invested),
+    ],
+    note: `Year-0 amounts, before any inflation adjustment. The cash used to buy the new home is kept out of the cost totals above: the new home's value is already counted in its year-${end.year} net proceeds, so adding it would count that equity twice.${funding.invested < 0 ? ` ${shortfallNotice(-funding.invested)}` : ''}`,
+  };
+  const opp = (label, stay, sell, down) => [label, ...[stay, sell, down].map((n) => (n == null ? dash : signed(n)))];
+  const opportunity = {
+    title: 'Opportunity costs by component',
+    columns: ['', 'Stay', 'Sell and rent', 'Downsize'],
+    rows: [
+      opp('Investment return forgone on the money left in the home', costs.stay.opportunity, null, null),
+      opp('Home appreciation forgone by selling', null, costs.sell.opportunity, end.homeValue - values.homeValue),
+      opp('Less appreciation earned on the new home', null, null, -(end.downsizeHomeValue - values.newHomePrice)),
+      opp('Opportunity costs', ...paths.map((p) => p.opportunity)),
+    ],
+    note: 'The components add up to the Opportunity costs row in the table above.',
   };
   return {
     id: 'cost-summary',
@@ -96,10 +136,12 @@ function costSummary(values, projection, rows) {
     headlines: [
       gap('Selling and investing', end.investmentCapital),
       gap('Downsizing', end.downsizeNetWorth),
-      month('renting', (r) => r.monthlyOwnCost, (r) => r.monthlyRentCost),
-      month('downsizing', (r) => r.monthlyOwnCost, (r) => r.monthlyDownsizeCost),
+      month('renting', (r) => r.monthlyStayOutOfPocket, (r) => r.monthlySellOutOfPocket),
+      month('downsizing', (r) => r.monthlyStayOutOfPocket, (r) => r.monthlyDownsizeOutOfPocket),
+      `Downsizing uses ${formatMoney(buyCash)} of cash to buy the new home (${formatMoney(funding.newHomePrice)} price plus ${formatMoney(funding.buyingCosts)} buying costs) and starts year 0 with ${funding.invested < 0 ? `a ${formatMoney(-funding.invested)} shortfall` : `${formatMoney(funding.invested)} invested`}.`,
     ],
     columns: ['', 'Stay', 'Sell and rent', 'Downsize'],
+    extras: [deployment, opportunity],
     rows: [
       row('Initial costs', (p) => p.initial),
       row('Recurring costs', (p) => p.recurring),
@@ -417,7 +459,13 @@ export function costSummaryHtml(summary) {
   if (!summary) return '';
   const head = summary.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
   const body = summary.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
-  return `<section class="result" id="${summary.id}"><h2>${escape(summary.title)}</h2><ul>${summary.headlines.map((h) => `<li>${escape(h)}</li>`).join('')}</ul><div class="table-wrap"><table><caption>${escape(summary.title)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="hint-note">${escape(summary.note)}</p></section>`;
+  return `<section class="result" id="${summary.id}"><h2>${escape(summary.title)}</h2><ul>${summary.headlines.map((h) => `<li>${escape(h)}</li>`).join('')}</ul><div class="table-wrap"><table><caption>${escape(summary.title)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="hint-note">${escape(summary.note)}</p>${(summary.extras || []).map(extraTableHtml).join('')}</section>`;
+}
+
+function extraTableHtml(t) {
+  const head = t.columns.map((c) => `<th scope="col">${escape(c)}</th>`).join('');
+  const body = t.rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${escape(c)}</td>` : `<th scope="row">${escape(c)}</th>`)).join('')}</tr>`).join('');
+  return `<h3>${escape(t.title)}</h3><div class="table-wrap"><table><caption>${escape(t.title)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="hint-note">${escape(t.note)}</p>`;
 }
 
 // The year-0 funding of the downsize path as a list of steps (label, signed
