@@ -47,7 +47,7 @@ test('the first adjustment has its own cap', () => {
 test('invalid values are named', () => {
   assert.deepEqual(invalidFields(mortgageDefaults()), []);
   assert.equal(invalidFields({ ...mortgageDefaults(), loan: NaN, term: 2.5 }).length, 2);
-  assert.deepEqual(invalidFields({ ...mortgageDefaults(), fixedYears: 0 }), ['Years before the first rate change']);
+  assert.deepEqual(invalidFields({ ...mortgageDefaults(), fixedMonths: 0 }), ['Months before the first rate change']);
 });
 
 test('a floor above the starting rate is reported', () => {
@@ -97,7 +97,15 @@ test('best, expected and worst cases bracket the expected path', () => {
 test('a first rate change at or past the end of the term never resets', () => {
   const d = mortgageDefaults();
   assert.equal(simulate(d).noReset, false);
-  assert.equal(simulate({ ...d, fixedYears: 40 }).noReset, true);
-  assert.equal(simulate({ ...d, fixedYears: 30 }).noReset, true);
-  near(simulate({ ...d, fixedYears: 40 }).extraInterest, 0);
+  assert.equal(simulate({ ...d, fixedMonths: 480 }).noReset, true);
+  assert.equal(simulate({ ...d, fixedMonths: 360 }).noReset, true);
+  near(simulate({ ...d, fixedMonths: 480 }).extraInterest, 0);
+});
+
+test('rate changes can fall on month counts that are not whole years', () => {
+  const d = { ...mortgageDefaults(), fixedMonths: 18, adjustMonths: 6 };
+  const r = simulate(d);
+  assert.equal(r.years[0].rate, 5.5);
+  assert.equal(r.years[1].rate, 6); // the reset at month 18 falls inside year 2
+  assert.equal(invalidFields({ ...d, fixedMonths: 18.5 }).length, 1);
 });

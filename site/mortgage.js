@@ -5,8 +5,8 @@ export const MORTGAGE_FIELDS = [
   { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1 },
   { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
   { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30 },
-  { id: 'fixedYears', label: 'Years before the first rate change', value: 5, min: 1, max: 50, integer: true },
-  { id: 'adjustYears', label: 'Years between rate changes after that', value: 1, min: 1, max: 50, integer: true },
+  { id: 'fixedMonths', label: 'Months before the first rate change', value: 60, min: 1, max: 600, integer: true },
+  { id: 'adjustMonths', label: 'Months between rate changes after that', value: 12, min: 1, max: 600, integer: true },
   { id: 'change', label: 'Rate change at each adjustment (percentage points)', value: 0.5, min: -10, max: 10, hint: 'Your assumption for how the rate moves each time it resets. Use a negative number for falling rates.' },
   { id: 'firstCap', label: 'Cap on the first adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at the first reset, up or down. Many loans allow a larger first move (a 2/1/5 loan allows 2).' },
   { id: 'periodicCap', label: 'Cap on each later adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at each reset after the first, up or down (a 2/1/5 loan allows 1).' },
@@ -40,8 +40,8 @@ export function rateAfter(v, adjustments) {
 // plus the same loan held at the starting rate for comparison.
 export function simulate(v) {
   const months = Math.round(v.term * 12);
-  const fixedMonths = Math.round(v.fixedYears * 12);
-  const every = Math.round(v.adjustYears * 12);
+  const fixedMonths = v.fixedMonths;
+  const every = v.adjustMonths;
   const years = [];
   let balance = v.loan;
   let rate = v.initialRate;
