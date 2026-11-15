@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults, rentOwnThresholds } from './rentown.js';
 import { rentOwnChartHtml } from './rentown-chart.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -140,11 +140,13 @@ function render() {
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
+  const drivers = rentOwnThresholds(v).map((t) => `<li>${t.text}</li>`).join('');
   const rows = r.years.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
   const pct = (n) => `${Math.round(n * 100) / 100}%`;
   const scenarioRows = compareScenarios(v).map((s) => `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${s.difference >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(s.difference))}</td></tr>`).join('');
   out.innerHTML = `
     <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${detail}</p></div>
+    <section class="m-card ro-drivers"><h2>What drives the verdict</h2><p>For each assumption, the value at which the winner flips at your ${v.years}-year stay, holding everything else as entered.</p><ul>${drivers}</ul></section>
     <div class="m-card ro-cash"><h3>Cash needed to buy</h3>
       <table class="m-table"><tbody>
         <tr><th scope="row">Down payment</th><td>${money(cash.down)}</td></tr>

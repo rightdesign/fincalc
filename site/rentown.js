@@ -170,6 +170,62 @@ export function compareScenarios(v) {
   });
 }
 
+// What drives the verdict: for each of these inputs, the value at which the
+// winner at the end of the stay flips, holding every other input as entered.
+// Ranges are the search span (whole percentages, like the inputs).
+export const RENTOWN_DRIVERS = [
+  { id: 'growth', label: 'Home value growth', min: -20, max: 30 },
+  { id: 'rentGrowth', label: 'Rent growth', min: -20, max: 30 },
+  { id: 'investment', label: 'Investment return', min: -20, max: 30 },
+  { id: 'rate', label: 'Mortgage rate', min: 0, max: 30 },
+  { id: 'maintenance', label: 'Maintenance', min: 0, max: 10 },
+];
+
+const STEPS = 200;
+const pct = (n) => `${Number(n.toFixed(1))}%`;
+
+// The value nearest the current one where owning-minus-renting changes sign, or
+// null if it never does within the range. A scan finds the bracket, bisection
+// narrows it.
+export function rentOwnFlipPoint(v, driver) {
+  const at = (x) => compareRentOwn({ ...v, [driver.id]: x }).final.difference;
+  const xs = Array.from({ length: STEPS + 1 }, (_, i) => driver.min + ((driver.max - driver.min) * i) / STEPS);
+  const ms = xs.map(at);
+  const current = v[driver.id];
+  let best = null;
+  for (let i = 0; i < STEPS; i += 1) {
+    if ((ms[i] >= 0) === (ms[i + 1] >= 0)) continue;
+    const mid = (xs[i] + xs[i + 1]) / 2;
+    if (best == null || Math.abs(mid - current) < Math.abs(best.mid - current)) best = { i, mid };
+  }
+  if (!best) return null;
+  let lo = xs[best.i];
+  let hi = xs[best.i + 1];
+  const loOwning = ms[best.i] >= 0;
+  for (let k = 0; k < 40; k += 1) {
+    const m = (lo + hi) / 2;
+    if ((at(m) >= 0) === loOwning) lo = m; else hi = m;
+  }
+  return (lo + hi) / 2;
+}
+
+// One plain-language line per driver, in the order of RENTOWN_DRIVERS.
+export function rentOwnThresholds(v) {
+  const ahead = (x, d) => compareRentOwn({ ...v, [d.id]: x }).final.difference >= 0;
+  return RENTOWN_DRIVERS.map((d) => {
+    const flip = rentOwnFlipPoint(v, d);
+    const entered = pct(v[d.id]);
+    if (flip == null) {
+      const winner = ahead(v[d.id], d) ? 'Owning' : 'Renting';
+      return { id: d.id, label: d.label, flip: null, text: `${winner} wins at every ${d.label.toLowerCase()} from ${d.min}% to ${d.max}%, so this assumption does not change the verdict (you entered ${entered}).` };
+    }
+    const owningAbove = ahead(Math.min(d.max, flip + 0.05), d);
+    const winner = owningAbove ? 'Owning' : 'Renting';
+    const other = owningAbove ? 'renting' : 'owning';
+    return { id: d.id, label: d.label, flip, owningAbove, text: `${winner} wins if ${d.label.toLowerCase()} is above ${pct(flip)}; ${other} wins if it is below (you entered ${entered}).` };
+  });
+}
+
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).
 export function encodeRentOwn(v) {
   const defaults = rentOwnDefaults();

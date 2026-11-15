@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 import { CALCULATORS } from '../site/menu.js';
 
@@ -121,6 +121,18 @@ test('PMI is zero at 20% down', () => {
   assert.equal(r.firstPmi, 0);
   assert.equal(r.totalPmi, 0);
   assert.equal(compareRentOwn({ ...base(), pmi: 0 }).final.difference, r.final.difference);
+});
+
+test('thresholds flip the verdict at the default scenario', () => {
+  const v = base();
+  const t = Object.fromEntries(rentOwnThresholds(v).map((x) => [x.id, x]));
+  assert.ok(t.growth.flip > 3);
+  assert.ok(t.rentGrowth.flip > 3); // faster rent growth favors owning, so the flip is above the entered 3%
+  assert.match(t.growth.text, /^Owning wins if home value growth is above /);
+  for (const x of Object.values(t)) {
+    if (x.flip == null) continue;
+    assert.ok(Math.abs(compareRentOwn({ ...v, [x.id]: x.flip }).final.difference) < 500, x.id);
+  }
 });
 
 test('a major repair lowers only the Own net worth from its year on, by the cost plus lost return', () => {
