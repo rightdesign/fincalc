@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.61.0] — 2026-11-15
+
+- FINC-098 The rent vs own calculator now taxes the renter's investment gains (a yearly tax drag and a capital gains tax on sale, default 0.7% and 15%) and shows the tax on investments and the return after tax.
+
 ## [0.60.0] — 2026-11-15
 
 - FINC-110 The rent vs own calculator now has one-click presets (first-time buyer with 3% or 10% down, 20% down with a 7-year stay, long-term owner with a 15-year stay) that set down payment, rate, term, stay and maintenance together, show the preset name, and read "Custom" after you edit those settings.
