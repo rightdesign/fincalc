@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.41.1] — 2026-11-15
+
+- FINC-070 On the variable-rate mortgage calculator, field help is now shown only on demand through a "?" button beside each label, instead of being stuck open and covering other fields.
+- FINC-071 The variable-rate mortgage calculator now warns when the lowest possible rate is above the starting rate instead of silently ignoring it.
+- FINC-072 The variable-rate mortgage calculator now rejects 0 for "Years before the first rate change", so the first monthly payment always reflects the starting rate.
+
 ## [0.41.0] — 2026-11-15
 
 - FINC-069 A hamburger menu now links to every calculator, and a new variable-rate mortgage calculator shows payment, rate and interest year by year, with rate-change, per-adjustment and lifetime caps and a floor.
