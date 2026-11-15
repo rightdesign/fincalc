@@ -108,7 +108,8 @@ function render() {
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year</caption>
         <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent</th><th scope="col">Difference</th></tr></thead>
         <tbody>${rows}</tbody></table>
-        <p>Monthly cost in year 1: own ${money(r.firstOwnMonthly)} · rent ${money(r.firstRentMonthly)}.</p></div>
+        <p>Monthly cost in year 1: own ${money(r.firstOwnMonthly)}${r.firstPmi > 0 ? ` (including ${money(r.firstPmi)} mortgage insurance)` : ''} · rent ${money(r.firstRentMonthly)}.</p>
+        ${r.totalPmi > 0 ? `<p>Mortgage insurance over your stay: ${money(r.totalPmi)} in total, charged only while the loan is above 80% of the home&rsquo;s value.</p>` : ''}</div>
     </div>`;
 }
 

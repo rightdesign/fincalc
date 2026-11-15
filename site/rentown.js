@@ -19,6 +19,7 @@ export const RENTOWN_FIELDS = [
   { id: 'closing', group: 'buying', label: 'Closing costs (% of price)', value: 3, min: 0, max: 20 },
   { id: 'tax', group: 'buying', label: 'Property tax (% of value, per year)', value: 1.1, min: 0, max: 10 },
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
+  { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year)', value: 0.6, min: 0, max: 5 },
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
   { id: 'growth', group: 'buying', label: 'Home value growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'rent', group: 'renting', label: 'Monthly rent ($)', value: 2300, min: 1, money: true },
@@ -44,6 +45,9 @@ export function invalidRentOwn(v) {
 // account that starts with the down payment and closing costs and then takes in
 // each month whatever owning costs beyond rent (or pays out the shortfall when
 // owning is cheaper), growing at the investment return.
+// PMI is charged on the original loan each month while the balance is above 80%
+// of the home's value then, so it stops by itself once paying down the loan and
+// appreciation reach that point.
 export function compareRentOwn(v) {
   const loan = v.price * (1 - v.down / 100);
   const monthlyRate = v.rate / 100 / 12;
@@ -56,13 +60,17 @@ export function compareRentOwn(v) {
   const years = [];
   let firstOwn = 0;
   let firstRent = 0;
+  let firstPmi = 0;
+  let totalPmi = 0;
   for (let m = 1; m <= v.years * 12; m += 1) {
+    const pmi = balance > value * 0.8 + 0.005 ? (loan * v.pmi) / 100 / 12 : 0;
+    totalPmi += pmi;
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
     balance = Math.max(0, balance + interest - mortgage);
-    const own = mortgage + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12;
+    const own = mortgage + pmi + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12;
     const rent = v.rent * (1 + v.rentGrowth / 100) ** Math.floor((m - 1) / 12) + v.renterInsurance / 12;
-    if (m === 1) { firstOwn = own; firstRent = rent; }
+    if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
     portfolio = portfolio * invest + (own - rent);
     value *= growth;
     if (m % 12 === 0) {
@@ -73,7 +81,7 @@ export function compareRentOwn(v) {
   // Owning pulls ahead for good from the year after the last year it trailed.
   const lastBehind = years.map((y) => y.difference < 0).lastIndexOf(true);
   const breakEven = lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
-  return { years, breakEven, final: years[years.length - 1], firstOwnMonthly: firstOwn, firstRentMonthly: firstRent };
+  return { years, breakEven, final: years[years.length - 1], firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi };
 }
 
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).

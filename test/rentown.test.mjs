@@ -63,3 +63,22 @@ test('the chart marks the break-even year and describes itself', () => {
   assert.ok(description.includes('Owning pulls ahead'));
   assert.ok(!rentOwnChart(r.years, null, String).svg.includes('Break-even'));
 });
+
+test('PMI applies below 20% down, drops off at 80% loan-to-value and moves break-even', () => {
+  const nw = { ...base(), price: 400000, down: 10, rate: 7.5, years: 30 };
+  const r = compareRentOwn(nw);
+  near(r.firstPmi, 180);
+  assert.ok(r.totalPmi > 0 && r.totalPmi < 180 * 360);
+  const none = compareRentOwn({ ...nw, pmi: 0 });
+  assert.equal(none.firstPmi, 0);
+  assert.ok(r.firstOwnMonthly - none.firstOwnMonthly > 179.99);
+  assert.ok(none.breakEven <= r.breakEven);
+  assert.ok(r.final.difference < none.final.difference);
+});
+
+test('PMI is zero at 20% down', () => {
+  const r = compareRentOwn(base());
+  assert.equal(r.firstPmi, 0);
+  assert.equal(r.totalPmi, 0);
+  assert.equal(compareRentOwn({ ...base(), pmi: 0 }).final.difference, r.final.difference);
+});
