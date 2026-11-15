@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.42.0] — 2026-11-15
+
+- FINC-073 The variable-rate mortgage calculator's form now keeps each label next to its input, Reset to defaults sits below the inputs, and the page no longer scrolls sideways.
+- FINC-074 The variable-rate mortgage calculator now notes when the first rate change comes after the loan term, so no reset occurs and the loan behaves as fixed.
+- FINC-077 The variable-rate mortgage calculator now has a separate cap for the first rate adjustment and another for each later adjustment, so a standard 2/1/5 structure can be modelled.
+
 ## [0.41.1] — 2026-11-15
 
 - FINC-070 On the variable-rate mortgage calculator, field help is now shown only on demand through a "?" button beside each label, instead of being stuck open and covering other fields.
