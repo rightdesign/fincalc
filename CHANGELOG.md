@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.62.0] — 2026-11-15
+
+- FINC-106 The rent vs own calculator now has a "What drives the verdict" section giving the home growth, rent growth, investment return, mortgage rate and maintenance values at which renting and owning tie.
+
 ## [0.61.0] — 2026-11-15
 
 - FINC-098 The rent vs own calculator now taxes the renter's investment gains (a yearly tax drag and a capital gains tax on sale, default 0.7% and 15%) and shows the tax on investments and the return after tax.
