@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
+import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -62,6 +63,24 @@ test('the menu lists every calculator, and each page exists', () => {
     assert.ok(readFileSync(new URL(`../site/${c.href}`, import.meta.url), 'utf8').includes('menu.js'));
   }
   assert.ok(html.includes('aria-current="page">Variable-rate'));
+});
+
+test('the mortgage charts mark the peak payment and describe themselves', () => {
+  const r = simulate(mortgageDefaults());
+  const c = mortgageChart(r.years, { key: 'payment', title: 'Monthly payment by year', fmt: (n) => `$${Math.round(n)}` });
+  assert.match(c.svg, /<svg[^>]*role="img"/);
+  assert.ok(c.svg.includes(`Peak: $${Math.round(r.maxPayment)}, year 15`));
+  assert.ok(c.description.includes(`peaks at $${Math.round(r.maxPayment)} in year 15`));
+  const flat = mortgageChart(simulate({ ...mortgageDefaults(), change: 0 }).years, { key: 'rate', title: 'Rate', fmt: String });
+  assert.ok(!flat.svg.includes('NaN'));
+  const rate = mortgageChart(r.years, { key: 'rate', title: 'Rate', fmt: (n) => `${n.toFixed(1)}%` });
+  assert.ok(rate.svg.includes('Peak: 10.5%, year 15'));
+});
+
+test('the mortgage page renders both charts', () => {
+  const src = readFileSync(new URL('../site/mortgage-app.js', import.meta.url), 'utf8');
+  assert.match(src, /key: 'rate'/);
+  assert.match(src, /key: 'payment'/);
 });
 
 test('best, expected and worst cases bracket the expected path', () => {

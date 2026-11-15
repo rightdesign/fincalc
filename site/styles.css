@@ -745,4 +745,7 @@ legend {
 .m-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .m-table th, .m-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--rule); }
 .m-table caption { text-align: left; color: var(--muted); padding-bottom: 0.25rem; }
+.m-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
+.m-chart { margin: 0; }
+.m-chart figcaption { font-weight: bold; margin-bottom: 0.25rem; }
 .m-warning { background: var(--panel); border: 1px solid var(--border); border-left: 0.3rem solid #c0392b; border-radius: 0.4rem; padding: 0.6rem 1rem; }

@@ -1,4 +1,5 @@
 // Page script for the variable-rate mortgage calculator.
+import { mortgageChartHtml } from './mortgage-chart.js';
 import { MORTGAGE_FIELDS, floorProblem, invalidFields, mortgageDefaults, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -96,6 +97,10 @@ function render() {
       <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p></div>
       <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p></div>
       <div class="m-card"><h3>Compared with holding ${pct(v.initialRate)}</h3><p class="m-big">${money(Math.abs(diff))} ${diff >= 0 ? 'more' : 'less'}</p><p>interest than a fixed loan at the starting rate (${money(r.fixed.payment)} a month, ${money(r.fixed.totalInterest)} interest).</p></div>
+    </div>
+    <div class="m-charts">
+      ${mortgageChartHtml(r.years, { key: 'rate', title: 'Interest rate by year', fmt: pct })}
+      ${mortgageChartHtml(r.years, { key: 'payment', title: 'Monthly payment by year', fmt: money })}
     </div>
     <h2>Best, expected and worst case</h2>
     ${warn}
