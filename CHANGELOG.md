@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.41.0] — 2026-11-15
+
+- FINC-069 A hamburger menu now links to every calculator, and a new variable-rate mortgage calculator shows payment, rate and interest year by year, with rate-change, per-adjustment and lifetime caps and a floor.
+
 ## [0.40.3] — 2026-11-09
 
 - FINC-067 An invalid new-mortgage term (or other downsize input) no longer hides the whole results area; the results show with downsize figures marked unavailable.
