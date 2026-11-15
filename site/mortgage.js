@@ -40,6 +40,12 @@ export const MORTGAGE_FIELDS = [
   { id: 'refiRate', label: 'New fixed rate (%)', value: 5, min: 0, max: 30, showIf: (v) => v.refiMonth > 0, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'refiTerm', label: 'New loan term (years)', value: 30, min: 1, max: 50, integer: true, showIf: (v) => v.refiMonth > 0, slider: { min: 1, max: 40, step: 1 } },
   { id: 'refiCosts', label: 'Refinance closing costs ($)', value: 4000, min: 0, money: true, showIf: (v) => v.refiMonth > 0, hint: 'Paid in cash when you refinance, not added to the new loan.', slider: { min: 0, max: 30000, step: 250 } },
+  { id: 'homePrice', label: 'Home price ($, optional)', value: 0, min: 0, hint: 'Optional. With a price, the down payment is the price minus the loan amount, and mortgage insurance (PMI) stops once the balance falls to 80% of it. Leave at 0 to skip.', slider: { min: 0, max: 3000000, step: 5000 } },
+  { id: 'closingCosts', label: 'Closing costs ($, optional)', value: 0, min: 0, hint: 'Optional. Paid once at closing, not part of the monthly payment.', slider: { min: 0, max: 50000, step: 500 } },
+  { id: 'pmiRate', label: 'PMI (% of the loan per year, optional)', value: 0, min: 0, max: 5, hint: 'Optional. Charged each month while the balance is above 80% of the home price, so it needs a home price. Leave at 0 for none.', slider: { min: 0, max: 2, step: 0.05 } },
+  { id: 'propertyTax', label: 'Property tax ($ per year, optional)', value: 0, min: 0, slider: { min: 0, max: 30000, step: 100 } },
+  { id: 'insurance', label: 'Homeowners insurance ($ per year, optional)', value: 0, min: 0, slider: { min: 0, max: 10000, step: 100 } },
+  { id: 'hoa', label: 'HOA dues ($ per month, optional)', value: 0, min: 0, slider: { min: 0, max: 1500, step: 10 } },
 ];
 
 // Parses what a person typed into a number: "$400,000" and "400000" both give 400000.
@@ -93,6 +99,11 @@ export function simulate(v) {
   const extra = v.extra || 0;
   const io = Math.min(v.ioMonths || 0, months);
   const years = [];
+  const escrow = (v.propertyTax + v.insurance) / 12 + v.hoa; // fixed monthly extras
+  const pmiLimit = v.homePrice * 0.8;
+  let pmiMonths = 0;
+  let totalPmi = 0;
+  let firstPmi = 0;
   const monthly = [];
   let balance = v.loan;
   // Resets that already happened before today (an elapsed loan past its fixed period).
@@ -113,6 +124,9 @@ export function simulate(v) {
       cur = { year: Math.floor(m / 12) + 1, rate, payment: scheduled + extra, scheduled, interest: 0, principal: 0, balance };
       years.push(cur);
     }
+    const pmi = v.homePrice > 0 && balance > pmiLimit ? v.loan * v.pmiRate / 100 / 12 : 0;
+    if (pmi > 0) { pmiMonths += 1; totalPmi += pmi; }
+    if (m === elapsed) firstPmi = pmi;
     const last = m === months - 1;
     const owed = Math.min(balance, extra + Math.max(0, scheduled - interest));
     const principal = last ? balance : owed;
@@ -124,7 +138,9 @@ export function simulate(v) {
     cur.rate = rate; // the row shows the rate and payment in force at year end
     cur.payment = scheduled + extra;
     cur.scheduled = scheduled;
+    cur.pmi = pmi; // PMI as of the year's last month
   }
+  for (const y of years) y.total = y.payment + y.pmi + escrow;
   const sum = (key) => years.reduce((s, y) => s + y[key], 0);
   const remaining = months - elapsed;
   const fixedPay = payment(v.loan, v.initialRate, remaining);
@@ -144,6 +160,14 @@ export function simulate(v) {
     totalInterest: sum('interest'),
     totalPaid: v.loan + sum('interest'),
     firstPayment: required[0],
+    escrow,
+    firstPmi,
+    firstTotal: required[0] + extra + firstPmi + escrow, // what goes out in month 1, extra payment included
+    pmiMonths,
+    totalPmi,
+    hasExtras: escrow > 0 || totalPmi > 0,
+    downPayment: v.homePrice > 0 ? v.homePrice - v.loan : 0,
+    cashToClose: (v.homePrice > 0 ? v.homePrice - v.loan : 0) + v.closingCosts,
     maxPayment,
     maxPaymentYear: Math.floor((elapsed + peak) / 12) + 1,
     firstReset: reset && { year: Math.floor(fixedMonths / 12) + 1, payment: reset.scheduled },
@@ -242,6 +266,13 @@ export function invalidFields(v) {
     if (f.id === 'elapsed' && Number.isFinite(n) && n >= Math.round(v.term * 12)) return true;
     return !Number.isFinite(n) || n < f.min || (f.max !== undefined && n > f.max) || (f.integer && !Number.isInteger(n));
   }).map((f) => f.label);
+}
+
+// Returns a message when the home price or PMI entries do not fit together.
+export function priceProblem(v) {
+  if (v.homePrice > 0 && v.homePrice < v.loan) return `The home price (${v.homePrice}) is below the loan amount (${v.loan}). Raise the price or lower the loan.`;
+  if (v.pmiRate > 0 && !(v.homePrice > 0)) return 'PMI needs a home price, since it stops at 80% of the price. Enter a home price or set PMI to 0.';
+  return '';
 }
 
 // Returns a message when the interest-only period swallows the whole loan, or the refinance

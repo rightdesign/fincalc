@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
+import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, priceProblem, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -203,6 +203,57 @@ test('rate changes can fall on month counts that are not whole years', () => {
   assert.equal(r.years[0].rate, 5.5);
   assert.equal(r.years[1].rate, 6); // the reset at month 18 falls inside year 2
   assert.equal(invalidFields({ ...d, fixedMonths: 18.5 }).length, 1);
+});
+
+test('optional extras default to nothing and leave the payment unchanged', () => {
+  const r = simulate(mortgageDefaults());
+  assert.equal(r.hasExtras, false);
+  assert.equal(r.firstTotal, r.firstPayment);
+  assert.equal(r.cashToClose, 0);
+});
+
+test('tax, insurance and HOA add to the monthly total', () => {
+  const v = { ...mortgageDefaults(), propertyTax: 6000, insurance: 1200, hoa: 100 };
+  const r = simulate(v);
+  near(r.escrow, 700);
+  near(r.firstTotal, r.firstPayment + 700);
+  near(r.years[10].total, r.years[10].payment + 700);
+});
+
+test('PMI is charged until the balance reaches 80% of the home price, then drops', () => {
+  const v = { ...mortgageDefaults(), homePrice: 450000, pmiRate: 0.6, change: 0 };
+  const r = simulate(v);
+  near(r.firstPmi, 400000 * 0.006 / 12);
+  assert.ok(r.pmiMonths > 0 && r.pmiMonths < 360);
+  assert.equal(r.years[29].pmi, 0);
+  near(r.totalPmi, r.pmiMonths * 200);
+  assert.equal(r.downPayment, 50000);
+});
+
+test('the first month\'s PMI is reported even when PMI ends within year 1', () => {
+  const r = simulate({ ...mortgageDefaults(), homePrice: 497000, pmiRate: 0.6 });
+  assert.ok(r.pmiMonths > 0 && r.pmiMonths < 12);
+  near(r.firstPmi, 200);
+  near(r.firstTotal, r.firstPayment + r.firstPmi + r.escrow);
+});
+
+test('the first month\'s PMI is reported when months have already elapsed', () => {
+  const base = { ...mortgageDefaults(), loan: 400000, homePrice: 480000, pmiRate: 0.5, propertyTax: 6000, insurance: 1200, hoa: 100 };
+  const r = simulate({ ...base, elapsed: 12 });
+  near(r.firstPmi, 166.67);
+  assert.ok(r.firstTotal > r.firstPayment + r.escrow + 166);
+  near(r.firstTotal, r.firstPayment + r.firstPmi + r.escrow);
+});
+
+test('cash at closing is the down payment plus closing costs', () => {
+  const r = simulate({ ...mortgageDefaults(), homePrice: 500000, closingCosts: 8000 });
+  assert.equal(r.cashToClose, 108000);
+});
+
+test('PMI needs a home price and the price cannot be below the loan', () => {
+  assert.ok(priceProblem({ ...mortgageDefaults(), pmiRate: 0.5 }));
+  assert.ok(priceProblem({ ...mortgageDefaults(), homePrice: 300000 }));
+  assert.equal(priceProblem({ ...mortgageDefaults(), homePrice: 500000, pmiRate: 0.5 }), '');
 });
 
 test('inputs round-trip through the URL fragment and only changed values are written', () => {

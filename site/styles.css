@@ -760,6 +760,10 @@ legend {
 .m-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .m-table th, .m-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--rule); }
 .m-table caption { text-align: left; color: var(--muted); padding-bottom: 0.25rem; }
+.m-breakdown { max-width: 28rem; margin: var(--gap) 0; }
+.m-breakdown th { text-align: left; font-weight: normal; }
+.m-breakdown td { text-align: right; }
+.m-breakdown .m-total th, .m-breakdown .m-total td { font-weight: bold; border-top: 1px solid var(--border); }
 .m-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
 .m-chart { margin: 0; }
 .m-chart figcaption { font-weight: bold; margin-bottom: 0.25rem; }
