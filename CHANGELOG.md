@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.70.1] — 2026-11-15
+
+- FINC-116 The rent vs own page is split into one module and one test file per results card, with contributor notes, so tickets that add a card stop conflicting; the page itself is unchanged.
+
 ## [0.70.0] — 2026-11-15
 
 - FINC-107 The rent vs own calculator now itemizes the monthly cost of owning by year, with principal split out as savings rather than cost.
