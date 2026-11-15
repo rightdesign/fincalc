@@ -36,12 +36,16 @@ export const RENTOWN_FIELDS = [
   { id: 'renterInsurance', group: 'renting', label: "Renter's insurance ($ per year)", value: 180, min: 0, money: true },
   { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
   { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
+  { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
   { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
   { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments (%)', value: 15, min: 0, max: 100 },
 ];
 
 export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, f.value]));
+
+// Which dollars the results are shown in: 'future' (nominal) or 'today' (discounted by inflation).
+export const BASES = ['future', 'today'];
 
 // One-click starting points. Each sets down payment, rate, term, stay and maintenance together
 // and leaves everything else (price, rent, ...) as the user has it. The 20% down preset is the default set.
@@ -64,7 +68,9 @@ export function invalidRentOwn(v) {
   }).map((f) => f.label.replace(/ \(.*\)$/, ''));
 }
 
-// Net worth of each choice at the end of every year of the stay.
+// Net worth of each choice at the end of every year of the stay, in future
+// (nominal) dollars; `real` has the same years discounted to today's dollars by
+// the inflation rate.
 // Own: home value less the loan balance and selling costs. Rent: an investment
 // account that starts with the down payment and closing costs and then takes in
 // each month whatever owning costs beyond rent (or pays out the shortfall when
@@ -142,10 +148,15 @@ export function compareRentOwn(v) {
   const breakEven = lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
+  const real = years.map((y) => {
+    const d = (1 + v.inflation / 100) ** y.year;
+    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d };
+  });
   const cash = cashNeeded(v, firstOwn, firstRent);
   const final = years[years.length - 1];
+  const finalReal = real[real.length - 1];
   const waterfall = costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth: final.own, invest, repairs, saleTax: final.saleTax });
-  return { years, breakEven, afterTaxReturn, final, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+  return { years, breakEven, real, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
 }
 
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash
@@ -201,7 +212,7 @@ export function compareScenarios(v) {
   return RENTOWN_SCENARIOS.map((s) => {
     const inputs = { ...v, growth: v.growth + 2 * s.shift, rentGrowth: v.rentGrowth + s.shift, investment: v.investment - s.shift };
     const r = compareRentOwn(inputs);
-    return { id: s.id, label: s.label, growth: inputs.growth, rentGrowth: inputs.rentGrowth, investment: inputs.investment, breakEven: r.breakEven, difference: r.final.difference };
+    return { id: s.id, label: s.label, growth: inputs.growth, rentGrowth: inputs.rentGrowth, investment: inputs.investment, breakEven: r.breakEven, difference: r.final.difference, differenceReal: r.finalReal.difference };
   });
 }
 
@@ -262,10 +273,11 @@ export function rentOwnThresholds(v) {
 }
 
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).
-export function encodeRentOwn(v) {
+export function encodeRentOwn(v, basis = 'future') {
   const defaults = rentOwnDefaults();
   const params = new URLSearchParams();
   for (const f of RENTOWN_FIELDS) if (Number.isFinite(v[f.id]) && v[f.id] !== defaults[f.id]) params.set(f.id, String(v[f.id]));
+  if (basis === 'today') params.set('dollars', 'today');
   return params.toString();
 }
 
@@ -281,4 +293,9 @@ export function decodeRentOwn(text) {
     v[f.id] = n;
   }
   return v;
+}
+
+// The dollar basis named in a URL fragment or stored string; 'future' unless it says 'today'.
+export function decodeBasis(text) {
+  try { return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('dollars') === 'today' ? 'today' : 'future'; } catch { return 'future'; }
 }

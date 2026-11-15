@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults, rentOwnThresholds } from './rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults, rentOwnThresholds } from './rentown.js';
 import { rentOwnChartHtml } from './rentown-chart.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -11,6 +11,7 @@ const form = document.getElementById('rentown-inputs');
 const out = document.getElementById('rentown-results');
 const message = document.getElementById('rentown-message');
 const defaults = rentOwnDefaults();
+const basisSelect = document.getElementById('rentown-basis');
 const show = (f, n) => (n == null ? '' : f.money ? usd.format(n) : n);
 
 for (const g of RENTOWN_GROUPS) {
@@ -120,9 +121,15 @@ function render() {
     out.append(p);
     return;
   }
-  save(v);
+  const basis = basisSelect.value === 'today' ? 'today' : 'future';
+  save(v, basis);
   const r = compareRentOwn(v);
-  const { final } = r;
+  const today = basis === 'today';
+  const final = today ? r.finalReal : r.final;
+  const rows_ = today ? r.real : r.years;
+  const label = today ? "in today's dollars" : 'in future dollars';
+  const other = today ? r.final : r.finalReal;
+  const phrase = (f) => (Math.round(f.difference) === 0 ? 'about even' : `${f.difference >= 0 ? 'owning' : 'renting'} ahead by ${money(Math.abs(f.difference))}`);
   const ahead = final.difference >= 0;
   const cash = r.cash;
   const short = cash.shortfall > 0;
@@ -133,19 +140,20 @@ function render() {
   const headline = short
     ? `You are ${money(cash.shortfall)} short — renting while you save is the only option on these numbers.`
     : Math.round(final.difference) === 0
-    ? `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, owning and renting leave you about even.`
-    : `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} leaves you about ${money(Math.abs(final.difference))} ahead.`;
+    ? `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, owning and renting leave you about even (${label}).`
+    : `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} leaves you about ${money(Math.abs(final.difference))} ahead, ${label}.`;
+  const otherLine = `${today ? 'In future dollars' : "In today's dollars"} that is ${phrase(other)} (at ${v.inflation}% inflation).`;
   const detail = short
-    ? `You need ${money(cash.total)} in cash to buy and have ${money(cash.saved)}.${gap} Once you have it, the numbers below apply: after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} would leave you about ${money(Math.abs(final.difference))} ahead.`
+    ? `You need ${money(cash.total)} in cash to buy and have ${money(cash.saved)}.${gap} Once you have it, the numbers below apply: after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} would leave you about ${money(Math.abs(final.difference))} ahead, ${label}.`
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
   const drivers = rentOwnThresholds(v).map((t) => `<li>${t.text}</li>`).join('');
-  const rows = r.years.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
+  const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
   const pct = (n) => `${Math.round(n * 100) / 100}%`;
-  const scenarioRows = compareScenarios(v).map((s) => `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${s.difference >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(s.difference))}</td></tr>`).join('');
+  const scenarioRows = compareScenarios(v).map((s) => { const d = today ? s.differenceReal : s.difference; return `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${d >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(d))}</td></tr>`; }).join('');
   out.innerHTML = `
-    <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${detail}</p></div>
+    <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${otherLine}</p><p>${detail}</p></div>
     <section class="m-card ro-drivers"><h2>What drives the verdict</h2><p>For each assumption, the value at which the winner flips at your ${v.years}-year stay, holding everything else as entered.</p><ul>${drivers}</ul></section>
     <div class="m-card ro-cash"><h3>Cash needed to buy</h3>
       <table class="m-table"><tbody>
@@ -157,12 +165,12 @@ function render() {
         ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
       </tbody></table></div>
     ${waterfallHtml(r.waterfall, v)}
-    <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}</caption>
+    <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${label}</caption>
       <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>
       <tbody>${scenarioRows}</tbody></table></div>
     <div class="m-charts">
-      ${rentOwnChartHtml(r.years, r.breakEven, money)}
-      <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year</caption>
+      ${rentOwnChartHtml(rows_, r.breakEven, money)}
+      <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent</th><th scope="col">Difference</th></tr></thead>
         <tbody>${rows}</tbody></table>
         <p>Tax on investments over ${v.years} ${v.years === 1 ? 'year' : 'years'}: ${money(final.dragPaid + final.saleTax)} (${money(final.dragPaid)} tax drag along the way, ${money(final.saleTax)} capital gains tax when you sell). Investment return after tax drag: ${Math.round(r.afterTaxReturn * 100) / 100}% per year, before the tax on sale.</p>
@@ -178,7 +186,7 @@ function waterfallHtml(w, v) {
   const lines = [['Mortgage payments (interest and principal)', r.mortgage], ['Mortgage insurance', r.pmi], ['Property tax', r.tax], ['Home insurance', r.insurance], ['Maintenance', r.maintenance], ['HOA dues', r.hoa], ['Extra utilities', r.utilities]]
     .filter(([, n]) => n !== 0).map(([label, n]) => row(label, n, 'ro-sub')).join('');
   const sign = w.gap >= 0 ? 'renting ahead by' : 'owning ahead by';
-  return `<div class="m-card ro-waterfall"><h3>Where the difference comes from (after ${v.years} ${v.years === 1 ? 'year' : 'years'})</h3>
+  return `<div class="m-card ro-waterfall"><h3>Where the difference comes from (after ${v.years} ${v.years === 1 ? 'year' : 'years'}, in future dollars)</h3>
       <table class="m-table"><tbody>
         ${row('Upfront: down payment and closing costs', w.upfront.total)}
         ${row('Recurring: owning costs beyond renting', r.total)}
@@ -192,21 +200,25 @@ function waterfallHtml(w, v) {
 }
 
 // Inputs ride along in the address and in browser storage so a scenario survives a reload and can be shared.
-function save(v) {
-  const text = encodeRentOwn(v);
+function save(v, basis = basisSelect.value) {
+  const text = encodeRentOwn(v, basis);
   try { localStorage.setItem(STORE_KEY, text); } catch { /* storage unavailable */ }
   try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
 }
 
 let stored = null;
 try { stored = localStorage.getItem(STORE_KEY); } catch { /* storage unavailable */ }
-if (location.hash.length > 1 || stored) setValues(decodeRentOwn(location.hash.length > 1 ? location.hash : stored));
-window.addEventListener('hashchange', () => { if (location.hash.length > 1) { setValues(decodeRentOwn(location.hash)); render(); } });
+const setFrom = (text) => { setValues(decodeRentOwn(text)); basisSelect.value = decodeBasis(text); };
+if (location.hash.length > 1 || stored) setFrom(location.hash.length > 1 ? location.hash : stored);
+window.addEventListener('hashchange', () => { if (location.hash.length > 1) { setFrom(location.hash); render(); } });
 
 form.addEventListener('input', () => { message.textContent = ''; render(); });
+// The selector sits outside the form, so its events never reach the form listener.
+basisSelect.addEventListener('change', () => { message.textContent = ''; render(); });
 form.addEventListener('submit', (e) => e.preventDefault());
 document.getElementById('rentown-reset').addEventListener('click', () => {
   setValues(defaults);
+  basisSelect.value = 'future';
   render();
   message.textContent = 'Inputs reset to defaults.';
 });

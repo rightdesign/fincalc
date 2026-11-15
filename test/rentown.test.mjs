@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 import { CALCULATORS } from '../site/menu.js';
 
@@ -62,6 +62,25 @@ test('the chart marks the break-even year and describes itself', () => {
   assert.ok(svg.includes('Break-even'));
   assert.ok(description.includes('Owning pulls ahead'));
   assert.ok(!rentOwnChart(r.years, null, String).svg.includes('Break-even'));
+});
+
+test('inflation defaults to 2.5% and today\'s dollars shrink the gap', () => {
+  assert.equal(rentOwnDefaults().inflation, 2.5);
+  const r = compareRentOwn(base());
+  near(r.final.difference, -12002, 1);
+  assert.ok(Math.abs(r.finalReal.difference) < Math.abs(r.final.difference));
+  near(r.finalReal.difference, r.final.difference / 1.025 ** 7);
+});
+
+test('at 0% inflation the two bases agree', () => {
+  const r = compareRentOwn({ ...base(), inflation: 0 });
+  assert.deepEqual(r.real, r.years);
+});
+
+test('the dollar basis round-trips through the fragment', () => {
+  assert.equal(decodeBasis(encodeRentOwn(base(), 'today')), 'today');
+  assert.equal(decodeBasis(encodeRentOwn(base())), 'future');
+  assert.equal(decodeBasis('dollars=bogus'), 'future');
 });
 
 test('taxing the renter\'s investments narrows the renting lead', () => {
@@ -195,6 +214,13 @@ test('cash saved is optional but must be valid when given', () => {
   assert.deepEqual(invalidRentOwn({ ...base(), saved: -1 }), ['Cash you have saved, optional']);
   assert.equal(decodeRentOwn(encodeRentOwn({ ...base(), saved: 60000 })).saved, 60000);
   assert.equal(decodeRentOwn('').saved, null);
+});
+
+test('scenario cases carry a today\'s-dollars gap that matches the basis at 0% inflation', () => {
+  const v = { ...rentOwnDefaults(), inflation: 0 };
+  for (const s of compareScenarios(v)) assert.equal(s.differenceReal, s.difference);
+  const w = { ...rentOwnDefaults(), inflation: 2.5 };
+  for (const s of compareScenarios(w)) assert.ok(Math.abs(s.differenceReal) < Math.abs(s.difference) || s.difference === 0);
 });
 
 test('cost waterfall: the buckets sum to the headline gap', () => {
