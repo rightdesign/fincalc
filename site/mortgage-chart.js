@@ -31,16 +31,16 @@ export function mortgageChart(years, { key, title, fmt }) {
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     svg += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(fmt(y))}</text>`;
+    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="12">${escape(fmt(y))}</text>`;
   }
-  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
-  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="12">Year ${xMin}</text>`;
+  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="12">Year ${xMax}</text>`;
   const path = years.map((y, i) => `${i ? 'L' : 'M'}${f(sx(y.year))},${f(sy(y[key]))}`).join('');
   svg += `<path d="${path}" fill="none" style="stroke:var(--series-1)" stroke-width="2.5"/>`;
   const px = sx(peak.year);
   const anchor = peak.year > (xMin + xMax) / 2 ? 'end' : 'start';
   svg += `<circle class="ring" cx="${f(px)}" cy="${f(sy(peak[key]))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
-  svg += `<text x="${f(px + (anchor === 'end' ? -8 : 8))}" y="${f(sy(peak[key]) - 8)}" text-anchor="${anchor}" font-size="10">Peak: ${escape(fmt(peak[key]))}, year ${peak.year}</text>`;
+  svg += `<text x="${f(px + (anchor === 'end' ? -8 : 8))}" y="${f(sy(peak[key]) - 8)}" text-anchor="${anchor}" font-size="12">Peak: ${escape(fmt(peak[key]))}, year ${peak.year}</text>`;
   svg += '</svg>';
 
   const description = `${title} line chart. Starts at ${fmt(first[key])} in year ${first.year}, ends at ${fmt(last[key])} in year ${last.year}, and peaks at ${fmt(peak[key])} in year ${peak.year}. The full values for every year are in the table below.`;
@@ -66,7 +66,7 @@ export function mortgageScenarioChart(series, { key, title, fmt, resetYear }) {
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
   const yMin = Math.max(0, lo - pad);
   const yMax = hi + pad;
-  const R = 64; // room on the right for the direct labels
+  const R = 72; // room on the right for the direct labels
   const sx = (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - R));
   const sy = (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
   const f = (n) => n.toFixed(1);
@@ -75,13 +75,13 @@ export function mortgageScenarioChart(series, { key, title, fmt, resetYear }) {
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     svg += `<line x1="${PAD.l}" x2="${W - R}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(fmt(y))}</text>`;
+    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="12">${escape(fmt(y))}</text>`;
   }
-  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
-  svg += `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="12">Year ${xMin}</text>`;
+  svg += `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="12">Year ${xMax}</text>`;
   if (resetYear && resetYear > xMin && resetYear <= xMax) {
     svg += `<line x1="${f(sx(resetYear))}" x2="${f(sx(resetYear))}" y1="${PAD.t}" y2="${H - PAD.b}" class="guide" stroke-dasharray="2 3"/>`;
-    svg += `<text x="${f(sx(resetYear) + 4)}" y="${PAD.t + 8}" font-size="10">First reset, year ${resetYear}</text>`;
+    svg += `<text x="${f(sx(resetYear) + 4)}" y="${PAD.t + 8}" font-size="12">First reset, year ${resetYear}</text>`;
   }
   const ends = [];
   for (const s of series) {
@@ -89,12 +89,12 @@ export function mortgageScenarioChart(series, { key, title, fmt, resetYear }) {
     const path = s.years.map((y, i) => `${i ? 'L' : 'M'}${f(sx(y.year))},${f(sy(y[key]))}`).join('');
     svg += `<path d="${path}" fill="none" style="stroke:${line.color}" stroke-width="2.5"${line.dash}/>`;
     const last = s.years[s.years.length - 1];
-    ends.push({ name: s.name, color: line.color, x: sx(last.year), y: sy(last[key]) });
+    ends.push({ name: s.name, bold: s.style === 'expected', color: line.color, x: sx(last.year), y: sy(last[key]) });
   }
   // Nudge labels apart so equal end values (a flat best case) do not overprint.
   ends.sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12);
-  for (const e of ends) svg += `<text x="${f(e.x + 6)}" y="${f(e.y + 4)}" font-size="10" style="fill:${e.color}">${escape(e.name)}</text>`;
+  for (const e of ends) svg += `<text x="${f(e.x + 6)}" y="${f(e.y + 4)}" font-size="12"${e.bold ? ' font-weight="700"' : ''} style="fill:${e.color}">${escape(e.name)}</text>`;
   svg += '</svg>';
 
   const summary = series.map((s) => `${s.name.toLowerCase()} ends at ${fmt(s.years[s.years.length - 1][key])}`).join(', ');

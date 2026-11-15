@@ -888,3 +888,54 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-presets { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-block: 0.75rem; }
 .ro-presets button[aria-pressed="true"] { font-weight: 700; }
 .ro-preset-name { font-style: italic; }
+
+/* Variable-rate mortgage page: a restrained, Vanguard-like look (white, near-black text, one deep-red
+   accent, hairline rules, tabular figures). Scoped to body.vg so the other calculators keep their theme.
+   Focus rings stay blue on purpose: a red ring would read as an error. */
+body.vg {
+  --text: #1a1a1a;
+  --muted: #5f6368;
+  --rule: #d9dadc;
+  --border: #d9dadc;
+  --accent: #96151d;
+  --series-1: #96151d;
+  --series-2: #2b2b2b;
+  --series-3: #8a8d91;
+  --grid: #e6e7e8;
+  --guide: #9a9ca0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  border-top: 4px solid var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  body.vg {
+    --text: #e6e9ef;
+    --muted: #9aa4b2;
+    --rule: #2f3744;
+    --border: #2f3744;
+    --accent: #e5535b;
+    --series-1: #e5535b;
+    --series-2: #e6e9ef;
+    --series-3: #9aa4b2;
+    --grid: #2a303b;
+    --guide: #9aa4b2;
+  }
+}
+
+body.vg .site-header h1 { font-size: 1.75rem; font-weight: 600; }
+body.vg .m-group, body.vg .m-optional, body.vg .m-panelbox, body.vg .m-hero, body.vg .m-tile, body.vg .m-card { border-radius: 0.125rem; }
+body.vg .m-hero { background: var(--panel); }
+body.vg .m-group legend, body.vg .m-group-title { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; }
+body.vg .m-hero-figure { font-size: 1.875rem; font-weight: 600; }
+body.vg .m-tile .m-big, body.vg .m-card .m-big { font-weight: 600; }
+body.vg .m-tile .m-worse, body.vg .m-arrow { color: var(--accent); }
+body.vg .m-tile .m-better { color: var(--muted); }
+body.vg .m-range-bar { background: linear-gradient(to right, var(--series-3), var(--accent)); }
+body.vg .m-alert { border-left-color: var(--accent); }
+body.vg .m-dot { background: var(--accent); }
+body.vg .m-group-summary, body.vg .m-edit { color: var(--accent); }
+body.vg .m-tabs button[aria-selected="true"] { color: var(--text); border-bottom: 3px solid var(--accent); }
+body.vg .m-presets button, body.vg .m-inputs .field > input:not([type="range"]), body.vg .m-inputs .field > select, body.vg button.ghost { border-radius: 0.125rem; }
+body.vg .m-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+body.vg .m-chart .chart { font-size: 0.75rem; }
