@@ -62,6 +62,16 @@ export function parseAmount(raw) {
   return text === '' ? NaN : Number(text);
 }
 
+// Adds thousands commas to a dollar amount as it is typed: "1700000" gives "1,700,000" and
+// "$1,700.5" gives "1,700.5". Text that is not a plain number (letters, a minus sign) is
+// returned unchanged so the field's validation still sees what was typed.
+export function groupAmount(raw) {
+  const text = String(raw ?? '').replace(/[\s$,]/g, '');
+  const m = /^(\d*)(\.\d*)?$/.exec(text);
+  if (!m || text === '') return String(raw ?? '');
+  return m[1].replace(/\B(?=(\d{3})+$)/g, ',') + (m[2] ?? '');
+}
+
 // The highest rate the loan can ever reach: the starting rate plus the lifetime cap.
 export const maxRate = (v) => v.initialRate + v.lifetimeCap;
 

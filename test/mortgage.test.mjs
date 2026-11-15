@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, priceProblem, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
+import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, groupAmount, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, priceProblem, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
 import { mortgageChart, mortgageScenarioChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -479,4 +479,17 @@ test('interest-only for the whole loan survives the shared link round trip', () 
   assert.equal(encodeMortgage(v), 'ioLife=yes');
   assert.equal(decodeMortgage('ioLife=yes').ioLife, 'yes');
   assert.equal(decodeMortgage('ioLife=bogus').ioLife, 'no');
+});
+
+test('groupAmount adds commas as digits are typed and leaves non-numbers alone', () => {
+  assert.equal(groupAmount('1700000'), '1,700,000');
+  assert.equal(groupAmount('17000000'), '17,000,000');
+  assert.equal(groupAmount('1,7000'), '17,000');
+  assert.equal(groupAmount('$400000.50'), '400,000.50');
+  assert.equal(groupAmount('1234.'), '1,234.');
+  assert.equal(groupAmount('999'), '999');
+  assert.equal(groupAmount(''), '');
+  assert.equal(groupAmount('12a3'), '12a3');
+  assert.equal(groupAmount('-5000'), '-5000');
+  assert.equal(parseAmount(groupAmount('1700000')), 1700000);
 });
