@@ -874,6 +874,14 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .ro-cash h3, .ro-follow h3, .ro-checklist h3 { margin: 0 0 0.5rem; }
 .ro-cash th[scope="row"] { text-align: left; font-weight: normal; }
+.print-only { display: none; }
+@media print {
+  .ro-inputs { display: none !important; }
+  .print-only { display: block; }
+  .ro-print-inputs { break-inside: avoid; margin-top: 0.75rem; }
+  .ro-table-wrap { overflow: visible; }
+  .methodology { break-inside: auto; }
+}
 .ro-waterfall h3 { margin: 0 0 0.5rem; }
 .ro-waterfall th[scope="row"] { text-align: left; font-weight: normal; }
 .ro-waterfall .ro-sub th[scope="row"] { padding-left: 1.5rem; color: var(--muted); }

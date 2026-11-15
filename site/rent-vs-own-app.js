@@ -163,6 +163,7 @@ function render() {
   const checklistHtml = RENTOWN_CHECKLIST.map((c) => `<li><strong>${c.label}.</strong> ${c.ask}</li>`).join('');
   const pct = (n) => `${Math.round(n * 100) / 100}%`;
   const scenarioRows = compareScenarios(v).map((s) => { const d = today ? s.differenceReal : s.difference; return `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${d >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(d))}</td></tr>`; }).join('');
+  const inputRows = RENTOWN_FIELDS.map((f) => `<tr><th scope="row">${f.label}</th><td>${v[f.id] == null ? 'Not entered' : f.money ? money(v[f.id]) : v[f.id]}</td></tr>`).join('');
   out.innerHTML = `
     <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${otherLine}</p><p>${detail}</p></div>
     <section class="m-card ro-drivers"><h2>What drives the verdict</h2><p>For each assumption, the value at which the winner flips at your ${v.years}-year stay, holding everything else as entered.</p><ul>${drivers}</ul></section>
@@ -181,6 +182,7 @@ function render() {
     <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${label}</caption>
       <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>
       <tbody>${scenarioRows}</tbody></table></div>
+    <div class="print-only ro-print-inputs"><table class="m-table"><caption>Your inputs</caption><tbody>${inputRows}</tbody></table></div>
     <div class="m-charts">
       ${rentOwnChartHtml(today ? r.chartReal : r.chartYears, r.chartBreakEven, money, v.years)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
@@ -235,6 +237,11 @@ document.getElementById('rentown-reset').addEventListener('click', () => {
   render();
   message.textContent = 'Inputs reset to defaults.';
 });
+// The methodology prints open whichever way the print dialog is reached.
+const methodology = document.querySelector('#methodology details');
+let wasOpen = false;
+window.addEventListener('beforeprint', () => { wasOpen = methodology.open; methodology.open = true; });
+window.addEventListener('afterprint', () => { methodology.open = wasOpen; });
 document.getElementById('rentown-print').addEventListener('click', () => window.print());
 document.getElementById('rentown-copy').addEventListener('click', async () => {
   save(values());
