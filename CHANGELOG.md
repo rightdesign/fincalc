@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.72.0] — 2026-11-15
+
+- FINC-120 The variable-rate mortgage calculator has a new look inspired by the Vanguard personal investor site: a white, near-black and deep-red palette, Helvetica-style type, underline tabs and cleaner charts with larger labels.
+
 ## [0.71.0] — 2026-11-15
 
 - FINC-117 The variable-rate mortgage calculator can now make the loan interest-only for its whole life, with the balloon payment due at the end shown in the results, alongside the existing interest-only start period.
