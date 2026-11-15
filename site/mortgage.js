@@ -84,3 +84,11 @@ export function invalidFields(v) {
     return !Number.isFinite(n) || n < f.min || (f.max !== undefined && n > f.max) || (f.integer && !Number.isInteger(n));
   }).map((f) => f.label);
 }
+
+// Returns a message when the floor sits above the starting rate (a rate that
+// can never fall below the floor would have to start above the starting rate).
+export function floorProblem(v) {
+  return v.floor > v.initialRate
+    ? `The lowest possible rate (${v.floor}%) is above the starting rate (${v.initialRate}%). Lower the floor or raise the starting rate.`
+    : '';
+}

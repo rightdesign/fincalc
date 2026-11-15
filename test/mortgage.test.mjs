@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { invalidFields, mortgageDefaults, payment, rateAfter, simulate } from '../site/mortgage.js';
+import { floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, simulate } from '../site/mortgage.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -38,6 +38,12 @@ test('caps and floor limit the rate', () => {
 test('invalid values are named', () => {
   assert.deepEqual(invalidFields(mortgageDefaults()), []);
   assert.equal(invalidFields({ ...mortgageDefaults(), loan: NaN, term: 2.5 }).length, 2);
+});
+
+test('a floor above the starting rate is reported', () => {
+  assert.equal(floorProblem(mortgageDefaults()), '');
+  assert.equal(floorProblem({ ...mortgageDefaults(), floor: 5.5 }), '');
+  assert.match(floorProblem({ ...mortgageDefaults(), floor: 7 }), /above the starting rate/);
 });
 
 test('the menu lists every calculator, and each page exists', () => {

@@ -1,5 +1,5 @@
 // Page script for the variable-rate mortgage calculator.
-import { MORTGAGE_FIELDS, invalidFields, mortgageDefaults, simulate } from './mortgage.js';
+import { MORTGAGE_FIELDS, floorProblem, invalidFields, mortgageDefaults, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -65,6 +65,16 @@ function render() {
     const p = document.createElement('p');
     p.className = 'placeholder';
     p.textContent = `Enter a valid value for: ${bad.join(', ')}.`;
+    out.append(p);
+    return;
+  }
+  const conflict = floorProblem(v);
+  if (conflict) {
+    out.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'placeholder';
+    p.setAttribute('role', 'alert');
+    p.textContent = conflict;
     out.append(p);
     return;
   }
