@@ -5,7 +5,7 @@ export const MORTGAGE_FIELDS = [
   { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1 },
   { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
   { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30 },
-  { id: 'fixedYears', label: 'Years before the first rate change', value: 5, min: 0, max: 50, integer: true },
+  { id: 'fixedYears', label: 'Years before the first rate change', value: 5, min: 1, max: 50, integer: true },
   { id: 'adjustYears', label: 'Years between rate changes after that', value: 1, min: 1, max: 50, integer: true },
   { id: 'change', label: 'Rate change at each adjustment (percentage points)', value: 0.5, min: -10, max: 10, hint: 'Your assumption for how the rate moves each time it resets. Use a negative number for falling rates.' },
   { id: 'periodicCap', label: 'Cap on a single adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at one reset, up or down.' },

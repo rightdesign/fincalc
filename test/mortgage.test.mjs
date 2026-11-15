@@ -38,6 +38,7 @@ test('caps and floor limit the rate', () => {
 test('invalid values are named', () => {
   assert.deepEqual(invalidFields(mortgageDefaults()), []);
   assert.equal(invalidFields({ ...mortgageDefaults(), loan: NaN, term: 2.5 }).length, 2);
+  assert.deepEqual(invalidFields({ ...mortgageDefaults(), fixedYears: 0 }), ['Years before the first rate change']);
 });
 
 test('a floor above the starting rate is reported', () => {
