@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, priceProblem, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
-import { mortgageChart } from '../site/mortgage-chart.js';
+import { mortgageChart, mortgageScenarioChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -163,10 +163,25 @@ test('the mortgage charts mark the peak payment and describe themselves', () => 
   assert.ok(rate.svg.includes('Peak: 10.5%, year 15'));
 });
 
-test('the mortgage page renders both charts', () => {
+test('the scenario chart draws best, expected and worst with direct labels and the first reset', () => {
+  const sc = scenarios(mortgageDefaults());
+  const series = [['Best', 'best'], ['Expected', 'expected'], ['Worst', 'worst']].map(([name, style]) => ({ name, style, years: sc[style].years }));
+  const c = mortgageScenarioChart(series, { key: 'payment', title: 'Monthly payment by year', fmt: (n) => `$${Math.round(n)}`, resetYear: sc.expected.firstReset.year });
+  assert.match(c.svg, /<svg[^>]*role="img"/);
+  assert.equal((c.svg.match(/<path /g) || []).length, 3);
+  for (const name of ['Best', 'Expected', 'Worst']) assert.ok(c.svg.includes(`>${name}</text>`), `${name} is labelled`);
+  assert.ok(c.svg.includes(`First reset, year ${sc.expected.firstReset.year}`));
+  assert.ok(!c.svg.includes('NaN'));
+  assert.ok(c.description.includes('worst ends at'));
+  const flat = scenarios({ ...mortgageDefaults(), firstCap: 0, periodicCap: 0 });
+  const f = mortgageScenarioChart([{ name: 'Expected', style: 'expected', years: flat.expected.years }], { key: 'rate', title: 'Rate', fmt: String });
+  assert.ok(!f.svg.includes('NaN'));
+});
+
+test('the mortgage page charts payment, rate and balance and groups its inputs', () => {
   const src = readFileSync(new URL('../site/mortgage-app.js', import.meta.url), 'utf8');
-  assert.match(src, /key: 'rate'/);
-  assert.match(src, /key: 'payment'/);
+  for (const key of ['payment', 'rate', 'balance']) assert.ok(src.includes(`chart('${key}'`), `${key} chart`);
+  for (const id of MORTGAGE_FIELDS.map((f) => f.id)) assert.ok(src.includes(`'${id}'`), `${id} is placed in a group`);
 });
 
 test('best, expected and worst cases bracket the expected path', () => {

@@ -1,5 +1,5 @@
 // Page script for the variable-rate mortgage calculator.
-import { mortgageChartHtml } from './mortgage-chart.js';
+import { mortgageScenarioChartHtml } from './mortgage-chart.js';
 import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, priceProblem, refinance, scenarios, scopeNote, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -18,31 +18,37 @@ function setSlider(slider, n) {
 
 const form = document.getElementById('mortgage-inputs');
 const out = document.getElementById('mortgage-results');
+const hero = document.getElementById('mortgage-hero');
+const bar = document.getElementById('mortgage-bar-text');
 const defaults = mortgageDefaults();
-const presets = document.getElementById('mortgage-presets');
 
-for (const p of ARM_PRESETS) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = p.label;
-  b.title = `Fixed for ${p.fixedMonths / 12} years, then adjusts every ${p.adjustMonths / 12} year`;
-  b.addEventListener('click', () => {
-    for (const id of ['fixedMonths', 'adjustMonths']) {
-      form.elements[id].value = p[id];
-      form.elements[id].dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  });
-  presets.append(b);
-}
-const startInput = document.getElementById('mortgage-start');
+// A card is a titled group of inputs; `fields` lists the MORTGAGE_FIELDS it holds, in order.
+const GROUPS = [
+  { id: 'loan', title: 'Loan', fields: ['loan', 'initialRate', 'term'] },
+  { id: 'rate', title: 'How the rate changes', fields: ['rateBasis', 'indexName', 'indexRate', 'margin', 'indexChange', 'change', 'fixedMonths', 'adjustMonths'] },
+  { id: 'caps', title: 'Rate limits (caps)', fields: ['firstCap', 'periodicCap', 'lifetimeCap', 'floor'] },
+];
+// Rarely used inputs, collapsed by default.
+const OPTIONAL = [
+  { title: 'Extra payment and interest-only', fields: ['extra', 'ioMonths'] },
+  { title: 'Refinance', fields: ['refiMonth', 'refiRate', 'refiTerm', 'refiCosts'] },
+  { title: 'Home price and monthly costs', fields: ['homePrice', 'closingCosts', 'pmiRate', 'propertyTax', 'insurance', 'hoa'] },
+];
+
+const startLabel = document.createElement('label');
+startLabel.className = 'field wide';
+startLabel.innerHTML = '<span>Loan start month (optional, for payoff date)</span><input type="month" id="mortgage-start" name="start">';
+const startInput = startLabel.querySelector('input');
 let view = 'annual';
+let tab = 'payment';
 const monthLabel = (ym) => new Date(`${ym}-01T00:00:00`).toLocaleString('en-US', { month: 'short', year: 'numeric' });
 
+const fieldEls = {};
 for (const f of MORTGAGE_FIELDS) {
   const label = document.createElement('label');
   label.className = 'field';
   const text = document.createElement('span');
-  text.textContent = f.label;
+  text.textContent = f.short ?? f.label;
   label.dataset.field = f.id;
   let input;
   if (f.type === 'select') {
@@ -62,7 +68,10 @@ for (const f of MORTGAGE_FIELDS) {
   input.name = f.id;
   input.id = `field-${f.id}`;
   input.value = f.value;
+  if (f.short) input.setAttribute('aria-label', f.label);
   label.append(text);
+  // The editable value sits beside the label, the slider under both: one control, not two stacked boxes.
+  label.append(input);
   if (f.slider) {
     const slider = document.createElement('input');
     slider.type = 'range';
@@ -99,14 +108,6 @@ for (const f of MORTGAGE_FIELDS) {
     });
     input.value = usd.format(f.value);
   }
-  label.append(input);
-  if (f.id === 'lifetimeCap') {
-    const note = document.createElement('span');
-    note.className = 'field-note';
-    note.id = 'note-lifetimeCap';
-    input.setAttribute('aria-describedby', note.id);
-    label.append(note);
-  }
   if (f.hint) {
     const tip = document.createElement('span');
     tip.className = 'hint-text';
@@ -128,8 +129,85 @@ for (const f of MORTGAGE_FIELDS) {
     input.setAttribute('aria-describedby', tip.id);
     label.append(tip);
   }
-  form.append(label);
+  fieldEls[f.id] = label;
 }
+
+const el = (tag, className, html) => {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+};
+const card = (title, summaryId) => {
+  const c = el('fieldset', 'm-group');
+  c.append(el('legend', '', `${title}${summaryId ? ` <span class="m-group-summary" id="${summaryId}"></span>` : ''}`));
+  return c;
+};
+const placed = new Set();
+const take = (ids, into) => { for (const id of ids) { placed.add(id); into.append(fieldEls[id]); } };
+
+const presets = el('div', 'm-presets');
+presets.setAttribute('role', 'group');
+presets.setAttribute('aria-label', 'ARM type presets: fills in the years before the first change and the years between changes');
+for (const p of ARM_PRESETS) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = p.label;
+  b.dataset.fixed = p.fixedMonths;
+  b.dataset.adjust = p.adjustMonths;
+  b.title = `Fixed for ${p.fixedMonths / 12} years, then adjusts every ${p.adjustMonths / 12} year`;
+  b.addEventListener('click', () => {
+    for (const id of ['fixedMonths', 'adjustMonths']) {
+      form.elements[id].value = p[id];
+      form.elements[id].dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  presets.append(b);
+}
+
+for (const g of GROUPS) {
+  const c = card(g.title, g.id === 'caps' ? 'caps-summary' : '');
+  c.classList.add(`m-group-${g.id}`);
+  take(g.fields, c);
+  if (g.id === 'loan') {
+    c.append(el('p', 'm-presets-label', 'ARM type'), presets);
+    const partway = el('details', 'm-partway');
+    partway.id = 'mortgage-partway';
+    partway.innerHTML = '<summary>Already part-way in? <strong id="partway-summary">0 months paid</strong> <span class="m-edit">Edit</span></summary>';
+    take(['elapsed'], partway);
+    partway.append(startLabel);
+    c.append(partway);
+  }
+  if (g.id === 'caps') {
+    const note = el('p', 'field-note');
+    note.id = 'note-lifetimeCap';
+    fieldEls.lifetimeCap.querySelector('input').setAttribute('aria-describedby', note.id);
+    c.append(note);
+  }
+  form.append(c);
+}
+const optional = el('details', 'm-optional');
+optional.id = 'mortgage-optional';
+optional.innerHTML = '<summary><span class="m-group-title">Optional</span> <span class="m-dot" id="optional-dot" hidden aria-hidden="true"></span> <span class="m-group-summary" id="optional-summary">Extra payment, interest-only, refinance, home costs</span></summary>';
+for (const o of OPTIONAL) {
+  const section = el('div', 'm-optional-section');
+  section.append(el('h3', '', o.title));
+  take(o.fields, section);
+  optional.append(section);
+}
+// A field no group claims still belongs in the form, under Optional.
+const rest = MORTGAGE_FIELDS.filter((f) => !placed.has(f.id)).map((f) => f.id);
+if (rest.length) { const section = el('div', 'm-optional-section'); take(rest, section); optional.append(section); }
+form.append(optional);
+
+// On wide screens the headline result sits above the results so it stays in view; on narrow
+// screens it comes first on the page, ahead of the inputs.
+const layout = document.getElementById('mortgage-layout');
+const resultsCol = document.getElementById('mortgage-results-col');
+const wide = window.matchMedia('(min-width: 900px)');
+const placeHero = () => (wide.matches ? resultsCol : layout).prepend(hero);
+wide.addEventListener('change', placeHero);
+placeHero();
 
 function values() {
   const v = {};
@@ -140,30 +218,52 @@ function values() {
   return v;
 }
 
+const TABS = [['payment', 'Payment'], ['rate', 'Interest rate'], ['balance', 'Balance'], ['table', 'Table']];
+
+const OPTIONAL_IDS = ['extra', 'ioMonths', 'refiMonth', 'homePrice', 'closingCosts', 'pmiRate', 'propertyTax', 'insurance', 'hoa'];
+
+// Opens the collapsed groups when the inputs (from a link or saved state) already use them.
+function revealActive() {
+  const v = values();
+  if (v.elapsed > 0 || startInput.value) document.getElementById('mortgage-partway').open = true;
+  if (OPTIONAL_IDS.some((id) => v[id] > 0)) document.getElementById('mortgage-optional').open = true;
+}
+
+// Summaries on the card headers and the sticky bar follow the inputs, valid or not.
+function updateChrome(v) {
+  const n = (x) => (Number.isFinite(x) ? String(Math.round(x * 1000) / 1000) : '–');
+  document.getElementById('caps-summary').textContent = `${n(v.firstCap)} / ${n(v.periodicCap)} / ${n(v.lifetimeCap)} · floor ${n(v.floor)}%`;
+  const months = Number.isFinite(v.elapsed) ? v.elapsed : 0;
+  document.getElementById('partway-summary').textContent = `${months} month${months === 1 ? '' : 's'} paid`;
+  const on = OPTIONAL_IDS.filter((id) => v[id] > 0);
+  const names = { extra: 'Extra payment', ioMonths: 'Interest-only', refiMonth: 'Refinance', homePrice: 'Home price', closingCosts: 'Closing costs', pmiRate: 'PMI', propertyTax: 'Property tax', insurance: 'Insurance', hoa: 'HOA dues' };
+  document.getElementById('optional-dot').hidden = !on.length;
+  document.getElementById('optional-summary').textContent = on.length ? on.map((id) => names[id]).join(' · ') : 'Extra payment, interest-only, refinance, home costs';
+  for (const b of presets.children) {
+    b.setAttribute('aria-pressed', String(Number(b.dataset.fixed) === v.fixedMonths && Number(b.dataset.adjust) === v.adjustMonths));
+  }
+}
+
+function showProblem(text, alert) {
+  out.innerHTML = '';
+  const p = document.createElement('p');
+  p.className = 'placeholder';
+  if (alert) p.setAttribute('role', 'alert');
+  p.textContent = text;
+  hero.replaceChildren(p);
+  bar.textContent = '–';
+}
+
 function render() {
   const v = values();
-  for (const f of MORTGAGE_FIELDS) form.querySelector(`[data-field="${f.id}"]`).hidden = !!f.showIf && !f.showIf(v);
+  for (const f of MORTGAGE_FIELDS) fieldEls[f.id].hidden = !!f.showIf && !f.showIf(v);
+  updateChrome(v);
   const note = document.getElementById('note-lifetimeCap');
   note.textContent = Number.isFinite(maxRate(v)) ? `The rate can never rise above ${pct(maxRate(v))} (the starting rate plus this cap).` : '';
   const bad = invalidFields(v);
-  if (bad.length) {
-    out.innerHTML = '';
-    const p = document.createElement('p');
-    p.className = 'placeholder';
-    p.textContent = `Enter a valid value for: ${bad.join(', ')}.`;
-    out.append(p);
-    return;
-  }
+  if (bad.length) return showProblem(`Enter a valid value for: ${bad.join(', ')}.`, false);
   const conflict = loanProblem(v) || priceProblem(v);
-  if (conflict) {
-    out.innerHTML = '';
-    const p = document.createElement('p');
-    p.className = 'placeholder';
-    p.setAttribute('role', 'alert');
-    p.textContent = conflict;
-    out.append(p);
-    return;
-  }
+  if (conflict) return showProblem(conflict, true);
   const r = simulate(v);
   const start = startInput.value;
   const hasExtras = r.hasExtras;
@@ -173,10 +273,8 @@ function render() {
   const monthly = view === 'monthly';
   const diff = r.extraInterest;
   const change = (to) => `${to >= r.firstPayment ? '+' : '−'}${money(Math.abs(to - r.firstPayment))} (${to >= r.firstPayment ? '+' : '−'}${(Math.abs(to / r.firstPayment - 1) * 100).toFixed(1)}%)`;
-  const shock = r.maxPayment > r.firstPayment
-    ? `<p>${change(r.maxPayment)} vs the first payment, first reached in year ${r.maxPaymentYear}.</p>` : '<p>No higher than the first payment.</p>';
   const resetNote = r.firstReset
-    ? `<p>First rate change (year ${r.firstReset.year}): payment becomes ${money(r.firstReset.payment)}, ${change(r.firstReset.payment)}.</p>` : '';
+    ? ` The first rate change (year ${r.firstReset.year}) makes the payment ${money(r.firstReset.payment)}, ${change(r.firstReset.payment)}.` : '';
   const noResetNote = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
   const years = (n) => { const y = Math.floor(n / 12); const m = n % 12; return [y && `${y} year${y === 1 ? '' : 's'}`, m && `${m} month${m === 1 ? '' : 's'}`].filter(Boolean).join(' ') || '0 months'; };
   const extra = v.extra > 0 ? extraSavings(v) : null;
@@ -209,38 +307,63 @@ function render() {
   const names = { best: 'Best case', expected: 'Expected case', worst: 'Worst case' };
   const scRows = Object.entries(sc).map(([k, s]) => `<tr><th scope="row">${names[k]}</th><td>${pct(s.maxRate)}</td><td>${money(s.maxPayment)}</td><td>${s.shock >= 0 ? '+' : '−'}${Math.abs(Math.round(s.shock * 100))}%</td><td>${money(s.totalInterest)}</td></tr>`).join('');
   const w = sc.worst;
-  const warn = w.shock >= 0.25
-    ? `<p class="m-warning" role="alert"><strong>Payment shock:</strong> in the worst case your payment rises from ${money(w.firstPayment)} to ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% higher) when the rate reaches ${pct(w.maxRate)}. Make sure you could afford that.</p>`
-    : `<p>In the worst case your payment peaks at ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% above the first payment).</p>`;
+
+  // Hero: the first payment against the worst one, with the expected peak marked between them.
+  const rises = w.maxPayment > r.firstPayment;
+  const spread = w.maxPayment - r.firstPayment;
+  const mark = rises ? Math.min(100, Math.max(0, ((r.maxPayment - r.firstPayment) / spread) * 100)) : 0;
+  const shocked = w.shock >= 0.25;
+  const strip = rises
+    ? `<p class="${shocked ? 'm-alert' : 'm-strip'}"${shocked ? ' role="alert"' : ''}><strong>${shocked ? 'Payment shock: ' : 'Worst case: '}${change(w.maxPayment)}</strong> over the first payment, first reached in year ${w.maxPaymentYear} at a ${pct(w.maxRate)} rate.${shocked ? ' Make sure you could afford that.' : ''}${resetNote}</p>`
+    : `<p class="m-strip">No scenario takes the payment above the first payment.${resetNote}</p>`;
+  hero.innerHTML = `<div class="m-hero">
+      <p class="m-hero-label">Your monthly payment</p>
+      <p class="m-hero-figure"><span>${money(r.firstPayment)}</span>${rises ? ` <span class="m-arrow" aria-hidden="true">&rarr;</span> <span class="m-hero-peak">up to ${money(w.maxPayment)}</span>` : ''}</p>
+      ${rises ? `<div class="m-range"><div class="m-range-bar"><span class="m-range-mark" style="left:${mark.toFixed(1)}%"></span></div>
+        <div class="m-range-labels"><span>Start &middot; ${money(r.firstPayment)}</span><span>Expected peak &middot; ${money(r.maxPayment)}</span><span>Worst &middot; ${money(w.maxPayment)}</span></div></div>` : ''}
+      ${hasExtras ? `<p class="m-hero-sub">${money(r.firstTotal)} a month with ${[v.propertyTax > 0 && 'taxes', v.insurance > 0 && 'insurance', r.firstPmi > 0 && 'PMI', v.hoa > 0 && 'HOA', v.extra > 0 && 'your extra payment'].filter(Boolean).join(', ') || 'extras'} in the first month.</p>` : ''}
+      ${strip}
+    </div>`;
+  bar.textContent = rises ? `${money(r.firstPayment)} → ${money(w.maxPayment)}` : money(r.firstPayment);
+
+  const series = [['Best', 'best'], ['Expected', 'expected'], ['Worst', 'worst']].map(([name, style]) => ({ name, style, years: sc[style].years }));
+  const resetYear = r.firstReset?.year;
+  const chart = (key, title, fmt) => mortgageScenarioChartHtml(series, { key, title, fmt, resetYear });
+  const panels = {
+    payment: chart('payment', 'Monthly payment by year', money),
+    rate: chart('rate', 'Interest rate by year', pct),
+    balance: chart('balance', 'Loan balance by year', money),
+    table: `<p><button type="button" id="mortgage-view" class="ghost" aria-pressed="${monthly}">${monthly ? 'Show annual schedule' : 'Show monthly schedule'}</button></p>
+    <div class="m-table-wrap"><table class="m-table"><caption>${monthly ? 'Month by month' : 'Year by year (rate and payment shown as of year end)'}</caption>
+      <thead><tr><th scope="col">${monthly ? (start ? 'Month' : 'Month number') : 'Year'}</th><th scope="col">Rate</th><th scope="col">Monthly payment${v.extra > 0 ? ' (with extra)' : hasExtras ? ' (principal and interest)' : ''}</th>${hasExtras ? '<th scope="col">Total monthly</th>' : ''}<th scope="col">Interest paid</th><th scope="col">Principal paid</th><th scope="col">Ending balance</th></tr></thead>
+      <tbody>${monthly ? monthRows : rows}</tbody></table></div>`,
+  };
+  const tabs = TABS.map(([k, name]) => `<button type="button" role="tab" id="m-tab-${k}" aria-selected="${k === tab}" aria-controls="m-panel-${k}" tabindex="${k === tab ? 0 : -1}">${name}</button>`).join('');
+  const panelHtml = TABS.map(([k, name]) => `<div role="tabpanel" id="m-panel-${k}" aria-labelledby="m-tab-${k}" class="m-panel"${k === tab ? '' : ' hidden'}><h3 class="m-print-title">${name}</h3>${panels[k]}</div>`).join('');
   out.innerHTML = `
     ${noResetNote}
     <p class="m-scope" role="note">${scopeNote(v)}</p>
     ${ioNote}
-    <div class="m-cards">
-      <div class="m-card"><h3>First required monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p>${hasExtras ? `<p>${v.ioMonths > 0 ? 'interest only' : 'principal and interest'}; ${money(r.firstTotal)} with taxes, insurance, PMI and HOA${v.extra > 0 ? ', and your extra payment' : ''}.</p>` : ''}</div>
-      <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p>${shock}${resetNote}</div>
-      <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p><p>${v.elapsed > 0 ? `still to be paid, from month ${v.elapsed + 1}` : 'over the whole loan'}</p></div>
-      <div class="m-card"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
+    <div class="m-tiles">
+      <div class="m-tile"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p><p>${v.elapsed > 0 ? `still to be paid, from month ${v.elapsed + 1}` : 'Expected case'}</p></div>
+      <div class="m-tile"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
+      <div class="m-tile"><h3>Compared with holding ${pct(v.initialRate)}</h3><p class="m-big ${diff > 0 ? 'm-worse' : 'm-better'}">${diff >= 0 ? '+' : '−'}${money(Math.abs(diff))}</p><p>${money(r.fixed.payment)} a month, ${money(r.fixed.totalInterest)} interest if fixed</p></div>
+    </div>
+    ${payoff || extraCard || closing ? `<div class="m-cards">
       ${payoff ? `<div class="m-card"><h3>Payoff date</h3><p class="m-big">${monthLabel(payoff)}</p></div>` : ''}
       ${extraCard}
-      <div class="m-card"><h3>Compared with holding ${pct(v.initialRate)}</h3><p class="m-big">${money(Math.abs(diff))} ${diff >= 0 ? 'more' : 'less'}</p><p>interest than a fixed loan at the starting rate (${money(r.fixed.payment)} a month, ${money(r.fixed.totalInterest)} interest).</p></div>
       ${closing}
+    </div>` : ''}
+    <div class="m-panelbox">
+      <div class="m-tabs" role="tablist" aria-label="Chart or table">${tabs}</div>
+      ${panelHtml}
     </div>
     ${breakdown}
-    <div class="m-charts">
-      ${mortgageChartHtml(r.years, { key: 'rate', title: 'Interest rate by year', fmt: pct })}
-      ${mortgageChartHtml(r.years, { key: 'payment', title: 'Monthly payment by year', fmt: money })}
-    </div>
     <h2>Best, expected and worst case</h2>
-    ${warn}
     <table class="m-table"><caption>Scenarios: best lowers the rate by the full per-adjustment cap at every reset, worst raises it by the full cap each time up to the lifetime cap</caption>
       <thead><tr><th scope="col">Scenario</th><th scope="col">Peak rate</th><th scope="col">Highest monthly payment</th><th scope="col">Rise over first payment</th><th scope="col">Total interest</th></tr></thead>
       <tbody>${scRows}</tbody></table>
-    ${refiHtml}
-    <p><button type="button" id="mortgage-view" aria-pressed="${monthly}">${monthly ? 'Show annual schedule' : 'Show monthly schedule'}</button></p>
-    <table class="m-table"><caption>${monthly ? 'Month by month' : 'Year by year (rate and payment shown as of year end)'}</caption>
-      <thead><tr><th scope="col">${monthly ? (start ? 'Month' : 'Month number') : 'Year'}</th><th scope="col">Rate</th><th scope="col">Monthly payment${v.extra > 0 ? ' (with extra)' : hasExtras ? ' (principal and interest)' : ''}</th>${hasExtras ? '<th scope="col">Total monthly</th>' : ''}<th scope="col">Interest paid</th><th scope="col">Principal paid</th><th scope="col">Ending balance</th></tr></thead>
-      <tbody>${monthly ? monthRows : rows}</tbody></table>`;
+    ${refiHtml}`;
 }
 
 const message = document.getElementById('mortgage-message');
@@ -272,7 +395,7 @@ function readStart(text) {
 let stored = null;
 try { stored = localStorage.getItem(MORTGAGE_INPUTS_KEY); } catch { /* storage unavailable */ }
 const initial = location.hash.length > 1 ? location.hash : stored;
-if (initial) { readStart(initial); writeValues(decodeMortgage(initial)); }
+if (initial) { readStart(initial); writeValues(decodeMortgage(initial)); revealActive(); }
 
 // Inputs that differ from the defaults, listed at the top of a printout.
 function renderPrintSummary() {
@@ -306,16 +429,31 @@ form.addEventListener('input', (e) => {
   render();
   save();
 });
-startInput.addEventListener('input', () => { render(); save(); });
+function selectTab(k) {
+  tab = k;
+  render();
+  document.getElementById(`m-tab-${k}`).focus();
+}
 out.addEventListener('click', (e) => {
+  const t = e.target.closest('[role="tab"]');
+  if (t) return selectTab(t.id.replace('m-tab-', ''));
   if (e.target.id !== 'mortgage-view') return;
   view = view === 'monthly' ? 'annual' : 'monthly';
   render();
   document.getElementById('mortgage-view').focus();
 });
+out.addEventListener('keydown', (e) => {
+  if (!e.target.matches('[role="tab"]')) return;
+  const keys = TABS.map(([k]) => k);
+  const i = keys.indexOf(tab);
+  const to = { ArrowRight: keys[(i + 1) % keys.length], ArrowLeft: keys[(i + keys.length - 1) % keys.length], Home: keys[0], End: keys[keys.length - 1] }[e.key];
+  if (!to) return;
+  e.preventDefault();
+  selectTab(to);
+});
 form.addEventListener('submit', (e) => e.preventDefault());
 window.addEventListener('hashchange', () => {
-  if (location.hash.length > 1) { readStart(location.hash); writeValues(decodeMortgage(location.hash)); render(); }
+  if (location.hash.length > 1) { readStart(location.hash); writeValues(decodeMortgage(location.hash)); revealActive(); render(); }
 });
 window.addEventListener('beforeprint', renderPrintSummary);
 document.getElementById('mortgage-reset').addEventListener('click', () => {

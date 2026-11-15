@@ -14,15 +14,21 @@
       <h1>Variable-rate mortgage</h1>
     </header>
     <main class="m-page">
-      <p>See how a loan whose rate resets over time changes your payment and total interest. Enter your loan's index and margin (or a fixed change per reset); the caps and floor limit each new rate.</p>
-      <div id="mortgage-presets" class="m-presets" role="group" aria-label="ARM type presets: fills in the years before the first change and the years between changes"></div>
+      <p class="m-intro">See how a loan whose rate resets over time changes your payment and total interest. Enter your loan's index and margin (or a fixed change per reset); the caps and floor limit each new rate.</p>
       <p class="m-rates-link">Need a starting rate? <a href="https://www.bankrate.com/mortgages/mortgage-rates/" target="_blank" rel="noopener noreferrer">See current adjustable-rate mortgage rates on Bankrate</a> (opens in a new tab). Rates shown there are not used by this calculator.</p>
-      <form id="mortgage-inputs" class="m-inputs"></form>
-      <p><label class="field"><span>Loan start month (optional, for payoff date)</span><input type="month" id="mortgage-start" name="start"></label></p>
-      <p class="no-print"><button type="button" id="mortgage-copy">Copy link to these inputs</button> <button type="button" id="mortgage-print">Print&hellip;</button> <button type="button" id="mortgage-reset">Reset to defaults</button> <span id="mortgage-message" role="status"></span></p>
-      <section id="mortgage-print-summary" class="print-summary"></section>
-      <section id="mortgage-results" aria-live="polite"></section>
+      <div class="m-layout" id="mortgage-layout">
+        <section id="mortgage-hero" class="m-hero-slot" aria-live="polite"></section>
+        <div class="m-inputs-col">
+          <form id="mortgage-inputs" class="m-inputs"></form>
+          <p class="no-print m-actions"><button type="button" id="mortgage-copy" class="ghost">Copy link</button> <button type="button" id="mortgage-print" class="ghost">Print&hellip;</button> <button type="button" id="mortgage-reset" class="ghost">Reset</button> <span id="mortgage-message" role="status"></span></p>
+        </div>
+        <div class="m-results-col" id="mortgage-results-col">
+          <section id="mortgage-print-summary" class="print-summary"></section>
+          <section id="mortgage-results" aria-live="polite"></section>
+        </div>
+      </div>
     </main>
+    <div class="m-bar no-print" id="mortgage-bar"><span id="mortgage-bar-text" class="m-bar-text"></span><a href="#mortgage-results" class="m-bar-link">See results &uarr;</a></div>
     <section class="methodology" id="arm-guide">
       <details>
         <summary>Definitions</summary>

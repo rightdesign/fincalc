@@ -47,9 +47,63 @@ export function mortgageChart(years, { key, title, fmt }) {
   return { svg, description };
 }
 
-// A titled chart with a text equivalent for screen readers.
-export function mortgageChartHtml(years, opts) {
-  const { svg, description } = mortgageChart(years, opts);
+// The best, expected and worst paths on one chart, each labelled at its right end so colour is
+// not the only cue. series: [{ name, years, style }] where style is 'best' | 'expected' | 'worst';
+// resetYear (optional) marks the first rate change. Returns { svg, description }.
+const LINES = {
+  best: { color: 'var(--series-3)', dash: ' stroke-dasharray="5 4"' },
+  expected: { color: 'var(--series-1)', dash: '' },
+  worst: { color: 'var(--series-2)', dash: ' stroke-dasharray="5 4"' },
+};
+
+export function mortgageScenarioChart(series, { key, title, fmt, resetYear }) {
+  const all = series.flatMap((s) => s.years);
+  const xMin = Math.min(...all.map((y) => y.year));
+  const xMax = Math.max(...all.map((y) => y.year));
+  const vals = all.map((y) => y[key]);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
+  const yMin = Math.max(0, lo - pad);
+  const yMax = hi + pad;
+  const R = 64; // room on the right for the direct labels
+  const sx = (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - R));
+  const sy = (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
+  const f = (n) => n.toFixed(1);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escape(title)} chart" class="chart">`;
+  for (let i = 0; i <= 4; i++) {
+    const y = yMin + ((yMax - yMin) * i) / 4;
+    svg += `<line x1="${PAD.l}" x2="${W - R}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
+    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(fmt(y))}</text>`;
+  }
+  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
+  svg += `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  if (resetYear && resetYear > xMin && resetYear <= xMax) {
+    svg += `<line x1="${f(sx(resetYear))}" x2="${f(sx(resetYear))}" y1="${PAD.t}" y2="${H - PAD.b}" class="guide" stroke-dasharray="2 3"/>`;
+    svg += `<text x="${f(sx(resetYear) + 4)}" y="${PAD.t + 8}" font-size="10">First reset, year ${resetYear}</text>`;
+  }
+  const ends = [];
+  for (const s of series) {
+    const line = LINES[s.style];
+    const path = s.years.map((y, i) => `${i ? 'L' : 'M'}${f(sx(y.year))},${f(sy(y[key]))}`).join('');
+    svg += `<path d="${path}" fill="none" style="stroke:${line.color}" stroke-width="2.5"${line.dash}/>`;
+    const last = s.years[s.years.length - 1];
+    ends.push({ name: s.name, color: line.color, x: sx(last.year), y: sy(last[key]) });
+  }
+  // Nudge labels apart so equal end values (a flat best case) do not overprint.
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12);
+  for (const e of ends) svg += `<text x="${f(e.x + 6)}" y="${f(e.y + 4)}" font-size="10" style="fill:${e.color}">${escape(e.name)}</text>`;
+  svg += '</svg>';
+
+  const summary = series.map((s) => `${s.name.toLowerCase()} ends at ${fmt(s.years[s.years.length - 1][key])}`).join(', ');
+  const description = `${title} line chart with best, expected and worst cases from year ${xMin} to year ${xMax}: ${summary}.${resetYear ? ` The first rate change is in year ${resetYear}.` : ''} The full values for every year are in the table tab.`;
+  return { svg, description };
+}
+
+export function mortgageScenarioChartHtml(series, opts) {
+  const { svg, description } = mortgageScenarioChart(series, opts);
   const id = `m-chart-${opts.key}`;
-  return `<figure class="m-chart"><figcaption>${escape(opts.title)}</figcaption>${svg}<p class="visually-hidden" id="${id}">${escape(description)}</p></figure>`;
+  return `<figure class="m-chart">${svg}<p class="visually-hidden" id="${id}">${escape(description)}</p></figure>`;
 }

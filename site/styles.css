@@ -745,18 +745,82 @@ legend {
 .site-header h1 { padding-left: 3.5rem; padding-right: 1rem; }
 
 /* Variable-rate mortgage page */
-.m-presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: var(--gap); }
-.m-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--gap); }
-/* Single-column page: the two-column .calculator grid is for the rail layout only. */
-.m-inputs { align-items: start; }
-.m-inputs .field { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.25rem; margin: 0; }
-.m-inputs .field span { flex: none; }
-.m-inputs .field input { width: 100%; box-sizing: border-box; }
-.m-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
-.m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.75rem 1rem; }
+.m-intro { margin-top: 0; }
+.m-layout { display: flex; flex-direction: column; gap: var(--gap); }
+.m-layout > *, .m-inputs-col, .m-results-col { min-width: 0; }
+.m-results-col #mortgage-results { overflow-x: auto; }
+.m-inputs { display: flex; flex-direction: column; gap: 0.75rem; }
+.m-group, .m-optional { margin: 0; padding: 0.75rem 1rem 1rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--panel); min-width: 0; }
+.m-group legend { padding: 0; float: left; width: 100%; margin-bottom: 0.25rem; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.m-group legend + * { clear: both; }
+.m-group-summary { float: right; font-size: 0.85rem; letter-spacing: 0; text-transform: none; font-weight: 600; color: var(--focus); }
+.m-inputs .field { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 0.75rem; row-gap: 0.35rem; margin: 0.6rem 0 0; }
+.m-inputs .field[hidden] { display: none; }
+.m-inputs .field > span { grid-column: 1; grid-row: 1; flex: none; min-width: 0; }
+.m-inputs .field > input:not([type="range"]), .m-inputs .field > select { grid-column: 2; grid-row: 1; width: 7rem; box-sizing: border-box; min-height: 2rem; padding: 0.2rem 0.6rem; text-align: right; font-weight: 600; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; }
+.m-inputs .field > select { width: auto; max-width: 62vw; }
+.m-inputs .field > input[type="range"] { grid-column: 1 / -1; grid-row: 2; width: 100%; padding: 0; margin: 0; accent-color: var(--series-1); }
+.m-inputs .field > .hint-text { grid-column: 1 / -1; }
+.m-inputs .field.wide > input { grid-column: 1 / -1; grid-row: 2; width: 100%; text-align: left; }
+.m-inputs .field > input:focus-visible, .m-inputs .field > select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.m-inputs .m-group-caps .field > input:not([type="range"]) { width: 4.25rem; }
+.m-group-caps { display: grid; grid-template-columns: 1fr 1fr; column-gap: 1rem; }
+.m-group-caps > legend, .m-group-caps > .field-note { grid-column: 1 / -1; }
+.m-presets-label { margin: 0.75rem 0 0.35rem; }
+.m-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.m-presets button { min-height: 2.25rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
+.m-presets button[aria-pressed="true"] { border-color: var(--focus); color: var(--focus); font-weight: 600; }
+.m-partway, .m-optional { margin-top: 0.75rem; }
+.m-partway > summary { cursor: pointer; list-style: none; }
+.m-partway > summary::-webkit-details-marker, .m-optional > summary::-webkit-details-marker { display: none; }
+.m-edit { float: right; color: var(--focus); }
+.m-partway[open] .m-edit { display: none; }
+.m-optional { margin-top: 0; }
+.m-optional > summary { cursor: pointer; list-style: none; }
+.m-group-title { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.m-optional .m-group-summary { float: none; margin-left: 0.5rem; }
+.m-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--series-2); }
+.m-dot[hidden] { display: none; }
+.m-optional-section h3 { margin: 1rem 0 0; font-size: 0.9rem; color: var(--muted); }
+.m-actions { margin: 0.75rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.4rem 0.8rem; font: inherit; cursor: pointer; min-height: 2.25rem; }
+.m-inputs .field-note { color: var(--muted); font-size: 0.85rem; margin: 0.75rem 0 0; }
+
+.m-hero { padding: 1rem 1.25rem; border: 1px solid var(--border); border-radius: 0.6rem; background: linear-gradient(135deg, var(--panel), var(--raised-bg)); }
+.m-hero p { margin: 0; }
+.m-hero-label { color: var(--muted); font-size: 0.9rem; }
+.m-hero-figure { font-size: 2rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.m-arrow { color: var(--series-2); }
+.m-range { margin: 0.75rem 0 0; }
+.m-range-bar { position: relative; height: 0.5rem; border-radius: 0.25rem; background: linear-gradient(to right, var(--series-1), var(--series-2)); }
+.m-range-mark { position: absolute; top: -0.2rem; width: 0.2rem; height: 0.9rem; margin-left: -0.1rem; border-radius: 0.1rem; background: var(--text); }
+.m-range-labels { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.35rem; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.m-hero-sub { margin-top: 0.5rem; color: var(--muted); font-size: 0.9rem; }
+.m-strip, .m-alert { margin: 0.75rem 0 0; padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-left: 0.3rem solid var(--series-1); border-radius: 0.4rem; background: var(--bg); font-size: 0.9rem; }
+.m-alert { border-left-color: var(--series-2); }
+.m-scope { color: var(--muted); font-size: 0.9rem; }
+.m-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
+.m-tile { padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--panel); }
+.m-tile h3 { margin: 0; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
+.m-tile p { margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--muted); }
+.m-tile .m-big { font-size: 1.35rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.m-tile .m-worse { color: var(--series-2); }
+.m-tile .m-better { color: var(--series-3); }
+.m-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
+.m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem 1rem; }
 .m-card h3 { margin: 0; font-size: 0.9rem; color: var(--muted); }
 .m-card p { margin: 0.25rem 0 0; }
 .m-card .m-big { font-size: 1.5rem; font-weight: bold; }
+.m-panelbox { margin: 0.75rem 0; padding: 0.5rem 1rem 1rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--panel); }
+.m-tabs { display: flex; gap: 1.25rem; overflow-x: auto; border-bottom: 1px solid var(--rule); }
+.m-tabs button { padding: 0.6rem 0; min-height: 2.75rem; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; cursor: pointer; white-space: nowrap; }
+.m-tabs button[aria-selected="true"] { color: var(--focus); border-bottom-color: var(--focus); font-weight: 600; }
+.m-tabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.m-panel { padding-top: 0.75rem; }
+.m-panel[hidden] { display: none; }
+.m-print-title { display: none; }
+.m-chart { margin: 0; }
+.m-table-wrap { overflow-x: auto; }
 .m-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .m-table th, .m-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--rule); }
 .m-table caption { text-align: left; color: var(--muted); padding-bottom: 0.25rem; }
@@ -764,17 +828,38 @@ legend {
 .m-breakdown th { text-align: left; font-weight: normal; }
 .m-breakdown td { text-align: right; }
 .m-breakdown .m-total th, .m-breakdown .m-total td { font-weight: bold; border-top: 1px solid var(--border); }
-.m-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
-.m-chart { margin: 0; }
-.m-chart figcaption { font-weight: bold; margin-bottom: 0.25rem; }
-.m-warning { background: var(--panel); border: 1px solid var(--border); border-left: 0.3rem solid #c0392b; border-radius: 0.4rem; padding: 0.6rem 1rem; }
+
+.m-bar { display: none; }
+
+@media (max-width: 899px) {
+  body { padding-bottom: 5rem; }
+  .m-inputs .field > input:not([type="range"]), .m-inputs .field > select { min-height: 2.75rem; }
+  .m-inputs .field > input[type="range"] { min-height: 2.75rem; }
+  .m-presets button, button.ghost { min-height: 2.75rem; }
+  .m-hero-figure { font-size: 1.75rem; }
+  .m-range-labels { font-size: 0.7rem; }
+  .m-bar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 1rem; border-top: 1px solid var(--border); background: var(--panel); box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2); }
+  .m-bar-text { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  .m-bar-link { padding: 0.6rem 1rem; border-radius: 0.5rem; background: var(--series-1); color: var(--bg); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .m-bar-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+}
+@media (min-width: 900px) {
+  .m-layout { display: grid; grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  .m-results-col { display: flex; flex-direction: column; min-width: 0; }
+  .m-results-col > .m-hero-slot { position: sticky; top: 0; z-index: 2; padding: 0.5rem 0; background: var(--bg); }
+}
+@media (max-width: 340px) {
+  .m-group-caps { grid-template-columns: 1fr; }
+}
 
 @media print {
-  .m-page .m-inputs, .m-page > p, .methodology, .menu { display: none !important; }
-  .m-page #mortgage-results { display: block; }
+  .m-intro, .m-rates-link, .m-inputs-col, .m-bar, .m-tabs { display: none !important; }
+  .m-layout, .m-results-col { display: block; }
+  .m-results-col > .m-hero-slot { position: static; }
+  .m-panel[hidden] { display: block; }
+  .m-print-title { display: block; }
+  .m-hero { background: #fff; }
 }
-.m-inputs .field input[type="range"] { padding: 0; }
-.m-inputs .field-note { color: var(--muted); font-size: 0.85rem; }
 
 /* Rent vs own page */
 .ro-group .m-inputs { margin-top: 0.25rem; }
