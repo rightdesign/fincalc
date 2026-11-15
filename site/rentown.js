@@ -37,6 +37,8 @@ export const RENTOWN_FIELDS = [
   { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
   { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
+  { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
+  { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments (%)', value: 15, min: 0, max: 100 },
 ];
 
 export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, f.value]));
@@ -66,7 +68,9 @@ export function invalidRentOwn(v) {
 // Own: home value less the loan balance and selling costs. Rent: an investment
 // account that starts with the down payment and closing costs and then takes in
 // each month whatever owning costs beyond rent (or pays out the shortfall when
-// owning is cheaper), growing at the investment return.
+// owning is cheaper), growing at the investment return. Each month the tax drag
+// (never more than that month's gain) is taken from the account, and the
+// capital gains tax on what is left above the money put in is deducted at the end.
 // An optional one-time major repair (roof, HVAC) is paid by the owner in the
 // first month of its year, on top of the smoothed maintenance. It comes off
 // the Own net worth along with the return that money would have earned; Rent is
@@ -82,7 +86,10 @@ export function compareRentOwn(v) {
   const invest = (1 + v.investment / 100) ** (1 / 12);
   let balance = loan;
   let value = v.price;
+  const dragRate = v.investDrag / 100 / 12;
   let portfolio = v.price * (v.down / 100 + v.closing / 100);
+  let basis = portfolio;
+  let dragPaid = 0;
   const years = [];
   let firstOwn = 0;
   let firstRent = 0;
@@ -103,18 +110,30 @@ export function compareRentOwn(v) {
     const own = mortgage + pmi + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12 + hoa + utilities;
     const rent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn + v.renterInsurance / 12;
     if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
-    portfolio = portfolio * invest + (own - rent);
+    const gain = portfolio * (invest - 1);
+    const drag = Math.min(portfolio * dragRate, Math.max(0, gain));
+    dragPaid += drag;
+    portfolio += gain - drag;
+    const put = own - rent;
+    // Taking money out sells holdings in proportion, so it also shrinks what counts as money put in.
+    if (put < 0 && portfolio > 0) basis *= Math.max(0, portfolio + put) / portfolio;
+    else basis += put;
+    portfolio += put;
     value *= growth;
     if (m % 12 === 0) {
       const ownWorth = value * (1 - v.selling / 100) - balance - repairs;
-      years.push({ year: m / 12, own: ownWorth, rent: portfolio, difference: ownWorth - portfolio, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
+      const rentWorth = portfolio - saleTax;
+      years.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
   }
   // Owning pulls ahead for good from the year after the last year it trailed.
   const lastBehind = years.map((y) => y.difference < 0).lastIndexOf(true);
   const breakEven = lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
+  // Yearly return after the tax drag, before the tax on sale.
+  const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const cash = cashNeeded(v, firstOwn, firstRent);
-  return { years, breakEven, final: years[years.length - 1], firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash };
+  return { years, breakEven, afterTaxReturn, final: years[years.length - 1], firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash };
 }
 
 // Cash needed to buy: down payment, closing costs, moving and a reserve of

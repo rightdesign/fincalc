@@ -64,6 +64,28 @@ test('the chart marks the break-even year and describes itself', () => {
   assert.ok(!rentOwnChart(r.years, null, String).svg.includes('Break-even'));
 });
 
+test('taxing the renter\'s investments narrows the renting lead', () => {
+  const lead = (extra) => -compareRentOwn({ ...base(), ...extra }).final.difference;
+  const untaxed = lead({ investDrag: 0, capGains: 0 });
+  assert.ok(lead({ investDrag: 1, capGains: 0 }) < untaxed);
+  assert.ok(lead({ investDrag: 0, capGains: 15 }) < untaxed);
+});
+
+test('with no investment return there is no investment tax', () => {
+  const r = compareRentOwn({ ...base(), investment: 0, investDrag: 1, capGains: 50 });
+  const none = compareRentOwn({ ...base(), investment: 0, investDrag: 0, capGains: 0 });
+  near(r.final.dragPaid, 0);
+  near(r.final.saleTax, 0);
+  near(r.final.difference, none.final.difference);
+  near(compareRentOwn({ ...base(), investment: 0 }).afterTaxReturn, 0);
+});
+
+test('tax on investments is reported and the after-tax return shows the drag', () => {
+  const r = compareRentOwn(base());
+  assert.ok(r.final.dragPaid > 0 && r.final.saleTax > 0);
+  near(r.afterTaxReturn, 4.3, 1e-9);
+});
+
 test('HOA and extra utilities raise owning costs; zero reproduces the old numbers', () => {
   const t0 = compareRentOwn(base());
   near(t0.firstOwnMonthly, 3194, 1);
@@ -135,9 +157,9 @@ test('scenarios bracket the expected case and move the three rates together', ()
   assert.deepEqual(w.map((s) => s.investment), [4, 5, 6]);
 });
 
-test('T0: the expected case has renting ahead by about $27,910 after 7 years', () => {
+test('T0: the expected case has renting ahead by about $12,002 after 7 years (after investment tax)', () => {
   const exp = compareScenarios(base())[1];
-  assert.ok(Math.abs(exp.difference + 27910) < 50, String(exp.difference));
+  assert.ok(Math.abs(exp.difference + 12002) < 50, String(exp.difference));
 });
 
 test('cash needed to buy: down payment, closing, moving, reserve and the shortfall', () => {
