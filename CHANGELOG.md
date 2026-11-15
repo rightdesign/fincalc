@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.63.0] — 2026-11-15
+
+- FINC-108 The rent vs own calculator now shows a cost breakdown at the end of the stay (upfront, recurring, opportunity cost and money back from the sale) whose buckets add up to the headline gap.
+
 ## [0.62.0] — 2026-11-15
 
 - FINC-106 The rent vs own calculator now has a "What drives the verdict" section giving the home growth, rent growth, investment return, mortgage rate and maintenance values at which renting and owning tie.
