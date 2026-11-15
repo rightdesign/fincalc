@@ -72,6 +72,7 @@ export function simulate(v) {
     firstPayment: years[0].payment,
     maxPayment: Math.max(...payments),
     maxRate: Math.max(...years.map((y) => y.rate)),
+    noReset: fixedMonths >= months, // the first change falls at or after the end of the loan
     fixed: { payment: fixedPay, totalInterest: fixedInterest },
     extraInterest: sum('interest') - fixedInterest,
   };

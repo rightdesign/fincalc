@@ -81,7 +81,9 @@ function render() {
   const r = simulate(v);
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${pct(y.rate)}</td><td>${money(y.payment)}</td><td>${money(y.interest)}</td><td>${money(y.principal)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const diff = r.extraInterest;
+  const note = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedYears} years against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
   out.innerHTML = `
+    ${note}
     <div class="m-cards">
       <div class="m-card"><h3>First monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
       <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p></div>

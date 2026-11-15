@@ -55,3 +55,11 @@ test('the menu lists every calculator, and each page exists', () => {
   }
   assert.ok(html.includes('aria-current="page">Variable-rate'));
 });
+
+test('a first rate change at or past the end of the term never resets', () => {
+  const d = mortgageDefaults();
+  assert.equal(simulate(d).noReset, false);
+  assert.equal(simulate({ ...d, fixedYears: 40 }).noReset, true);
+  assert.equal(simulate({ ...d, fixedYears: 30 }).noReset, true);
+  near(simulate({ ...d, fixedYears: 40 }).extraInterest, 0);
+});
