@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
+import { addMonths, floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -81,6 +81,22 @@ test('the menu lists every calculator, and each page exists', () => {
     assert.ok(readFileSync(new URL(`../site/${c.href}`, import.meta.url), 'utf8').includes('menu.js'));
   }
   assert.ok(html.includes('aria-current="page">Variable-rate'));
+});
+
+test('total paid is principal plus interest and the monthly schedule matches the yearly one', () => {
+  const v = mortgageDefaults();
+  const r = simulate(v);
+  near(r.totalPaid, v.loan + r.totalInterest);
+  assert.equal(r.monthly.length, 360);
+  near(r.monthly.reduce((s, m) => s + m.interest, 0), r.totalInterest);
+  near(r.monthly.reduce((s, m) => s + m.payment, 0), r.totalPaid, 1);
+  near(r.monthly[359].balance, 0);
+});
+
+test('addMonths gives the calendar month and rejects a bad start', () => {
+  assert.equal(addMonths('2026-11', 359), '2056-10');
+  assert.equal(addMonths('2026-01', 0), '2026-01');
+  assert.equal(addMonths('', 5), '');
 });
 
 test('the mortgage charts mark the peak payment and describe themselves', () => {

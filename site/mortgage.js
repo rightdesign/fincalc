@@ -67,6 +67,7 @@ export function simulate(v) {
   const fixedMonths = v.fixedMonths;
   const every = v.adjustMonths;
   const years = [];
+  const monthly = [];
   let balance = v.loan;
   let rate = v.initialRate;
   let pay = payment(balance, rate, months);
@@ -88,6 +89,7 @@ export function simulate(v) {
     cur.interest += interest;
     cur.principal += principal;
     cur.balance = Math.max(0, balance);
+    monthly.push({ month: m + 1, rate, payment: m === months - 1 ? interest + principal : pay, interest, principal, balance: Math.max(0, balance) });
     if (rate !== cur.rate) { cur.rate = rate; cur.payment = pay; } // a reset mid-year shows its latest values
   }
   const sum = (key) => years.reduce((s, y) => s + y[key], 0);
@@ -96,7 +98,10 @@ export function simulate(v) {
   const payments = years.map((y) => y.payment);
   return {
     years,
+    monthly,
+    months,
     totalInterest: sum('interest'),
+    totalPaid: v.loan + sum('interest'),
     firstPayment: years[0].payment,
     maxPayment: Math.max(...payments),
     maxRate: Math.max(...years.map((y) => y.rate)),
@@ -141,4 +146,12 @@ export function floorProblem(v) {
   return v.floor > v.initialRate
     ? `The lowest possible rate (${v.floor}%) is above the starting rate (${v.initialRate}%). Lower the floor or raise the starting rate.`
     : '';
+}
+
+// The calendar month `offset` months after a "YYYY-MM" start, as "YYYY-MM"; '' when the start is not valid.
+export function addMonths(start, offset) {
+  const m = /^(\d{4})-(\d{2})$/.exec(start || '');
+  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return '';
+  const index = Number(m[1]) * 12 + Number(m[2]) - 1 + offset;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
 }
