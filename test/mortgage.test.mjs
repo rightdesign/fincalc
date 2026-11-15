@@ -83,6 +83,45 @@ test('the menu lists every calculator, and each page exists', () => {
   assert.ok(html.includes('aria-current="page">Variable-rate'));
 });
 
+test('payment-shock figures: peak year and first reset', () => {
+  const r = simulate({ ...mortgageDefaults(), rateBasis: 'change', change: 0.5 });
+  assert.equal(r.firstReset.year, 6);
+  assert.equal(r.firstReset.payment, r.years[5].payment);
+  assert.equal(r.maxPaymentYear, 15);
+  assert.equal(simulate(mortgageDefaults()).maxPaymentYear, 20);
+  const flat = simulate({ ...mortgageDefaults(), rateBasis: 'change', change: -0.5 });
+  assert.equal(flat.maxPaymentYear, 1);
+  assert.ok(r.maxPayment > r.firstPayment);
+  const short = simulate({ ...mortgageDefaults(), term: 5, fixedMonths: 60 });
+  assert.equal(short.firstReset, undefined);
+  // A change that falls mid-year reports the payment from the month it takes effect.
+  const mid = simulate({ ...mortgageDefaults(), fixedMonths: 18, adjustMonths: 6, rateBasis: 'change', change: 0.5 });
+  assert.equal(mid.firstReset.year, 2);
+  assert.equal(mid.firstReset.payment, mid.monthly[18].scheduled);
+  // An extra payment that clears the loan before the first change leaves no reset to report.
+  const early = simulate({ ...mortgageDefaults(), extra: 20000 });
+  assert.equal(early.firstReset, undefined);
+  assert.equal(early.maxPaymentYear, 1);
+});
+
+test('payment-shock figures count from the loan start when months have already elapsed', () => {
+  const base = { ...mortgageDefaults(), rateBasis: 'change', change: 0.5 };
+  const fresh = simulate(base);
+  // The first change is still ahead: 36 months from today, loan month 61.
+  const ahead = simulate({ ...base, elapsed: 24 });
+  assert.equal(ahead.firstReset.year, 6);
+  assert.equal(ahead.firstReset.payment, ahead.monthly[36].scheduled);
+  assert.equal(ahead.monthly[36].month, 61);
+  // The peak is the same month of the same loan, so it lands in the same loan year.
+  assert.equal(ahead.maxPaymentYear, fresh.maxPaymentYear);
+  // The change falls on the first month shown.
+  const now = simulate({ ...base, elapsed: 60 });
+  assert.equal(now.firstReset.payment, now.monthly[0].scheduled);
+  // The fixed period is already over: no upcoming first change to report.
+  assert.equal(simulate({ ...base, elapsed: 70 }).firstReset, undefined);
+  assert.equal(fresh.firstReset.year, 6);
+});
+
 test('ARM presets set the months before the first change and a 12-month adjustment', () => {
   assert.deepEqual(ARM_PRESETS.map((p) => p.label), ['3/1 ARM', '5/1 ARM', '7/1 ARM', '10/1 ARM']);
   assert.deepEqual(ARM_PRESETS.map((p) => p.fixedMonths), [36, 60, 84, 120]);

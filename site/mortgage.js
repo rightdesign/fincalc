@@ -130,6 +130,11 @@ export function simulate(v) {
   const fixedPay = payment(v.loan, v.initialRate, remaining);
   const fixedInterest = fixedPay * remaining - v.loan;
   const required = monthly.map((x) => x.scheduled);
+  const maxPayment = Math.max(...required);
+  const peak = required.findIndex((p) => maxPayment - p < 0.005); // within half a cent: capped months differ by float noise
+  // The month the first rate change takes effect, if it is still ahead and the loan runs that long.
+  // `monthly` starts at loan month elapsed + 1, so index it from today; years count from the loan's start.
+  const reset = elapsed <= fixedMonths ? monthly[fixedMonths - elapsed] : undefined;
   return {
     years,
     monthly,
@@ -139,7 +144,9 @@ export function simulate(v) {
     totalInterest: sum('interest'),
     totalPaid: v.loan + sum('interest'),
     firstPayment: required[0],
-    maxPayment: Math.max(...required),
+    maxPayment,
+    maxPaymentYear: Math.floor((elapsed + peak) / 12) + 1,
+    firstReset: reset && { year: Math.floor(fixedMonths / 12) + 1, payment: reset.scheduled },
     maxRate: Math.max(...years.map((y) => y.rate)),
     noReset: fixedMonths >= months, // the first change falls at or after the end of the loan
     fixed: { payment: fixedPay, totalInterest: fixedInterest },

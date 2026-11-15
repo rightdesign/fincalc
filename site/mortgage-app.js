@@ -171,7 +171,12 @@ function render() {
   const monthRows = r.monthly.map((m) => `<tr><td>${start ? monthLabel(addMonths(start, m.month - 1)) : m.month}</td><td>${pct(m.rate)}</td><td>${money(m.payment)}</td><td>${money(m.interest)}</td><td>${money(m.principal)}</td><td>${money(m.balance)}</td></tr>`).join('');
   const monthly = view === 'monthly';
   const diff = r.extraInterest;
-  const resetNote = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
+  const change = (to) => `${to >= r.firstPayment ? '+' : '−'}${money(Math.abs(to - r.firstPayment))} (${to >= r.firstPayment ? '+' : '−'}${(Math.abs(to / r.firstPayment - 1) * 100).toFixed(1)}%)`;
+  const shock = r.maxPayment > r.firstPayment
+    ? `<p>${change(r.maxPayment)} vs the first payment, first reached in year ${r.maxPaymentYear}.</p>` : '<p>No higher than the first payment.</p>';
+  const resetNote = r.firstReset
+    ? `<p>First rate change (year ${r.firstReset.year}): payment becomes ${money(r.firstReset.payment)}, ${change(r.firstReset.payment)}.</p>` : '';
+  const noResetNote = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
   const years = (n) => { const y = Math.floor(n / 12); const m = n % 12; return [y && `${y} year${y === 1 ? '' : 's'}`, m && `${m} month${m === 1 ? '' : 's'}`].filter(Boolean).join(' ') || '0 months'; };
   const extra = v.extra > 0 ? extraSavings(v) : null;
   const extraCard = extra ? `<div class="m-card"><h3>Extra ${money(v.extra)} a month</h3><p class="m-big">${money(extra.interestSaved)}</p><p>less interest, and the loan ends ${years(extra.monthsSaved)} early (after ${years(r.payoffMonths)})</p></div>` : '';
@@ -196,11 +201,11 @@ function render() {
     ? `<p class="m-warning" role="alert"><strong>Payment shock:</strong> in the worst case your payment rises from ${money(w.firstPayment)} to ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% higher) when the rate reaches ${pct(w.maxRate)}. Make sure you could afford that.</p>`
     : `<p>In the worst case your payment peaks at ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% above the first payment).</p>`;
   out.innerHTML = `
-    ${resetNote}
+    ${noResetNote}
     ${ioNote}
     <div class="m-cards">
       <div class="m-card"><h3>First required monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
-      <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p></div>
+      <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p>${shock}${resetNote}</div>
       <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p></div>
       <div class="m-card"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
       ${payoff ? `<div class="m-card"><h3>Payoff date</h3><p class="m-big">${monthLabel(payoff)}</p></div>` : ''}
