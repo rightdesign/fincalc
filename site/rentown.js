@@ -192,7 +192,25 @@ export function compareRentOwn(v) {
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
   const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax });
-  return { years, monthly, breakEven, pureBreakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+  return {
+    years,
+    monthly,
+    breakEven,
+    pureBreakEven,
+    real,
+    chartYears,
+    chartReal,
+    chartBreakEven,
+    afterTaxReturn,
+    final,
+    finalReal,
+    firstOwnMonthly: firstOwn,
+    firstRentMonthly: firstRent,
+    firstPmi,
+    totalPmi,
+    cash,
+    waterfall,
+  };
 }
 
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash
