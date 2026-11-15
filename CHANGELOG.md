@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.55.0] — 2026-11-15
+
+- FINC-096 The rent vs own calculator now includes mortgage insurance (PMI, default 0.6% of the loan per year), charged only while the loan is above 80% of the home's value and itemized in the monthly cost.
+
 ## [0.54.0] — 2026-11-15
 
 - FINC-093 The variable-rate mortgage calculator has a new layout: the payment range up front, grouped inputs, optional extras collapsed, tabbed charts with best, expected and worst cases, and a sticky payment bar on mobile.
