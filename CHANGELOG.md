@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.59.0] — 2026-11-15
+
+- FINC-102 The rent vs own calculator now accepts an optional one-time major repair (year and cost) that reduces the Own net worth from that year on and is marked in the chart and table.
+
 ## [0.58.0] — 2026-11-15
 
 - FINC-105 The rent vs own calculator now shows expected, good-for-owning and bad-for-owning cases for the home growth, rent growth and investment return, each with its own break-even year and final gap.
