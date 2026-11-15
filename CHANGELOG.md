@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.54.0] — 2026-11-15
+
+- FINC-093 The variable-rate mortgage calculator has a new layout: the payment range up front, grouped inputs, optional extras collapsed, tabbed charts with best, expected and worst cases, and a sticky payment bar on mobile.
+
 ## [0.53.0] — 2026-11-15
 
 - FINC-082 The variable-rate mortgage calculator now accepts optional home price, closing costs, PMI, property tax, homeowners insurance and HOA dues, and shows a full monthly payment breakdown and the cash needed at closing.
