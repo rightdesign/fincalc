@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.47.0] — 2026-11-15
+
+- FINC-088 The variable-rate mortgage calculator now has a slider on every input, shows the loan amount as $400,000, and states the absolute lifetime maximum rate.
+
 ## [0.46.0] — 2026-11-15
 
 - FINC-080 The variable-rate mortgage calculator now shows the total of all payments, a payoff date (enter an optional loan start month), and a toggle between the annual and monthly schedules.
