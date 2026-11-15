@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.51.0] — 2026-11-15
+
+- FINC-078 The variable-rate mortgage calculator now has 3/1, 5/1, 7/1 and 10/1 ARM preset buttons that fill in the months before the first rate change and the months between changes.
+- FINC-095 There is a new rent vs own calculator in the hamburger menu: enter a home price and today's rent to see whether buying or renting leaves you with more money after the years you plan to stay, with a break-even year, chart and year-by-year table.
+
 ## [0.50.0] — 2026-11-15
 
 - FINC-089 The variable-rate mortgage calculator has a "Months already elapsed" input, so a loan you already have starts where it is today: the remaining term, the fixed-period countdown, interest-only period, extra payments and the year-by-year table all reflect its age.
