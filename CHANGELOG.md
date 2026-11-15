@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.48.1] — 2026-11-15
+
+- FINC-092 The variable-rate mortgage calculator's sliders now match the typed value exactly, and still snap to their steps when dragged.
+
 ## [0.48.0] — 2026-11-15
 
 - FINC-084 The variable-rate mortgage calculator now keeps your inputs in the page link and in this browser, so you can share a scenario, reload without losing it, or print it.
