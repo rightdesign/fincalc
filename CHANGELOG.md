@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.65.0] — 2026-11-15
+
+- FINC-100 The rent vs own calculator now has an inflation input (default 2.5%) and a toggle to show results in today's dollars or future dollars, with the headline gap labelled by its basis.
+
 ## [0.64.0] — 2026-11-15
 
 - FINC-114 Added automated regression guardrail tests covering the must-not-lose behaviours of both calculators (no user-visible change).
