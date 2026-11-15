@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.68.0] — 2026-11-15
+
+- FINC-111 The shareable link and print output are verified and hardened: every input, including inflation and the dollars basis, survives the round trip.
+
 ## [0.67.0] — 2026-11-15
 
 - FINC-113 The rent vs own calculator now ends with a follow-through (the monthly amount a renter should invest, or the extra monthly cost of owning, with a 3-step plan) and a four-question checklist of things it does not model.
