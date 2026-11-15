@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { rentOwnChartHtml } from './rentown-chart.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -82,8 +82,35 @@ function setValues(v) {
   }
 }
 
+const presetBox = document.getElementById('rentown-presets');
+const presetName = document.getElementById('rentown-preset-name');
+for (const p of RENTOWN_PRESETS) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = p.label;
+  button.dataset.preset = p.id;
+  button.addEventListener('click', () => {
+    setValues({ ...rentOwnDefaultsFrom(values()), ...p.values });
+    message.textContent = '';
+    render();
+  });
+  presetBox.append(button);
+}
+
+// Fields the user has blanked or mistyped read as NaN; keep them as they are rather than wiping them.
+function rentOwnDefaultsFrom(v) {
+  return Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, Number.isFinite(v[f.id]) || (f.optional && v[f.id] == null) ? v[f.id] : defaults[f.id]]));
+}
+
+function showPreset(v) {
+  const match = matchRentOwnPreset(v);
+  presetName.textContent = match ? `Preset: ${match.label}` : 'Custom';
+  for (const b of presetBox.children) b.setAttribute('aria-pressed', String(b.dataset.preset === match?.id));
+}
+
 function render() {
   const v = values();
+  showPreset(v);
   const bad = invalidRentOwn(v);
   if (bad.length) {
     out.innerHTML = '';

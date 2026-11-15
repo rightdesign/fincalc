@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { RENTOWN_FIELDS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 import { CALCULATORS } from '../site/menu.js';
 
@@ -161,4 +161,20 @@ test('cash saved is optional but must be valid when given', () => {
   assert.deepEqual(invalidRentOwn({ ...base(), saved: -1 }), ['Cash you have saved, optional']);
   assert.equal(decodeRentOwn(encodeRentOwn({ ...base(), saved: 60000 })).saved, 60000);
   assert.equal(decodeRentOwn('').saved, null);
+});
+
+test('presets set the five settings together and are recognised again', () => {
+  for (const p of RENTOWN_PRESETS) {
+    const v = { ...base(), ...p.values };
+    assert.equal(matchRentOwnPreset(v), p);
+    assert.equal(matchRentOwnPreset({ ...v, down: v.down + 1 }), null);
+  }
+});
+
+test('the default inputs are the 20% down preset and 10% down changes the headline', () => {
+  assert.equal(matchRentOwnPreset(base()).id, 'down20');
+  const ftb = { ...base(), ...RENTOWN_PRESETS.find((p) => p.id === 'ftb10').values };
+  assert.equal(ftb.down, 10);
+  assert.ok(compareRentOwn(ftb).firstPmi > 0);
+  assert.notEqual(compareRentOwn(ftb).final.difference, compareRentOwn(base()).final.difference);
 });

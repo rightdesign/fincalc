@@ -41,6 +41,18 @@ export const RENTOWN_FIELDS = [
 
 export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, f.value]));
 
+// One-click starting points. Each sets down payment, rate, term, stay and maintenance together
+// and leaves everything else (price, rent, ...) as the user has it. The 20% down preset is the default set.
+export const RENTOWN_PRESETS = [
+  { id: 'ftb3', label: 'First-time buyer, 3% down', values: { down: 3, rate: 7, term: 30, years: 7, maintenance: 1 } },
+  { id: 'ftb10', label: 'First-time buyer, 10% down', values: { down: 10, rate: 7.5, term: 30, years: 7, maintenance: 1 } },
+  { id: 'down20', label: '20% down, 7-year stay', values: { down: 20, rate: 6.5, term: 30, years: 7, maintenance: 1 } },
+  { id: 'longterm', label: 'Long-term owner, 15-year stay', values: { down: 20, rate: 6.5, term: 30, years: 15, maintenance: 1.5 } },
+];
+
+// The preset whose five settings all match the inputs, or null ("Custom").
+export const matchRentOwnPreset = (v) => RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
+
 // Labels of the fields whose value is blank, unreadable or out of range.
 export function invalidRentOwn(v) {
   return RENTOWN_FIELDS.filter((f) => {
