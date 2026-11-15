@@ -95,6 +95,8 @@ export function compareRentOwn(v) {
   let firstRent = 0;
   let firstPmi = 0;
   let totalPmi = 0;
+  const upfront = portfolio;
+  const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
   for (let m = 1; m <= v.years * 12; m += 1) {
     const pmi = balance > value * 0.8 + 0.005 ? (loan * v.pmi) / 100 / 12 : 0;
@@ -107,8 +109,16 @@ export function compareRentOwn(v) {
     const yearsIn = Math.floor((m - 1) / 12);
     const hoa = v.hoa * (1 + v.hoaGrowth / 100) ** yearsIn;
     const utilities = v.utilities * (1 + v.utilitiesGrowth / 100) ** yearsIn;
-    const own = mortgage + pmi + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12 + hoa + utilities;
-    const rent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn + v.renterInsurance / 12;
+    const tax = (value * v.tax) / 100 / 12;
+    const insurance = (value * v.insurance) / 100 / 12;
+    const maintenance = (value * v.maintenance) / 100 / 12;
+    const own = mortgage + pmi + tax + insurance + maintenance + hoa + utilities;
+    const baseRent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn;
+    const rent = baseRent + v.renterInsurance / 12;
+    Object.assign(sum, {
+      mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
+      hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
+    });
     if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
     const gain = portfolio * (invest - 1);
     const drag = Math.min(portfolio * dragRate, Math.max(0, gain));
@@ -133,7 +143,32 @@ export function compareRentOwn(v) {
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const cash = cashNeeded(v, firstOwn, firstRent);
-  return { years, breakEven, afterTaxReturn, final: years[years.length - 1], firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash };
+  const final = years[years.length - 1];
+  const waterfall = costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth: final.own, invest, repairs, saleTax: final.saleTax });
+  return { years, breakEven, afterTaxReturn, final, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+}
+
+// Where the gap at the end of the stay comes from. Renting ahead = upfront cash
+// + recurring (owning costs beyond renting) + opportunity cost (growth the
+// investments earned on that money, after the tax on it) - money back from the sale. All four buckets
+// are what the model above already adds up, so they sum to -final.difference.
+// Moving costs and the cash reserve are not part of the net worth comparison.
+function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax }) {
+  const down = (v.price * v.down) / 100;
+  const closing = (v.price * v.closing) / 100;
+  const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
+  const rentCosts = sum.rent + sum.renterInsurance;
+  const recurring = ownCosts - rentCosts;
+  const opportunity = portfolio - saleTax - upfront - recurring;
+  const opportunityUpfront = upfront * (invest ** (v.years * 12) - 1);
+  const sellingCosts = (value * v.selling) / 100;
+  return {
+    upfront: { down, closing, total: upfront },
+    recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
+    opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
+    moneyBack: { value, sellingCosts, balance, repairs, total: ownWorth },
+    gap: upfront + recurring + opportunity - ownWorth,
+  };
 }
 
 // Cash needed to buy: down payment, closing costs, moving and a reserve of

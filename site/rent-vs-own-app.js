@@ -156,6 +156,7 @@ function render() {
         <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
         ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
       </tbody></table></div>
+    ${waterfallHtml(r.waterfall, v)}
     <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}</caption>
       <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>
       <tbody>${scenarioRows}</tbody></table></div>
@@ -168,6 +169,26 @@ function render() {
         <p>Monthly cost in year 1: own ${money(r.firstOwnMonthly)}${r.firstPmi > 0 ? ` (including ${money(r.firstPmi)} mortgage insurance)` : ''} · rent ${money(r.firstRentMonthly)}.</p>
         ${r.totalPmi > 0 ? `<p>Mortgage insurance over your stay: ${money(r.totalPmi)} in total, charged only while the loan is above 80% of the home&rsquo;s value.</p>` : ''}</div>
     </div>`;
+}
+
+// Where the gap comes from: four buckets that add up to how far renting is ahead (or behind).
+function waterfallHtml(w, v) {
+  const row = (label, n, cls = '') => `<tr${cls ? ` class="${cls}"` : ''}><th scope="row">${label}</th><td>${money(n)}</td></tr>`;
+  const r = w.recurring;
+  const lines = [['Mortgage payments (interest and principal)', r.mortgage], ['Mortgage insurance', r.pmi], ['Property tax', r.tax], ['Home insurance', r.insurance], ['Maintenance', r.maintenance], ['HOA dues', r.hoa], ['Extra utilities', r.utilities]]
+    .filter(([, n]) => n !== 0).map(([label, n]) => row(label, n, 'ro-sub')).join('');
+  const sign = w.gap >= 0 ? 'renting ahead by' : 'owning ahead by';
+  return `<div class="m-card ro-waterfall"><h3>Where the difference comes from (after ${v.years} ${v.years === 1 ? 'year' : 'years'})</h3>
+      <table class="m-table"><tbody>
+        ${row('Upfront: down payment and closing costs', w.upfront.total)}
+        ${row('Recurring: owning costs beyond renting', r.total)}
+        ${lines}
+        ${row('Rent and renter&rsquo;s insurance you would have paid', -(r.rent + r.renterInsurance), 'ro-sub')}
+        ${row('Opportunity cost: return forgone by tying up money in the home, after tax on the investments', w.opportunity.total)}
+        ${row('Money back: sale price less selling costs, loan payoff and any major repair', -w.moneyBack.total)}
+        <tr><th scope="row">Total: ${sign}</th><td><strong>${money(Math.abs(w.gap))}</strong></td></tr>
+      </tbody></table>
+      <p>Costs of owning are counted as positive; money back reduces the total. The mortgage payments include principal, which comes back in the loan payoff line. Moving costs and the cash reserve are not part of this comparison.</p></div>`;
 }
 
 // Inputs ride along in the address and in browser storage so a scenario survives a reload and can be shared.
