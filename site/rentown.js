@@ -24,6 +24,8 @@ export const RENTOWN_FIELDS = [
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
   { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year)', value: 0.6, min: 0, max: 5 },
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
+  { id: 'repairYear', group: 'buying', label: 'Major repair in year (0 = none)', value: 0, min: 0, max: 50, integer: true },
+  { id: 'repairCost', group: 'buying', label: 'Major repair cost ($, one time)', value: 0, min: 0, money: true },
   { id: 'hoa', group: 'buying', label: 'HOA dues ($ per month)', value: 0, min: 0, money: true },
   { id: 'hoaGrowth', group: 'buying', label: 'HOA dues growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'utilities', group: 'buying', label: 'Extra utilities vs. renting ($ per month; renters usually pay some too)', value: 0, min: 0, money: true },
@@ -53,6 +55,10 @@ export function invalidRentOwn(v) {
 // account that starts with the down payment and closing costs and then takes in
 // each month whatever owning costs beyond rent (or pays out the shortfall when
 // owning is cheaper), growing at the investment return.
+// An optional one-time major repair (roof, HVAC) is paid by the owner in the
+// first month of its year, on top of the smoothed maintenance. It comes off
+// the Own net worth along with the return that money would have earned; Rent is
+// unaffected.
 // PMI is charged on the original loan each month while the balance is above 80%
 // of the home's value then, so it stops by itself once paying down the loan and
 // appreciation reach that point.
@@ -70,12 +76,15 @@ export function compareRentOwn(v) {
   let firstRent = 0;
   let firstPmi = 0;
   let totalPmi = 0;
+  let repairs = 0;
   for (let m = 1; m <= v.years * 12; m += 1) {
     const pmi = balance > value * 0.8 + 0.005 ? (loan * v.pmi) / 100 / 12 : 0;
     totalPmi += pmi;
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
     balance = Math.max(0, balance + interest - mortgage);
+    const repair = v.repairYear > 0 && m === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
+    repairs = repairs * invest + repair;
     const yearsIn = Math.floor((m - 1) / 12);
     const hoa = v.hoa * (1 + v.hoaGrowth / 100) ** yearsIn;
     const utilities = v.utilities * (1 + v.utilitiesGrowth / 100) ** yearsIn;
@@ -85,8 +94,8 @@ export function compareRentOwn(v) {
     portfolio = portfolio * invest + (own - rent);
     value *= growth;
     if (m % 12 === 0) {
-      const ownWorth = value * (1 - v.selling / 100) - balance;
-      years.push({ year: m / 12, own: ownWorth, rent: portfolio, difference: ownWorth - portfolio });
+      const ownWorth = value * (1 - v.selling / 100) - balance - repairs;
+      years.push({ year: m / 12, own: ownWorth, rent: portfolio, difference: ownWorth - portfolio, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
   }
   // Owning pulls ahead for good from the year after the last year it trailed.

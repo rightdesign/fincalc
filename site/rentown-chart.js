@@ -30,6 +30,13 @@ export function rentOwnChart(years, breakEven, fmt) {
   }
   svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
   svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  const repair = years.find((y) => y.repair);
+  if (repair) {
+    const x = sx(repair.year);
+    const anchor = repair.year > (xMin + xMax) / 2 ? 'end' : 'start';
+    svg += `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="grid" stroke-dasharray="2 3"/>`;
+    svg += `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8}" text-anchor="${anchor}" font-size="10">Major repair: year ${repair.year}</text>`;
+  }
   svg += `<path d="${line('own')}" fill="none" style="stroke:var(--series-1)" stroke-width="2.5"/>`;
   svg += `<path d="${line('rent')}" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4"/>`;
   const last = years[years.length - 1];
@@ -45,7 +52,7 @@ export function rentOwnChart(years, breakEven, fmt) {
   }
   svg += '</svg>';
 
-  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}. ${breakEven == null ? 'Owning does not catch up within your stay.' : `Owning pulls ahead in year ${breakEven}.`} The values for every year are in the table beside the chart.`;
+  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}. ${breakEven == null ? 'Owning does not catch up within your stay.' : `Owning pulls ahead in year ${breakEven}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The values for every year are in the table beside the chart.`;
   return { svg, description };
 }
 

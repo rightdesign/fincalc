@@ -101,6 +101,26 @@ test('PMI is zero at 20% down', () => {
   assert.equal(compareRentOwn({ ...base(), pmi: 0 }).final.difference, r.final.difference);
 });
 
+test('a major repair lowers only the Own net worth from its year on, by the cost plus lost return', () => {
+  const a = compareRentOwn(base());
+  const b = compareRentOwn({ ...base(), repairYear: 5, repairCost: 25000 });
+  for (const y of [1, 2, 3, 4]) near(b.years[y - 1].difference, a.years[y - 1].difference);
+  for (const y of b.years) near(y.rent, a.years[y.year - 1].rent);
+  const drop5 = a.years[4].own - b.years[4].own;
+  assert.ok(drop5 >= 25000 && drop5 < 25000 * 1.05, `${drop5}`);
+  near(a.years[5].own - b.years[5].own, drop5 * 1.05 ** (1 / 1) , 25);
+  assert.deepEqual(b.years.map((y) => y.repair), [false, false, false, false, true, false, false]);
+  assert.ok(b.breakEven == null || b.breakEven >= a.breakEven);
+  assert.ok(rentOwnChart(b.years, b.breakEven, String).svg.includes('Major repair: year 5'));
+  assert.ok(!rentOwnChart(a.years, a.breakEven, String).svg.includes('Major repair'));
+});
+
+test('a repair after the stay has no effect, and the repair inputs are validated', () => {
+  const a = compareRentOwn(base());
+  assert.deepEqual(compareRentOwn({ ...base(), repairYear: 9, repairCost: 5000 }).years.map((y) => y.own), a.years.map((y) => y.own));
+  assert.deepEqual(invalidRentOwn({ ...base(), repairYear: 2.5, repairCost: -1 }), ['Major repair in year', 'Major repair cost']);
+});
+
 test('scenarios bracket the expected case and move the three rates together', () => {
   const v = base();
   const [opt, exp, pes] = compareScenarios(v);

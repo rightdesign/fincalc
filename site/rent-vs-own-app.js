@@ -113,7 +113,7 @@ function render() {
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
-  const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
+  const rows = r.years.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
   const pct = (n) => `${Math.round(n * 100) / 100}%`;
   const scenarioRows = compareScenarios(v).map((s) => `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${s.difference >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(s.difference))}</td></tr>`).join('');
   out.innerHTML = `
