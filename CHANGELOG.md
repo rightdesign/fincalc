@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.50.0] — 2026-11-15
+
+- FINC-089 The variable-rate mortgage calculator has a "Months already elapsed" input, so a loan you already have starts where it is today: the remaining term, the fixed-period countdown, interest-only period, extra payments and the year-by-year table all reflect its age.
+
 ## [0.49.0] — 2026-11-15
 
 - FINC-086 The variable-rate mortgage calculator now models a monthly extra payment, an interest-only period at the start, and a refinance-timing comparison with its break-even point.
