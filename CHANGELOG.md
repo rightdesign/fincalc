@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.72.1] — 2026-11-15
+
+- FINC-121 Dollar amounts on the variable-rate mortgage calculator now show thousands commas while you type, so 1,700,000 is easy to tell from 17,000,000.
+
 ## [0.72.0] — 2026-11-15
 
 - FINC-120 The variable-rate mortgage calculator has a new look inspired by the Vanguard personal investor site: a white, near-black and deep-red palette, Helvetica-style type, underline tabs and cleaner charts with larger labels.
