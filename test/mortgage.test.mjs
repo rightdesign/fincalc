@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
+import { MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -190,4 +190,82 @@ test('every numeric mortgage input has a slider that holds its default within th
     assert.ok(f.value >= f.slider.min && f.value <= f.slider.max, `${f.id} default is on its slider`);
     assert.ok(f.slider.min >= f.min && (f.max === undefined || f.slider.max <= f.max), `${f.id} slider stays within limits`);
   }
+});
+
+const fixedLoan = { ...mortgageDefaults(), rateBasis: 'change', change: 0 };
+
+test('an extra monthly payment shortens the loan, saves interest and leaves the required payment alone', () => {
+  const base = simulate(fixedLoan);
+  const r = simulate({ ...fixedLoan, extra: 500 });
+  assert.ok(r.payoffMonths < 360);
+  assert.equal(r.monthly.length, r.payoffMonths);
+  near(r.monthly[r.payoffMonths - 1].balance, 0);
+  near(r.monthly.reduce((s, m) => s + m.principal, 0), fixedLoan.loan, 0.5);
+  near(r.firstPayment, base.firstPayment);
+  near(r.monthly[0].payment, base.firstPayment + 500);
+  assert.ok(r.totalInterest < base.totalInterest);
+  const s = extraSavings({ ...fixedLoan, extra: 500 });
+  near(s.interestSaved, base.totalInterest - r.totalInterest);
+  assert.equal(s.monthsSaved, 360 - r.payoffMonths);
+  assert.equal(extraSavings(fixedLoan).monthsSaved, 0);
+});
+
+test('an interest-only period pays interest first, then jumps to a payment that repays the loan', () => {
+  const v = { ...fixedLoan, ioMonths: 60 };
+  const r = simulate(v);
+  near(r.monthly[0].payment, 400000 * 0.055 / 12);
+  near(r.monthly[59].balance, 400000);
+  assert.ok(r.monthly[60].payment > r.monthly[59].payment);
+  near(r.monthly[60].payment, payment(400000, 5.5, 300));
+  near(r.monthly[359].balance, 0);
+  assert.equal(r.firstPayment, r.monthly[0].scheduled);
+  assert.ok(r.totalInterest > simulate(fixedLoan).totalInterest);
+});
+
+test('interest-only combines with resets and extra payments', () => {
+  const r = simulate({ ...mortgageDefaults(), ioMonths: 72, extra: 200 });
+  near(r.monthly[0].principal, 200);
+  assert.ok(r.monthly[71].balance < 400000);
+  near(r.monthly[r.payoffMonths - 1].balance, 0);
+});
+
+test('an interest-only period as long as the loan is reported', () => {
+  assert.equal(loanProblem(mortgageDefaults()), '');
+  assert.match(loanProblem({ ...mortgageDefaults(), ioMonths: 360 }), /shorter than the loan term/);
+  assert.match(loanProblem({ ...mortgageDefaults(), refiMonth: 400 }), /nothing to refinance/);
+});
+
+test('refinancing reports the balance, the new payment, the totals and the break-even month', () => {
+  assert.equal(refinance(mortgageDefaults()), null);
+  const v = { ...fixedLoan, refiMonth: 60, refiRate: 4.5, refiTerm: 25, refiCosts: 4000 };
+  const r = refinance(v);
+  near(r.balance, simulate(fixedLoan).monthly[59].balance);
+  near(r.refiPayment, payment(r.balance, 4.5, 300));
+  near(r.stayPayment, payment(400000, 5.5, 360));
+  assert.ok(r.refiPayment < r.stayPayment);
+  assert.equal(r.refiMonths, 300);
+  assert.equal(r.stayMonths, 300);
+  near(r.savings, r.stayTotal - r.refiTotal);
+  assert.ok(r.savings > 0);
+  assert.ok(r.breakEvenMonths > 0 && r.breakEvenMonths < 60);
+  const cum = (rate) => refinance({ ...v, refiRate: rate });
+  assert.equal(cum(5.5).breakEvenMonths, null); // same rate, so the costs are never recovered
+  assert.equal(refinance({ ...v, refiCosts: 0 }).breakEvenMonths, 0);
+});
+
+test('refinancing keeps the monthly extra payment on both loans', () => {
+  const v = { ...fixedLoan, extra: 300, refiMonth: 36, refiRate: 5, refiTerm: 30, refiCosts: 0 };
+  const r = refinance(v);
+  assert.ok(r.refiMonths < 360 && r.stayMonths < 360 - 36);
+  near(r.refiPayment, payment(r.balance, 5, 360) + 300);
+});
+
+test('the new options round-trip and only show the refinance fields when asked', () => {
+  const v = { ...mortgageDefaults(), extra: 250, ioMonths: 24, refiMonth: 48 };
+  assert.equal(encodeMortgage(v), 'extra=250&ioMonths=24&refiMonth=48');
+  assert.deepEqual(decodeMortgage(encodeMortgage(v)), v);
+  assert.deepEqual(invalidFields(mortgageDefaults()), []);
+  assert.deepEqual(invalidFields({ ...mortgageDefaults(), refiRate: NaN }), []);
+  assert.deepEqual(invalidFields({ ...mortgageDefaults(), refiMonth: 12, refiRate: NaN }), ['New fixed rate (%)']);
+  assert.deepEqual(invalidFields({ ...mortgageDefaults(), extra: -5 }), ['Extra payment each month ($)']);
 });

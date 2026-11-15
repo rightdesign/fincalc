@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, scenarios, simulate } from './mortgage.js';
+import { INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -139,7 +139,7 @@ function render() {
     out.append(p);
     return;
   }
-  const conflict = floorProblem(v);
+  const conflict = floorProblem(v) || loanProblem(v);
   if (conflict) {
     out.innerHTML = '';
     const p = document.createElement('p');
@@ -151,12 +151,28 @@ function render() {
   }
   const r = simulate(v);
   const start = startInput.value;
-  const payoff = addMonths(start, r.months - 1);
+  const payoff = addMonths(start, r.payoffMonths - 1);
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${pct(y.rate)}</td><td>${money(y.payment)}</td><td>${money(y.interest)}</td><td>${money(y.principal)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const monthRows = r.monthly.map((m) => `<tr><td>${start ? monthLabel(addMonths(start, m.month - 1)) : m.month}</td><td>${pct(m.rate)}</td><td>${money(m.payment)}</td><td>${money(m.interest)}</td><td>${money(m.principal)}</td><td>${money(m.balance)}</td></tr>`).join('');
   const monthly = view === 'monthly';
   const diff = r.extraInterest;
   const resetNote = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
+  const years = (n) => { const y = Math.floor(n / 12); const m = n % 12; return [y && `${y} year${y === 1 ? '' : 's'}`, m && `${m} month${m === 1 ? '' : 's'}`].filter(Boolean).join(' ') || '0 months'; };
+  const extra = v.extra > 0 ? extraSavings(v) : null;
+  const extraCard = extra ? `<div class="m-card"><h3>Extra ${money(v.extra)} a month</h3><p class="m-big">${money(extra.interestSaved)}</p><p>less interest, and the loan ends ${years(extra.monthsSaved)} early (after ${years(r.payoffMonths)})</p></div>` : '';
+  const ioNote = v.ioMonths > 0 ? `<p role="note">The first ${v.ioMonths} months are interest only: the required payment is ${money(r.firstPayment)}, then it is recalculated to repay the balance over the remaining ${years(r.months - v.ioMonths)}.</p>` : '';
+  const refi = refinance(v);
+  const refiHtml = refi ? `
+    <h2>Refinance after ${years(v.refiMonth)}</h2>
+    <p>Replace the loan's remaining balance of ${money(refi.balance)} with a fixed ${pct(v.refiRate)} loan over ${v.refiTerm} years, paying ${money(refi.costs)} in closing costs.${v.extra > 0 ? ' The monthly extra payment continues on both.' : ''}</p>
+    <table class="m-table"><caption>Keeping this loan compared with refinancing, from the refinance month to payoff</caption>
+      <thead><tr><th scope="col"></th><th scope="col">Keep this loan</th><th scope="col">Refinance</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Monthly payment</th><td>${money(refi.stayPayment)}</td><td>${money(refi.refiPayment)}</td></tr>
+        <tr><th scope="row">Months left to payoff</th><td>${refi.stayMonths}</td><td>${refi.refiMonths}</td></tr>
+        <tr><th scope="row">Total paid from then on (refinance includes closing costs)</th><td>${money(refi.stayTotal)}</td><td>${money(refi.refiTotal)}</td></tr>
+      </tbody></table>
+    <p>${refi.savings >= 0 ? `Refinancing costs ${money(refi.savings)} less in total` : `Refinancing costs ${money(-refi.savings)} more in total`}. ${refi.breakEvenMonths === null ? 'Its cumulative cost never drops below keeping the loan.' : refi.breakEvenMonths === 0 ? 'There are no closing costs to recover.' : `The closing costs are recovered after ${years(refi.breakEvenMonths)}, which is the break-even point.`} The comparison ignores that a different payoff time changes how long each loan ties up your money, and it assumes the new loan has a fixed rate.</p>` : '';
   const sc = scenarios(v);
   const names = { best: 'Best case', expected: 'Expected case', worst: 'Worst case' };
   const scRows = Object.entries(sc).map(([k, s]) => `<tr><th scope="row">${names[k]}</th><td>${pct(s.maxRate)}</td><td>${money(s.maxPayment)}</td><td>${s.shock >= 0 ? '+' : '−'}${Math.abs(Math.round(s.shock * 100))}%</td><td>${money(s.totalInterest)}</td></tr>`).join('');
@@ -166,12 +182,14 @@ function render() {
     : `<p>In the worst case your payment peaks at ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% above the first payment).</p>`;
   out.innerHTML = `
     ${resetNote}
+    ${ioNote}
     <div class="m-cards">
-      <div class="m-card"><h3>First monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
+      <div class="m-card"><h3>First required monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
       <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p></div>
       <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p></div>
       <div class="m-card"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
       ${payoff ? `<div class="m-card"><h3>Payoff date</h3><p class="m-big">${monthLabel(payoff)}</p></div>` : ''}
+      ${extraCard}
       <div class="m-card"><h3>Compared with holding ${pct(v.initialRate)}</h3><p class="m-big">${money(Math.abs(diff))} ${diff >= 0 ? 'more' : 'less'}</p><p>interest than a fixed loan at the starting rate (${money(r.fixed.payment)} a month, ${money(r.fixed.totalInterest)} interest).</p></div>
     </div>
     <div class="m-charts">
@@ -183,9 +201,10 @@ function render() {
     <table class="m-table"><caption>Scenarios: best lowers the rate by the full per-adjustment cap at every reset, worst raises it by the full cap each time up to the lifetime cap</caption>
       <thead><tr><th scope="col">Scenario</th><th scope="col">Peak rate</th><th scope="col">Highest monthly payment</th><th scope="col">Rise over first payment</th><th scope="col">Total interest</th></tr></thead>
       <tbody>${scRows}</tbody></table>
+    ${refiHtml}
     <p><button type="button" id="mortgage-view" aria-pressed="${monthly}">${monthly ? 'Show annual schedule' : 'Show monthly schedule'}</button></p>
     <table class="m-table"><caption>${monthly ? 'Month by month' : 'Year by year (rate and payment shown as of year end)'}</caption>
-      <thead><tr><th scope="col">${monthly ? (start ? 'Month' : 'Month number') : 'Year'}</th><th scope="col">Rate</th><th scope="col">Monthly payment</th><th scope="col">Interest paid</th><th scope="col">Principal paid</th><th scope="col">Ending balance</th></tr></thead>
+      <thead><tr><th scope="col">${monthly ? (start ? 'Month' : 'Month number') : 'Year'}</th><th scope="col">Rate</th><th scope="col">Monthly payment${v.extra > 0 ? ' (with extra)' : ''}</th><th scope="col">Interest paid</th><th scope="col">Principal paid</th><th scope="col">Ending balance</th></tr></thead>
       <tbody>${monthly ? monthRows : rows}</tbody></table>`;
 }
 

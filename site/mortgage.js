@@ -30,6 +30,12 @@ export const MORTGAGE_FIELDS = [
   { id: 'periodicCap', label: 'Cap on each later adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at each reset after the first, up or down (a 2/1/5 loan allows 1).', slider: { min: 0, max: 10, step: 0.25 } },
   { id: 'lifetimeCap', label: 'Cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.25 } },
   { id: 'floor', label: 'Lowest possible rate (%)', value: 2, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'extra', label: 'Extra payment each month ($)', value: 0, min: 0, money: true, hint: 'Paid on top of the required payment every month and applied to the balance. It shortens the loan; the required payment is unchanged.', slider: { min: 0, max: 5000, step: 50 } },
+  { id: 'ioMonths', label: 'Interest-only months at the start', value: 0, min: 0, max: 600, integer: true, hint: 'For this many months the required payment covers interest only. After that it is recalculated to repay the balance over the months left. Negative amortization (payment-option loans) is not modelled.', slider: { min: 0, max: 120, step: 1 } },
+  { id: 'refiMonth', label: 'Refinance after this many months (0 = do not compare)', value: 0, min: 0, max: 600, integer: true, hint: 'Compares keeping this loan with replacing it, after this many payments, by a new fixed-rate loan.', slider: { min: 0, max: 360, step: 1 } },
+  { id: 'refiRate', label: 'New fixed rate (%)', value: 5, min: 0, max: 30, showIf: (v) => v.refiMonth > 0, slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'refiTerm', label: 'New loan term (years)', value: 30, min: 1, max: 50, integer: true, showIf: (v) => v.refiMonth > 0, slider: { min: 1, max: 40, step: 1 } },
+  { id: 'refiCosts', label: 'Refinance closing costs ($)', value: 4000, min: 0, money: true, showIf: (v) => v.refiMonth > 0, hint: 'Paid in cash when you refinance, not added to the new loan.', slider: { min: 0, max: 30000, step: 250 } },
 ];
 
 // Parses what a person typed into a number: "$400,000" and "400000" both give 400000.
@@ -71,53 +77,118 @@ export function rateAfter(v, adjustments) {
 }
 
 // Month-by-month simulation, summed by year. Returns the yearly rows and totals,
-// plus the same loan held at the starting rate for comparison.
+// plus the same loan held at the starting rate for comparison. The required
+// payment covers interest only for the first `ioMonths` months, then repays the
+// balance over the months left; `extra` is paid on top each month, so the loan
+// can end early (the rows then stop at the payoff month).
 export function simulate(v) {
   const months = Math.round(v.term * 12);
   const fixedMonths = v.fixedMonths;
   const every = v.adjustMonths;
+  const extra = v.extra || 0;
+  const io = Math.min(v.ioMonths || 0, months);
   const years = [];
   const monthly = [];
   let balance = v.loan;
   let rate = v.initialRate;
-  let pay = payment(balance, rate, months);
+  let pay = io > 0 ? balance * rate / 100 / 12 : payment(balance, rate, months);
   let adjustments = 0;
   let cur = null;
-  for (let m = 0; m < months; m += 1) {
-    if (m >= fixedMonths && (m - fixedMonths) % every === 0) {
+  for (let m = 0; m < months && balance > 0; m += 1) {
+    const reset = m >= fixedMonths && (m - fixedMonths) % every === 0;
+    if (reset) {
       adjustments += 1;
       rate = rateAfter(v, adjustments);
-      pay = payment(balance, rate, months - m);
     }
+    if (m >= io && (reset || m === io)) pay = payment(balance, rate, months - m);
+    const interest = balance * rate / 100 / 12;
+    const scheduled = m < io ? interest : pay;
     if (m % 12 === 0) {
-      cur = { year: m / 12 + 1, rate, payment: pay, interest: 0, principal: 0, balance };
+      cur = { year: m / 12 + 1, rate, payment: scheduled + extra, scheduled, interest: 0, principal: 0, balance };
       years.push(cur);
     }
-    const interest = balance * rate / 100 / 12;
-    const principal = m === months - 1 ? balance : Math.min(balance, pay - interest);
-    balance -= principal;
+    const last = m === months - 1;
+    const owed = Math.min(balance, extra + Math.max(0, scheduled - interest));
+    const principal = last ? balance : owed;
+    balance = last || balance - principal < 0.005 ? 0 : balance - principal;
     cur.interest += interest;
     cur.principal += principal;
-    cur.balance = Math.max(0, balance);
-    monthly.push({ month: m + 1, rate, payment: m === months - 1 ? interest + principal : pay, interest, principal, balance: Math.max(0, balance) });
-    if (rate !== cur.rate) { cur.rate = rate; cur.payment = pay; } // a reset mid-year shows its latest values
+    cur.balance = balance;
+    monthly.push({ month: m + 1, rate, payment: interest + principal, scheduled, interest, principal, balance });
+    cur.rate = rate; // the row shows the rate and payment in force at year end
+    cur.payment = scheduled + extra;
+    cur.scheduled = scheduled;
   }
   const sum = (key) => years.reduce((s, y) => s + y[key], 0);
   const fixedPay = payment(v.loan, v.initialRate, months);
   const fixedInterest = fixedPay * months - v.loan;
-  const payments = years.map((y) => y.payment);
+  const required = monthly.map((x) => x.scheduled);
   return {
     years,
     monthly,
     months,
+    payoffMonths: monthly.length,
     totalInterest: sum('interest'),
     totalPaid: v.loan + sum('interest'),
-    firstPayment: years[0].payment,
-    maxPayment: Math.max(...payments),
+    firstPayment: required[0],
+    maxPayment: Math.max(...required),
     maxRate: Math.max(...years.map((y) => y.rate)),
     noReset: fixedMonths >= months, // the first change falls at or after the end of the loan
     fixed: { payment: fixedPay, totalInterest: fixedInterest },
     extraInterest: sum('interest') - fixedInterest,
+  };
+}
+
+// How much interest and time the monthly extra payment saves: the same loan with and without it.
+export function extraSavings(v) {
+  const base = simulate({ ...v, extra: 0 });
+  const r = simulate(v);
+  return { interestSaved: base.totalInterest - r.totalInterest, monthsSaved: base.payoffMonths - r.payoffMonths };
+}
+
+// Compares keeping the loan with refinancing it after `refiMonth` payments into a new fixed-rate
+// loan (with the same monthly extra and the closing costs paid in cash). Returns null when no
+// refinance is asked for or the loan is already paid off by then. `breakEvenMonths` counts months
+// after the refinance until the cumulative cost of refinancing drops to the cost of staying (null if never).
+export function refinance(v) {
+  const k = v.refiMonth;
+  if (!(k > 0)) return null;
+  const stay = simulate(v);
+  if (k >= stay.monthly.length) return null;
+  const balance = stay.monthly[k - 1].balance;
+  const n = Math.round(v.refiTerm * 12);
+  const pay = payment(balance, v.refiRate, n);
+  const extra = v.extra || 0;
+  const rate = v.refiRate / 100 / 12;
+  const stayPaid = stay.monthly.slice(k).map((m) => m.payment);
+  const refiPaid = [];
+  let owed = balance;
+  while (owed > 0 && refiPaid.length < n) {
+    const interest = owed * rate;
+    const principal = refiPaid.length === n - 1 ? owed : Math.min(owed, extra + Math.max(0, pay - interest));
+    refiPaid.push(interest + principal);
+    owed = refiPaid.length === n || owed - principal < 0.005 ? 0 : owed - principal;
+  }
+  const costs = v.refiCosts || 0;
+  let stayCum = 0;
+  let refiCum = costs;
+  let breakEvenMonths = costs <= 0 ? 0 : null;
+  for (let t = 0; t < Math.max(stayPaid.length, refiPaid.length); t += 1) {
+    stayCum += stayPaid[t] || 0;
+    refiCum += refiPaid[t] || 0;
+    if (breakEvenMonths === null && refiCum <= stayCum) breakEvenMonths = t + 1;
+  }
+  return {
+    balance,
+    stayPayment: stay.monthly[k].scheduled + extra,
+    refiPayment: pay + extra,
+    costs,
+    stayMonths: stayPaid.length,
+    refiMonths: refiPaid.length,
+    stayTotal: stayCum,
+    refiTotal: refiCum,
+    savings: stayCum - refiCum,
+    breakEvenMonths,
   };
 }
 
@@ -148,6 +219,15 @@ export function invalidFields(v) {
     if (f.type === 'select') return !f.options.some((o) => o.value === n);
     return !Number.isFinite(n) || n < f.min || (f.max !== undefined && n > f.max) || (f.integer && !Number.isInteger(n));
   }).map((f) => f.label);
+}
+
+// Returns a message when the interest-only period swallows the whole loan, or the refinance
+// month falls after the loan is paid off; '' when the loan options are consistent.
+export function loanProblem(v) {
+  const months = Math.round(v.term * 12);
+  if (v.ioMonths >= months) return `The interest-only period (${v.ioMonths} months) must be shorter than the loan term (${months} months).`;
+  if (v.refiMonth > 0 && v.refiMonth >= simulate(v).monthly.length) return `The loan is paid off before month ${v.refiMonth}, so there is nothing to refinance. Lower the refinance month.`;
+  return '';
 }
 
 // Returns a message when the floor sits above the starting rate (a rate that

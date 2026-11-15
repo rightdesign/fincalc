@@ -44,6 +44,10 @@
           <dd>The most the rate can rise above the starting rate over the whole loan.</dd>
           <dt>Floor</dt>
           <dd>The lowest rate the loan can ever have, even if the index falls further.</dd>
+          <dt>Interest-only period</dt>
+          <dd>A stretch at the start when the required payment covers only interest, so the balance does not fall (apart from any extra you pay). The payment rises when it ends.</dd>
+          <dt>Break-even point</dt>
+          <dd>How long after a refinance it takes for the money saved on payments to cover the closing costs.</dd>
           <dt>Payment shock</dt>
           <dd>A large jump in the monthly payment after a reset. This calculator flags it when the worst-case payment is 25% or more above the first payment.</dd>
         </dl>
@@ -77,7 +81,10 @@
           <li>The first reset comes after the initial period. Later resets come at the interval you set. With index + margin, the rate at each reset targets the index plus the margin, where the index starts at the value you enter and moves by your assumed change at every reset. With a fixed change, the target is the previous rate plus that change. Either way the move is limited by the cap on the first adjustment or on each later one, then held between the lowest possible rate and the starting rate plus the lifetime cap. The index values offered when you pick an index are illustrative; enter the current published figure.</li>
           <li>Best, expected and worst case: the expected case uses your assumed change. The best case lowers the rate by the full cap on a single adjustment at every reset, down to the lowest possible rate. The worst case raises it by the full cap at every reset, up to the starting rate plus the lifetime cap. A payment rise of 25% or more over the first payment in the worst case is flagged as payment shock.</li>
           <li>The comparison is the same loan held at the starting rate for the whole term.</li>
-          <li>Not modelled: fees, points, taxes, insurance, extra payments, and rates that move by different amounts at different resets.</li>
+          <li>Extra payment: the amount you enter is paid on top of the required payment every month and goes entirely to principal. The required payment is not lowered, so the loan ends early. One-time lump sums are not modelled.</li>
+          <li>Interest only: for the months you enter, the required payment is the month's interest. Afterwards it is recalculated, as at a reset, to repay the balance over the months left in the term, so it jumps. Payment-option loans that let the balance grow (negative amortization) are not modelled.</li>
+          <li>Refinance: after the number of payments you enter, the remaining balance is replaced by a new fixed-rate loan with the rate and term you give. Closing costs are paid in cash at that point. Both paths are totalled from the refinance month until each is paid off, and the break-even point is the first month the refinance's cumulative cost, costs included, is no more than keeping the loan. Any extra payment continues on both.</li>
+          <li>Not modelled: fees, points, taxes, insurance, one-time lump-sum payments, and rates that move by different amounts at different resets.</li>
         </ul>
       </details>
     </section>
