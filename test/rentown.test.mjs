@@ -64,6 +64,24 @@ test('the chart marks the break-even year and describes itself', () => {
   assert.ok(!rentOwnChart(r.years, null, String).svg.includes('Break-even'));
 });
 
+test('HOA and extra utilities raise owning costs; zero reproduces the old numbers', () => {
+  const t0 = compareRentOwn(base());
+  near(t0.firstOwnMonthly, 3194, 1);
+  const hoa = compareRentOwn({ ...base(), hoa: 250 });
+  near(hoa.firstOwnMonthly - t0.firstOwnMonthly, 250);
+  const lead = (r) => r.final.rent - r.final.own;
+  const grown = lead(hoa) - lead(t0);
+  assert.ok(grown > 21000, `${grown}`);
+  const util = compareRentOwn({ ...base(), utilities: 100 });
+  near(util.firstOwnMonthly - t0.firstOwnMonthly, 100);
+});
+
+test('HOA growth steps once a year and round-trips through the URL', () => {
+  const v = { ...base(), hoa: 300, hoaGrowth: 10, utilities: 120, utilitiesGrowth: 5 };
+  assert.deepEqual(decodeRentOwn(encodeRentOwn(v)), v);
+  assert.deepEqual(invalidRentOwn(v), []);
+});
+
 test('PMI applies below 20% down, drops off at 80% loan-to-value and moves break-even', () => {
   const nw = { ...base(), price: 400000, down: 10, rate: 7.5, years: 30 };
   const r = compareRentOwn(nw);

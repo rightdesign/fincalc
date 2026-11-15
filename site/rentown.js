@@ -24,6 +24,10 @@ export const RENTOWN_FIELDS = [
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
   { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year)', value: 0.6, min: 0, max: 5 },
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
+  { id: 'hoa', group: 'buying', label: 'HOA dues ($ per month)', value: 0, min: 0, money: true },
+  { id: 'hoaGrowth', group: 'buying', label: 'HOA dues growth (% per year)', value: 3, min: -20, max: 30 },
+  { id: 'utilities', group: 'buying', label: 'Extra utilities vs. renting ($ per month; renters usually pay some too)', value: 0, min: 0, money: true },
+  { id: 'utilitiesGrowth', group: 'buying', label: 'Utilities growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'growth', group: 'buying', label: 'Home value growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'rent', group: 'renting', label: 'Monthly rent ($)', value: 2300, min: 1, money: true },
   { id: 'rentGrowth', group: 'renting', label: 'Rent growth (% per year)', value: 3, min: -20, max: 30 },
@@ -72,8 +76,11 @@ export function compareRentOwn(v) {
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
     balance = Math.max(0, balance + interest - mortgage);
-    const own = mortgage + pmi + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12;
-    const rent = v.rent * (1 + v.rentGrowth / 100) ** Math.floor((m - 1) / 12) + v.renterInsurance / 12;
+    const yearsIn = Math.floor((m - 1) / 12);
+    const hoa = v.hoa * (1 + v.hoaGrowth / 100) ** yearsIn;
+    const utilities = v.utilities * (1 + v.utilitiesGrowth / 100) ** yearsIn;
+    const own = mortgage + pmi + (value * (v.tax + v.insurance + v.maintenance)) / 100 / 12 + hoa + utilities;
+    const rent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn + v.renterInsurance / 12;
     if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
     portfolio = portfolio * invest + (own - rent);
     value *= growth;
