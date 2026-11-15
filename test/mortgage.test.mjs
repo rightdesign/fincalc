@@ -313,7 +313,7 @@ test('every numeric mortgage input has a slider that holds its default within th
 test('months already elapsed shortens the term and the fixed period', () => {
   const base = { ...mortgageDefaults(), loan: 1516256, term: 30, initialRate: 2.25, fixedMonths: 84, lifetimeCap: 5 };
   const aged = simulate({ ...base, elapsed: 60 });
-  const manual = simulate({ ...base, term: 25, fixedMonths: 24 });
+  const manual = simulate({ ...base, loan: aged.startBalance, term: 25, fixedMonths: 24 });
   assert.equal(aged.remaining, 300);
   assert.equal(aged.months, 360);
   assert.ok(Math.abs(aged.totalInterest - manual.totalInterest) < 1e-6);
@@ -431,4 +431,31 @@ test('the scope note matches where the schedule starts', () => {
   const aged = { ...d, elapsed: 60 };
   assert.match(scopeNote(aged), /month 61 .*first 60 months .*year 6/);
   assert.equal(simulate(aged).years[0].year, 6);
+});
+
+const SMILEY = { ...mortgageDefaults(), loan: 1155000, term: 30, initialRate: 2, fixedMonths: 84, adjustMonths: 12, indexName: 'custom', indexRate: 4, margin: 2.25, firstCap: 5, periodicCap: 2, floor: 2.25 };
+const DRAKE = { ...mortgageDefaults(), loan: 1496000, term: 30, initialRate: 2.225, fixedMonths: 84, adjustMonths: 6, indexName: 'sofr', indexRate: 4.3, margin: 3, firstCap: 5, periodicCap: 1, floor: 3 };
+
+test('the balance today is derived from the original loan and the payments made', () => {
+  const smiley = simulate({ ...SMILEY, elapsed: 74 });
+  near(smiley.startBalance, 971090, 600); // the servicer's figure differs by a few hundred dollars of rounding
+  near(smiley.firstPayment, 4269.11, 0.01);
+  assert.equal(smiley.firstReset.year, 8);
+  const drake = simulate({ ...DRAKE, elapsed: 63 });
+  near(drake.startBalance, 1300681, 150);
+  near(drake.firstPayment, 5699.35, 0.01);
+  assert.equal(simulate({ ...SMILEY, elapsed: 0 }).startBalance, 1155000);
+});
+
+test('a manually entered balance takes precedence over the derived one', () => {
+  const r = simulate({ ...SMILEY, elapsed: 74, balance: 900000 });
+  assert.equal(r.startBalance, 900000);
+  assert.equal(r.monthly[0].balance < 900000, true);
+  assert.equal(simulate({ ...SMILEY, elapsed: 74, balance: 0 }).startBalance, simulate({ ...SMILEY, elapsed: 74 }).startBalance);
+});
+
+test('the elapsed count and the original amount round-trip through the link', () => {
+  const v = { ...SMILEY, elapsed: 74 };
+  assert.deepEqual(decodeMortgage(encodeMortgage(v)), v);
+  assert.match(encodeMortgage(v), /loan=1155000&elapsed=74/);
 });

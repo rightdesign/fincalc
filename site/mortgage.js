@@ -18,9 +18,10 @@ export const INDEXES = [
 ];
 
 export const MORTGAGE_FIELDS = [
-  { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1, money: true, slider: { min: 50000, max: 2000000, step: 5000 } },
+  { id: 'loan', label: 'Loan amount ($, as originally borrowed)', value: 400000, min: 1, money: true, slider: { min: 50000, max: 2000000, step: 5000 } },
   { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true, slider: { min: 1, max: 40, step: 1 } },
-  { id: 'elapsed', label: 'Months already elapsed', value: 0, min: 0, max: 599, integer: true, slider: { min: 0, max: 360, step: 1 }, hint: 'For a loan you already have: how many months you have already paid. Enter the current balance as the loan amount and keep the original term and months before the first rate change; the schedule starts where the loan is today.' },
+  { id: 'elapsed', label: 'Payments already made', value: 0, min: 0, max: 599, integer: true, slider: { min: 0, max: 360, step: 1 }, hint: 'For a loan you already have: how many payments you have already made (not the months since closing; the first payment is usually about two months after). Keep the original loan amount, term and months before the first rate change; the balance today is worked out from them and the schedule starts there.' },
+  { id: 'balance', label: 'Current balance ($, optional override)', value: 0, min: 0, money: true, showIf: (v) => v.elapsed > 0, hint: 'Leave at 0 to work the balance out from the original loan and the payments made. Enter your servicer\u2019s figure if you have made extra payments or the loan has a rate history this calculator cannot derive; it takes precedence.', slider: { min: 0, max: 2000000, step: 5000 } },
   { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'fixedMonths', label: 'Months before the first rate change', value: 60, min: 1, max: 600, integer: true, slider: { min: 1, max: 360, step: 1 } },
   { id: 'adjustMonths', label: 'Months between rate changes after that', value: 12, min: 1, max: 600, integer: true, slider: { min: 1, max: 120, step: 1 } },
@@ -106,31 +107,40 @@ export function simulate(v) {
   let firstPmi = 0;
   const monthly = [];
   let balance = v.loan;
-  // Resets that already happened before today (an elapsed loan past its fixed period).
-  let adjustments = elapsed > fixedMonths ? Math.floor((elapsed - fixedMonths - 1) / every) + 1 : 0;
-  let rate = rateAfter(v, adjustments);
-  let pay = io > elapsed ? balance * rate / 100 / 12 : payment(balance, rate, months - elapsed);
+  let startBalance = v.loan;
+  let adjustments = 0;
+  let rate = rateAfter(v, 0);
+  let pay = 0;
   let cur = null;
-  for (let m = elapsed; m < months && balance > 0; m += 1) {
+  // Runs from the loan's first payment so the balance today is derived from the original amount
+  // (payments before `elapsed` carry no extra payment); only months from `elapsed` on are recorded.
+  for (let m = 0; m < months && balance > 0; m += 1) {
+    const live = m >= elapsed;
+    if (m === elapsed) {
+      if (v.balance > 0) balance = v.balance; // a manual current balance takes precedence over the derived one
+      startBalance = balance;
+    }
     const reset = m >= fixedMonths && (m - fixedMonths) % every === 0;
     if (reset) {
       adjustments += 1;
       rate = rateAfter(v, adjustments);
     }
-    if (m >= io && (reset || m === Math.max(io, elapsed))) pay = payment(balance, rate, months - m);
+    if (m >= io && (reset || m === io || m === elapsed)) pay = payment(balance, rate, months - m);
     const interest = balance * rate / 100 / 12;
     const scheduled = m < io ? interest : pay;
-    if (cur === null || m % 12 === 0) {
-      cur = { year: Math.floor(m / 12) + 1, rate, payment: scheduled + extra, scheduled, interest: 0, principal: 0, balance };
+    const more = live ? extra : 0;
+    const pmi = live && v.homePrice > 0 && balance > pmiLimit ? v.loan * v.pmiRate / 100 / 12 : 0;
+    if (live && (cur === null || m % 12 === 0)) {
+      cur = { year: Math.floor(m / 12) + 1, rate, payment: scheduled + more, scheduled, interest: 0, principal: 0, balance };
       years.push(cur);
     }
-    const pmi = v.homePrice > 0 && balance > pmiLimit ? v.loan * v.pmiRate / 100 / 12 : 0;
     if (pmi > 0) { pmiMonths += 1; totalPmi += pmi; }
     if (m === elapsed) firstPmi = pmi;
     const last = m === months - 1;
-    const owed = Math.min(balance, extra + Math.max(0, scheduled - interest));
+    const owed = Math.min(balance, more + Math.max(0, scheduled - interest));
     const principal = last ? balance : owed;
     balance = last || balance - principal < 0.005 ? 0 : balance - principal;
+    if (!live) continue;
     cur.interest += interest;
     cur.principal += principal;
     cur.balance = balance;
@@ -143,8 +153,8 @@ export function simulate(v) {
   for (const y of years) y.total = y.payment + y.pmi + escrow;
   const sum = (key) => years.reduce((s, y) => s + y[key], 0);
   const remaining = months - elapsed;
-  const fixedPay = payment(v.loan, v.initialRate, remaining);
-  const fixedInterest = fixedPay * remaining - v.loan;
+  const fixedPay = payment(startBalance, v.initialRate, remaining);
+  const fixedInterest = fixedPay * remaining - startBalance;
   const required = monthly.map((x) => x.scheduled);
   const maxPayment = Math.max(...required);
   const peak = required.findIndex((p) => maxPayment - p < 0.005); // within half a cent: capped months differ by float noise
@@ -158,7 +168,8 @@ export function simulate(v) {
     remaining,
     payoffMonths: monthly.length,
     totalInterest: sum('interest'),
-    totalPaid: v.loan + sum('interest'),
+    startBalance,
+    totalPaid: startBalance + sum('interest'),
     firstPayment: required[0],
     escrow,
     firstPmi,
@@ -181,7 +192,7 @@ export function simulate(v) {
 // What the totals and schedule cover, so interest already paid on an existing loan is not mistaken for part of them.
 export function scopeNote(v) {
   const n = v.elapsed || 0;
-  if (n <= 0) return 'Totals and schedules cover the whole loan as entered, from its first payment. If this is a loan you already have, enter the months you have already paid under \u201cMonths already elapsed\u201d.';
+  if (n <= 0) return 'Totals and schedules cover the whole loan as entered, from its first payment. If this is a loan you already have, enter the payments you have already made under \u201cPayments already made\u201d.';
   return `Totals and schedules are forward-looking: they start at month ${n + 1} of the loan, and the interest and principal already paid in the first ${n} months are not included. Year numbers are the loan\u2019s own, so the table starts at year ${Math.floor(n / 12) + 1}.`;
 }
 

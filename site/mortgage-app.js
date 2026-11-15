@@ -174,7 +174,7 @@ for (const g of GROUPS) {
     const partway = el('details', 'm-partway');
     partway.id = 'mortgage-partway';
     partway.innerHTML = '<summary>Already part-way in? <strong id="partway-summary">0 months paid</strong> <span class="m-edit">Edit</span></summary>';
-    take(['elapsed'], partway);
+    take(['elapsed', 'balance'], partway);
     partway.append(startLabel);
     c.append(partway);
   }
@@ -343,10 +343,11 @@ function render() {
   out.innerHTML = `
     ${noResetNote}
     <p class="m-scope" role="note">${scopeNote(v)}</p>
+    ${v.elapsed > 0 ? `<p class="m-scope" role="note"><strong>Balance today: ${money(r.startBalance)}</strong> after ${v.elapsed} payment${v.elapsed === 1 ? '' : 's'}${v.balance > 0 ? ' (the balance you entered)' : ' (worked out from the original loan amount)'}.</p>` : ''}
     ${ioNote}
     <div class="m-tiles">
       <div class="m-tile"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p><p>${v.elapsed > 0 ? `still to be paid, from month ${v.elapsed + 1}` : 'Expected case'}</p></div>
-      <div class="m-tile"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
+      <div class="m-tile"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(r.startBalance)} ${v.elapsed > 0 ? 'balance today' : 'principal'} plus interest</p></div>
       <div class="m-tile"><h3>Compared with holding ${pct(v.initialRate)}</h3><p class="m-big ${diff > 0 ? 'm-worse' : 'm-better'}">${diff >= 0 ? '+' : '−'}${money(Math.abs(diff))}</p><p>${money(r.fixed.payment)} a month, ${money(r.fixed.totalInterest)} interest if fixed</p></div>
     </div>
     ${payoff || extraCard || closing ? `<div class="m-cards">
