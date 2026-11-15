@@ -15,22 +15,32 @@ export const INDEXES = [
 ];
 
 export const MORTGAGE_FIELDS = [
-  { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1 },
-  { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
-  { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30 },
-  { id: 'fixedMonths', label: 'Months before the first rate change', value: 60, min: 1, max: 600, integer: true },
-  { id: 'adjustMonths', label: 'Months between rate changes after that', value: 12, min: 1, max: 600, integer: true },
+  { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1, money: true, slider: { min: 50000, max: 2000000, step: 5000 } },
+  { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true, slider: { min: 1, max: 40, step: 1 } },
+  { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'fixedMonths', label: 'Months before the first rate change', value: 60, min: 1, max: 600, integer: true, slider: { min: 1, max: 360, step: 1 } },
+  { id: 'adjustMonths', label: 'Months between rate changes after that', value: 12, min: 1, max: 600, integer: true, slider: { min: 1, max: 120, step: 1 } },
   { id: 'rateBasis', label: 'How the rate resets', type: 'select', value: 'index', options: RATE_BASES },
   { id: 'indexName', label: 'Index', type: 'select', value: 'treasury1', options: INDEXES, showIf: (v) => v.rateBasis === 'index', hint: 'The benchmark your loan documents name. Choosing one fills in an illustrative starting value; replace it with the current published figure.' },
-  { id: 'indexRate', label: 'Index value today (%)', value: 4, min: 0, max: 30, showIf: (v) => v.rateBasis === 'index' },
-  { id: 'margin', label: 'Margin (percentage points)', value: 2.75, min: 0, max: 15, showIf: (v) => v.rateBasis === 'index', hint: 'Fixed by your loan. At each reset the new rate is the index plus this margin, before the caps and floor apply.' },
-  { id: 'indexChange', label: 'Assumed index change per reset (percentage points)', value: 0.25, min: -10, max: 10, showIf: (v) => v.rateBasis === 'index', hint: 'Your assumption for how far the index moves between resets. Use a negative number for falling rates.' },
-  { id: 'change', label: 'Rate change at each adjustment (percentage points)', value: 0.5, min: -10, max: 10, showIf: (v) => v.rateBasis === 'change', hint: 'Your assumption for how the rate moves each time it resets. Use a negative number for falling rates.' },
-  { id: 'firstCap', label: 'Cap on the first adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at the first reset, up or down. Many loans allow a larger first move (a 2/1/5 loan allows 2).' },
-  { id: 'periodicCap', label: 'Cap on each later adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at each reset after the first, up or down (a 2/1/5 loan allows 1).' },
-  { id: 'lifetimeCap', label: 'Cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30 },
-  { id: 'floor', label: 'Lowest possible rate (%)', value: 2, min: 0, max: 30 },
+  { id: 'indexRate', label: 'Index value today (%)', value: 4, min: 0, max: 30, showIf: (v) => v.rateBasis === 'index', slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'margin', label: 'Margin (percentage points)', value: 2.75, min: 0, max: 15, showIf: (v) => v.rateBasis === 'index', hint: 'Fixed by your loan. At each reset the new rate is the index plus this margin, before the caps and floor apply.', slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'indexChange', label: 'Assumed index change per reset (percentage points)', value: 0.25, min: -10, max: 10, showIf: (v) => v.rateBasis === 'index', hint: 'Your assumption for how far the index moves between resets. Use a negative number for falling rates.', slider: { min: -5, max: 5, step: 0.125 } },
+  { id: 'change', label: 'Rate change at each adjustment (percentage points)', value: 0.5, min: -10, max: 10, showIf: (v) => v.rateBasis === 'change', hint: 'Your assumption for how the rate moves each time it resets. Use a negative number for falling rates.', slider: { min: -5, max: 5, step: 0.125 } },
+  { id: 'firstCap', label: 'Cap on the first adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at the first reset, up or down. Many loans allow a larger first move (a 2/1/5 loan allows 2).', slider: { min: 0, max: 10, step: 0.25 } },
+  { id: 'periodicCap', label: 'Cap on each later adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at each reset after the first, up or down (a 2/1/5 loan allows 1).', slider: { min: 0, max: 10, step: 0.25 } },
+  { id: 'lifetimeCap', label: 'Cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.25 } },
+  { id: 'floor', label: 'Lowest possible rate (%)', value: 2, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
 ];
+
+// Parses what a person typed into a number: "$400,000" and "400000" both give 400000.
+// Blank or unreadable text gives NaN.
+export function parseAmount(raw) {
+  const text = String(raw ?? '').replace(/[\s$,]/g, '');
+  return text === '' ? NaN : Number(text);
+}
+
+// The highest rate the loan can ever reach: the starting rate plus the lifetime cap.
+export const maxRate = (v) => v.initialRate + v.lifetimeCap;
 
 export const mortgageDefaults = () => Object.fromEntries(MORTGAGE_FIELDS.map((f) => [f.id, f.value]));
 

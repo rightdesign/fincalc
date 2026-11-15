@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { INDEXES, MORTGAGE_FIELDS, addMonths, floorProblem, invalidFields, mortgageDefaults, scenarios, simulate } from './mortgage.js';
+import { INDEXES, MORTGAGE_FIELDS, addMonths, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -25,16 +25,56 @@ for (const f of MORTGAGE_FIELDS) {
     for (const o of f.options) input.add(new Option(o.label, o.value));
   } else {
     input = document.createElement('input');
-    input.type = 'number';
-    input.min = f.min;
-    input.max = f.max ?? '';
-    input.step = f.integer ? '1' : 'any';
+    // A dollar amount is plain text so it can show as $400,000 when not being edited.
+    input.type = f.money ? 'text' : 'number';
+    if (!f.money) {
+      input.min = f.min;
+      input.max = f.max ?? '';
+      input.step = f.integer ? '1' : 'any';
+    }
     input.inputMode = 'decimal';
   }
   input.name = f.id;
   input.id = `field-${f.id}`;
   input.value = f.value;
-  label.append(text, input);
+  label.append(text);
+  if (f.slider) {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = f.slider.min;
+    slider.max = f.slider.max;
+    slider.step = f.slider.step;
+    slider.value = f.value;
+    slider.id = `slider-${f.id}`;
+    slider.setAttribute('aria-label', `${f.label} slider`);
+    slider.addEventListener('input', () => {
+      input.value = f.money ? usd.format(Number(slider.value)) : slider.value;
+    });
+    input.addEventListener('input', () => {
+      const n = parseAmount(input.value);
+      if (Number.isFinite(n)) slider.value = n;
+    });
+    label.append(slider);
+  }
+  if (f.money) {
+    input.addEventListener('focus', () => {
+      const n = parseAmount(input.value);
+      if (Number.isFinite(n)) input.value = String(n);
+    });
+    input.addEventListener('blur', () => {
+      const n = parseAmount(input.value);
+      if (Number.isFinite(n)) input.value = usd.format(n);
+    });
+    input.value = usd.format(f.value);
+  }
+  label.append(input);
+  if (f.id === 'lifetimeCap') {
+    const note = document.createElement('span');
+    note.className = 'field-note';
+    note.id = 'note-lifetimeCap';
+    input.setAttribute('aria-describedby', note.id);
+    label.append(note);
+  }
   if (f.hint) {
     const tip = document.createElement('span');
     tip.className = 'hint-text';
@@ -63,7 +103,7 @@ function values() {
   const v = {};
   for (const f of MORTGAGE_FIELDS) {
     const raw = form.elements[f.id].value;
-    v[f.id] = f.type === 'select' ? raw : raw.trim() === '' ? NaN : Number(raw);
+    v[f.id] = f.type === 'select' ? raw : parseAmount(raw);
   }
   return v;
 }
@@ -71,6 +111,8 @@ function values() {
 function render() {
   const v = values();
   for (const f of MORTGAGE_FIELDS) form.querySelector(`[data-field="${f.id}"]`).hidden = !!f.showIf && !f.showIf(v);
+  const note = document.getElementById('note-lifetimeCap');
+  note.textContent = Number.isFinite(maxRate(v)) ? `The rate can never rise above ${pct(maxRate(v))} (the starting rate plus this cap).` : '';
   const bad = invalidFields(v);
   if (bad.length) {
     out.innerHTML = '';
@@ -97,7 +139,7 @@ function render() {
   const monthRows = r.monthly.map((m) => `<tr><td>${start ? monthLabel(addMonths(start, m.month - 1)) : m.month}</td><td>${pct(m.rate)}</td><td>${money(m.payment)}</td><td>${money(m.interest)}</td><td>${money(m.principal)}</td><td>${money(m.balance)}</td></tr>`).join('');
   const monthly = view === 'monthly';
   const diff = r.extraInterest;
-  const note = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
+  const resetNote = r.noReset ? `<p class="placeholder" role="note">The first rate change comes after the loan ends (${v.fixedMonths} months against a ${v.term}-year term), so the rate never resets and this behaves as a fixed-rate loan.</p>` : '';
   const sc = scenarios(v);
   const names = { best: 'Best case', expected: 'Expected case', worst: 'Worst case' };
   const scRows = Object.entries(sc).map(([k, s]) => `<tr><th scope="row">${names[k]}</th><td>${pct(s.maxRate)}</td><td>${money(s.maxPayment)}</td><td>${s.shock >= 0 ? '+' : '−'}${Math.abs(Math.round(s.shock * 100))}%</td><td>${money(s.totalInterest)}</td></tr>`).join('');
@@ -106,7 +148,7 @@ function render() {
     ? `<p class="m-warning" role="alert"><strong>Payment shock:</strong> in the worst case your payment rises from ${money(w.firstPayment)} to ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% higher) when the rate reaches ${pct(w.maxRate)}. Make sure you could afford that.</p>`
     : `<p>In the worst case your payment peaks at ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% above the first payment).</p>`;
   out.innerHTML = `
-    ${note}
+    ${resetNote}
     <div class="m-cards">
       <div class="m-card"><h3>First monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
       <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p></div>
@@ -133,7 +175,10 @@ function render() {
 form.addEventListener('input', (e) => {
   if (e.target.name === 'indexName') {
     const preset = INDEXES.find((i) => i.value === e.target.value);
-    if (preset?.rate != null) form.elements.indexRate.value = preset.rate;
+    if (preset?.rate != null) {
+      form.elements.indexRate.value = preset.rate;
+      document.getElementById('slider-indexRate').value = preset.rate;
+    }
   }
   render();
 });
@@ -146,7 +191,11 @@ out.addEventListener('click', (e) => {
 });
 form.addEventListener('submit', (e) => e.preventDefault());
 document.getElementById('mortgage-reset').addEventListener('click', () => {
-  for (const f of MORTGAGE_FIELDS) form.elements[f.id].value = defaults[f.id];
+  for (const f of MORTGAGE_FIELDS) {
+    form.elements[f.id].value = f.money ? usd.format(defaults[f.id]) : defaults[f.id];
+    const slider = document.getElementById(`slider-${f.id}`);
+    if (slider) slider.value = defaults[f.id];
+  }
   startInput.value = '';
   view = 'annual';
   render();

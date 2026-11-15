@@ -763,3 +763,5 @@ legend {
 .m-chart { margin: 0; }
 .m-chart figcaption { font-weight: bold; margin-bottom: 0.25rem; }
 .m-warning { background: var(--panel); border: 1px solid var(--border); border-left: 0.3rem solid #c0392b; border-radius: 0.4rem; padding: 0.6rem 1rem; }
+.m-inputs .field input[type="range"] { padding: 0; }
+.m-inputs .field-note { color: var(--muted); font-size: 0.85rem; }

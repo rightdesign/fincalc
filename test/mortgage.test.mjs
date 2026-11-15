@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { addMonths, floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
+import { MORTGAGE_FIELDS, addMonths, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -151,4 +151,24 @@ test('rate changes can fall on month counts that are not whole years', () => {
   assert.equal(r.years[0].rate, 5.5);
   assert.equal(r.years[1].rate, 6); // the reset at month 18 falls inside year 2
   assert.equal(invalidFields({ ...d, fixedMonths: 18.5 }).length, 1);
+});
+
+test('parseAmount reads formatted dollar amounts and rejects blanks', () => {
+  assert.equal(parseAmount('$400,000'), 400000);
+  assert.equal(parseAmount(' 400000 '), 400000);
+  assert.equal(parseAmount('5.5'), 5.5);
+  assert.ok(Number.isNaN(parseAmount('')));
+  assert.ok(Number.isNaN(parseAmount('abc')));
+});
+
+test('maxRate is the starting rate plus the lifetime cap', () => {
+  assert.equal(maxRate(mortgageDefaults()), 10.5);
+});
+
+test('every numeric mortgage input has a slider that holds its default within the field limits', () => {
+  for (const f of MORTGAGE_FIELDS.filter((x) => x.type !== 'select')) {
+    assert.ok(f.slider, `${f.id} has a slider`);
+    assert.ok(f.value >= f.slider.min && f.value <= f.slider.max, `${f.id} default is on its slider`);
+    assert.ok(f.slider.min >= f.min && (f.max === undefined || f.slider.max <= f.max), `${f.id} slider stays within limits`);
+  }
 });
