@@ -6,6 +6,16 @@ const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD',
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
 const pct = (n) => `${Math.round(n * 1000) / 1000}%`;
 
+// A range input snaps to its step, so a typed value between steps (4.3 on a 0.125 grid) would
+// show a different position than the textbox. Off-grid values switch the slider to free movement.
+function setSlider(slider, n) {
+  const step = Number(slider.dataset.step);
+  const min = Number(slider.min);
+  const onGrid = Math.abs((n - min) / step - Math.round((n - min) / step)) < 1e-6;
+  slider.step = onGrid ? slider.dataset.step : 'any';
+  slider.value = n;
+}
+
 const form = document.getElementById('mortgage-inputs');
 const out = document.getElementById('mortgage-results');
 const defaults = mortgageDefaults();
@@ -44,15 +54,22 @@ for (const f of MORTGAGE_FIELDS) {
     slider.min = f.slider.min;
     slider.max = f.slider.max;
     slider.step = f.slider.step;
+    slider.dataset.step = f.slider.step;
     slider.value = f.value;
     slider.id = `slider-${f.id}`;
     slider.setAttribute('aria-label', `${f.label} slider`);
     slider.addEventListener('input', () => {
+      // Dragging goes back to the configured grid after setSlider left it on free movement.
+      if (slider.step !== slider.dataset.step) {
+        const raw = slider.value;
+        slider.step = slider.dataset.step;
+        slider.value = raw;
+      }
       input.value = f.money ? usd.format(Number(slider.value)) : slider.value;
     });
     input.addEventListener('input', () => {
       const n = parseAmount(input.value);
-      if (Number.isFinite(n)) slider.value = n;
+      if (Number.isFinite(n)) setSlider(slider, n);
     });
     label.append(slider);
   }
@@ -179,7 +196,7 @@ function writeValues(v) {
   for (const f of MORTGAGE_FIELDS) {
     form.elements[f.id].value = f.money ? usd.format(v[f.id]) : v[f.id];
     const slider = document.getElementById(`slider-${f.id}`);
-    if (slider) slider.value = v[f.id];
+    if (slider) setSlider(slider, v[f.id]);
   }
 }
 
@@ -229,7 +246,7 @@ form.addEventListener('input', (e) => {
     const preset = INDEXES.find((i) => i.value === e.target.value);
     if (preset?.rate != null) {
       form.elements.indexRate.value = preset.rate;
-      document.getElementById('slider-indexRate').value = preset.rate;
+      setSlider(document.getElementById('slider-indexRate'), preset.rate);
     }
   }
   render();
@@ -251,7 +268,7 @@ document.getElementById('mortgage-reset').addEventListener('click', () => {
   for (const f of MORTGAGE_FIELDS) {
     form.elements[f.id].value = f.money ? usd.format(defaults[f.id]) : defaults[f.id];
     const slider = document.getElementById(`slider-${f.id}`);
-    if (slider) slider.value = defaults[f.id];
+    if (slider) setSlider(slider, defaults[f.id]);
   }
   startInput.value = '';
   view = 'annual';
