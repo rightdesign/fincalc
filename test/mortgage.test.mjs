@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
+import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, scopeNote, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -356,4 +356,13 @@ test('elapsed months combine with an interest-only period and extra payments', (
   near(r.monthly[0].scheduled, 400000 * 0.055 / 12); // still interest-only for 12 more months
   assert.ok(r.monthly[12].scheduled > r.monthly[11].scheduled); // month 25 starts repaying
   near(r.monthly[r.payoffMonths - 1].balance, 0);
+});
+
+test('the scope note matches where the schedule starts', () => {
+  const d = mortgageDefaults();
+  assert.match(scopeNote(d), /whole loan as entered/);
+  assert.equal(simulate(d).years[0].year, 1);
+  const aged = { ...d, elapsed: 60 };
+  assert.match(scopeNote(aged), /month 61 .*first 60 months .*year 6/);
+  assert.equal(simulate(aged).years[0].year, 6);
 });

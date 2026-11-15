@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
+import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, scopeNote, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -202,11 +202,12 @@ function render() {
     : `<p>In the worst case your payment peaks at ${money(w.maxPayment)} a month (${Math.round(w.shock * 100)}% above the first payment).</p>`;
   out.innerHTML = `
     ${noResetNote}
+    <p class="m-scope" role="note">${scopeNote(v)}</p>
     ${ioNote}
     <div class="m-cards">
       <div class="m-card"><h3>First required monthly payment</h3><p class="m-big">${money(r.firstPayment)}</p></div>
       <div class="m-card"><h3>Highest monthly payment</h3><p class="m-big">${money(r.maxPayment)}</p><p>at a peak rate of ${pct(r.maxRate)}</p>${shock}${resetNote}</div>
-      <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p></div>
+      <div class="m-card"><h3>Total interest</h3><p class="m-big">${money(r.totalInterest)}</p><p>${v.elapsed > 0 ? `still to be paid, from month ${v.elapsed + 1}` : 'over the whole loan'}</p></div>
       <div class="m-card"><h3>Total of all payments</h3><p class="m-big">${money(r.totalPaid)}</p><p>${money(v.loan)} principal plus interest</p></div>
       ${payoff ? `<div class="m-card"><h3>Payoff date</h3><p class="m-big">${monthLabel(payoff)}</p></div>` : ''}
       ${extraCard}

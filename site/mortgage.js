@@ -154,6 +154,13 @@ export function simulate(v) {
   };
 }
 
+// What the totals and schedule cover, so interest already paid on an existing loan is not mistaken for part of them.
+export function scopeNote(v) {
+  const n = v.elapsed || 0;
+  if (n <= 0) return 'Totals and schedules cover the whole loan as entered, from its first payment. If this is a loan you already have, enter the months you have already paid under \u201cMonths already elapsed\u201d.';
+  return `Totals and schedules are forward-looking: they start at month ${n + 1} of the loan, and the interest and principal already paid in the first ${n} months are not included. Year numbers are the loan\u2019s own, so the table starts at year ${Math.floor(n / 12) + 1}.`;
+}
+
 // How much interest and time the monthly extra payment saves: the same loan with and without it.
 export function extraSavings(v) {
   const base = simulate({ ...v, extra: 0 });
