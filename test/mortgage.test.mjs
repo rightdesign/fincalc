@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { MORTGAGE_FIELDS, addMonths, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
+import { MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -151,6 +151,25 @@ test('rate changes can fall on month counts that are not whole years', () => {
   assert.equal(r.years[0].rate, 5.5);
   assert.equal(r.years[1].rate, 6); // the reset at month 18 falls inside year 2
   assert.equal(invalidFields({ ...d, fixedMonths: 18.5 }).length, 1);
+});
+
+test('inputs round-trip through the URL fragment and only changed values are written', () => {
+  assert.equal(encodeMortgage(mortgageDefaults()), '');
+  const v = { ...mortgageDefaults(), loan: 650000, change: -0.25 };
+  assert.equal(encodeMortgage(v), 'loan=650000&change=-0.25');
+  assert.deepEqual(decodeMortgage('#loan=650000&change=-0.25'), v);
+});
+
+test('select inputs round-trip and an unknown option falls back to the default', () => {
+  const v = { ...mortgageDefaults(), rateBasis: 'change', indexName: 'sofr', indexRate: 4.3 };
+  assert.equal(encodeMortgage(v), 'rateBasis=change&indexName=sofr&indexRate=4.3');
+  assert.deepEqual(decodeMortgage(encodeMortgage(v)), v);
+  assert.deepEqual(decodeMortgage('#rateBasis=bogus&indexName=nope'), mortgageDefaults());
+});
+
+test('decoding ignores unknown, blank and non-numeric values', () => {
+  assert.deepEqual(decodeMortgage('?loan=abc&term=&bogus=1'), mortgageDefaults());
+  assert.deepEqual(decodeMortgage(undefined), mortgageDefaults());
 });
 
 test('parseAmount reads formatted dollar amounts and rejects blanks', () => {

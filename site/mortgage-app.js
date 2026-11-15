@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { INDEXES, MORTGAGE_FIELDS, addMonths, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, scenarios, simulate } from './mortgage.js';
+import { INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, floorProblem, invalidFields, maxRate, mortgageDefaults, parseAmount, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -172,6 +172,58 @@ function render() {
       <tbody>${monthly ? monthRows : rows}</tbody></table>`;
 }
 
+const message = document.getElementById('mortgage-message');
+const say = (text) => { message.textContent = text; };
+
+function writeValues(v) {
+  for (const f of MORTGAGE_FIELDS) {
+    form.elements[f.id].value = f.money ? usd.format(v[f.id]) : v[f.id];
+    const slider = document.getElementById(`slider-${f.id}`);
+    if (slider) slider.value = v[f.id];
+  }
+}
+
+// Keeps the URL fragment and localStorage in step with the form; a link beats stored inputs.
+function save() {
+  const params = new URLSearchParams(encodeMortgage(values()));
+  if (startInput.value) params.set('start', startInput.value);
+  const text = params.toString();
+  try { localStorage.setItem(MORTGAGE_INPUTS_KEY, text); } catch { /* storage unavailable */ }
+  try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
+}
+
+// The loan start month is not one of MORTGAGE_FIELDS, so it rides along as its own parameter.
+function readStart(text) {
+  const start = new URLSearchParams(String(text).replace(/^[#?]/, '')).get('start') || '';
+  startInput.value = addMonths(start, 0) ? start : '';
+}
+
+let stored = null;
+try { stored = localStorage.getItem(MORTGAGE_INPUTS_KEY); } catch { /* storage unavailable */ }
+const initial = location.hash.length > 1 ? location.hash : stored;
+if (initial) { readStart(initial); writeValues(decodeMortgage(initial)); }
+
+// Inputs that differ from the defaults, listed at the top of a printout.
+function renderPrintSummary() {
+  const v = values();
+  const isSet = (f) => (f.type === 'select' ? f.options.some((o) => o.value === v[f.id]) : Number.isFinite(v[f.id]));
+  const changed = MORTGAGE_FIELDS.filter((f) => isSet(f) && v[f.id] !== defaults[f.id]);
+  const el = document.getElementById('mortgage-print-summary');
+  el.innerHTML = '<h2>Scenario inputs</h2>';
+  const ul = document.createElement('ul');
+  for (const f of MORTGAGE_FIELDS) {
+    const li = document.createElement('li');
+    li.textContent = `${f.label}: ${!isSet(f) ? 'not set' : f.type === 'select' ? f.options.find((o) => o.value === v[f.id]).label : v[f.id]}${changed.includes(f) ? '' : ' (default)'}`;
+    ul.append(li);
+  }
+  if (startInput.value) {
+    const li = document.createElement('li');
+    li.textContent = `Loan start month: ${startInput.value}`;
+    ul.append(li);
+  }
+  el.append(ul);
+}
+
 form.addEventListener('input', (e) => {
   if (e.target.name === 'indexName') {
     const preset = INDEXES.find((i) => i.value === e.target.value);
@@ -181,8 +233,9 @@ form.addEventListener('input', (e) => {
     }
   }
   render();
+  save();
 });
-startInput.addEventListener('input', render);
+startInput.addEventListener('input', () => { render(); save(); });
 out.addEventListener('click', (e) => {
   if (e.target.id !== 'mortgage-view') return;
   view = view === 'monthly' ? 'annual' : 'monthly';
@@ -190,6 +243,10 @@ out.addEventListener('click', (e) => {
   document.getElementById('mortgage-view').focus();
 });
 form.addEventListener('submit', (e) => e.preventDefault());
+window.addEventListener('hashchange', () => {
+  if (location.hash.length > 1) { readStart(location.hash); writeValues(decodeMortgage(location.hash)); render(); }
+});
+window.addEventListener('beforeprint', renderPrintSummary);
 document.getElementById('mortgage-reset').addEventListener('click', () => {
   for (const f of MORTGAGE_FIELDS) {
     form.elements[f.id].value = f.money ? usd.format(defaults[f.id]) : defaults[f.id];
@@ -199,5 +256,13 @@ document.getElementById('mortgage-reset').addEventListener('click', () => {
   startInput.value = '';
   view = 'annual';
   render();
+  save();
+  say('');
 });
+document.getElementById('mortgage-copy').addEventListener('click', async () => {
+  save();
+  try { await navigator.clipboard.writeText(location.href); say('Link copied.'); } catch { say('Copy failed; copy the address from the browser bar instead.'); }
+});
+document.getElementById('mortgage-print').addEventListener('click', () => window.print());
 render();
+save();

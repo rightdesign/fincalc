@@ -158,6 +158,42 @@ export function floorProblem(v) {
     : '';
 }
 
+export const MORTGAGE_INPUTS_KEY = 'fincalc.mortgage.inputs';
+
+// Inputs as a URL fragment (and a localStorage string) so a scenario can be
+// shared and survives reload. Only values that differ from the defaults are
+// written. Pure (no DOM), so it runs under node.
+export function encodeMortgage(v) {
+  const defaults = mortgageDefaults();
+  const params = new URLSearchParams();
+  for (const f of MORTGAGE_FIELDS) {
+    const x = v[f.id];
+    if (x === defaults[f.id]) continue;
+    if (f.type === 'select' ? f.options.some((o) => o.value === x) : Number.isFinite(x)) params.set(f.id, String(x));
+  }
+  return params.toString();
+}
+
+// Reads an encoded string (with or without a leading # or ?) into a full set of
+// values: defaults for anything absent, unknown, not a number or (for a select)
+// not one of its options. Never throws.
+export function decodeMortgage(text) {
+  const values = mortgageDefaults();
+  let params;
+  try { params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')); } catch { return values; }
+  for (const f of MORTGAGE_FIELDS) {
+    const raw = params.get(f.id);
+    if (raw == null || raw.trim() === '') continue;
+    if (f.type === 'select') {
+      if (f.options.some((o) => o.value === raw)) values[f.id] = raw;
+      continue;
+    }
+    const n = Number(raw);
+    if (Number.isFinite(n)) values[f.id] = n;
+  }
+  return values;
+}
+
 // The calendar month `offset` months after a "YYYY-MM" start, as "YYYY-MM"; '' when the start is not valid.
 export function addMonths(start, offset) {
   const m = /^(\d{4})-(\d{2})$/.exec(start || '');

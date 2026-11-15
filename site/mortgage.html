@@ -18,7 +18,8 @@
       <p class="m-rates-link">Need a starting rate? <a href="https://www.bankrate.com/mortgages/mortgage-rates/" target="_blank" rel="noopener noreferrer">See current adjustable-rate mortgage rates on Bankrate</a> (opens in a new tab). Rates shown there are not used by this calculator.</p>
       <form id="mortgage-inputs" class="m-inputs"></form>
       <p><label class="field"><span>Loan start month (optional, for payoff date)</span><input type="month" id="mortgage-start" name="start"></label></p>
-      <p><button type="button" id="mortgage-reset">Reset to defaults</button></p>
+      <p class="no-print"><button type="button" id="mortgage-copy">Copy link to these inputs</button> <button type="button" id="mortgage-print">Print&hellip;</button> <button type="button" id="mortgage-reset">Reset to defaults</button> <span id="mortgage-message" role="status"></span></p>
+      <section id="mortgage-print-summary" class="print-summary"></section>
       <section id="mortgage-results" aria-live="polite"></section>
     </main>
     <section class="methodology" id="arm-guide">
