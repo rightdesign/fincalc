@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Variable-rate mortgage calculator</title>
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="menu.js"></script>
+    <script type="module" src="mortgage-app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Variable-rate mortgage</h1>
+    </header>
+    <main class="calculator">
+      <p>See how a loan whose rate resets over time changes your payment and total interest. Enter the rate change you expect at each reset; the caps and floor limit it.</p>
+      <form id="mortgage-inputs" class="m-inputs"></form>
+      <p><button type="button" id="mortgage-reset">Reset to defaults</button></p>
+      <section id="mortgage-results" aria-live="polite"></section>
+    </main>
+    <section class="methodology" id="methodology">
+      <details>
+        <summary>Methodology and assumptions</summary>
+        <ul>
+          <li>The loan is paid monthly. Interest each month is the balance times the annual rate divided by 12.</li>
+          <li>The payment is the standard amortizing payment on the remaining balance over the remaining months. It is recalculated at each rate reset, so the loan still ends at the end of the term.</li>
+          <li>The first reset comes after the initial period. Later resets come at the interval you set. At each reset the rate moves by your assumed change, limited by the cap on a single adjustment, then held between the lowest possible rate and the starting rate plus the lifetime cap.</li>
+          <li>The comparison is the same loan held at the starting rate for the whole term.</li>
+          <li>Not modelled: fees, points, taxes, insurance, extra payments, and rates that move by different amounts at different resets.</li>
+        </ul>
+      </details>
+    </section>
+    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real loans differ; check your loan's terms and talk to a qualified professional before borrowing.</p>
+  </body>
+</html>

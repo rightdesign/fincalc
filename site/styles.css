@@ -717,3 +717,27 @@ legend {
   font-size: 0.8em;
   font-style: italic;
 }
+
+/* Hamburger menu */
+.site-header { position: relative; }
+.menu { position: absolute; top: 0.5rem; left: 0.5rem; z-index: 10; }
+.menu-button { font-size: 1.5rem; line-height: 1; padding: 0.35rem 0.6rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; cursor: pointer; }
+.menu-button:focus-visible, .calculator-menu a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.calculator-menu { margin-top: 0.25rem; min-width: 16rem; background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); }
+.calculator-menu[hidden] { display: none; }
+.calculator-menu ul { list-style: none; margin: 0; padding: 0.25rem 0; }
+.calculator-menu a { display: block; padding: 0.5rem 1rem; text-decoration: none; }
+.calculator-menu a[aria-current="page"] { font-weight: bold; }
+.site-header h1 { padding-left: 3.5rem; padding-right: 1rem; }
+
+/* Variable-rate mortgage page */
+.m-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--gap); }
+.m-inputs .field { display: flex; flex-direction: column; gap: 0.25rem; }
+.m-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
+.m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.75rem 1rem; }
+.m-card h3 { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.m-card p { margin: 0.25rem 0 0; }
+.m-card .m-big { font-size: 1.5rem; font-weight: bold; }
+.m-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.m-table th, .m-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--rule); }
+.m-table caption { text-align: left; color: var(--muted); padding-bottom: 0.25rem; }
