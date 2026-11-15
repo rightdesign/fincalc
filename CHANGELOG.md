@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.64.0] — 2026-11-15
+
+- FINC-114 Added automated regression guardrail tests covering the must-not-lose behaviours of both calculators (no user-visible change).
+- FINC-115 The variable rate mortgage calculator now starts from the original loan amount and the payments already made, works out and shows "Balance today", and accepts an optional current-balance override.
+
 ## [0.63.0] — 2026-11-15
 
 - FINC-108 The rent vs own calculator now shows a cost breakdown at the end of the stay (upfront, recurring, opportunity cost and money back from the sale) whose buckets add up to the headline gap.
