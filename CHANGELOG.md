@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.44.0] — 2026-11-15
+
+- FINC-079 The variable-rate mortgage calculator now charts the interest rate and the monthly payment by year, marking the peak, so the year-15 peak payment is visible at a glance.
+- FINC-083 The variable-rate mortgage calculator now takes the time before the first rate change and the time between rate changes in months (for example 60 and 12) instead of whole years.
+
 ## [0.43.1] — 2026-11-15
 
 - FINC-085 The variable-rate mortgage calculator now links to current adjustable-rate mortgage rates so you have a reference for the starting rate.
