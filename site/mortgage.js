@@ -82,6 +82,19 @@ export function simulate(v) {
   };
 }
 
+// The best, expected and worst-case paths. Best: the rate falls by the full
+// per-adjustment cap at every reset (down to the floor). Expected: the user's
+// assumed change. Worst: it rises by the full cap at every reset (up to the
+// lifetime cap). `shock` is how much the highest payment exceeds the first.
+export function scenarios(v) {
+  const cap = Math.max(v.firstCap, v.periodicCap);
+  const steps = { best: -cap, expected: v.change, worst: cap };
+  return Object.fromEntries(Object.entries(steps).map(([key, change]) => {
+    const r = simulate({ ...v, change });
+    return [key, { ...r, shock: r.maxPayment / r.firstPayment - 1 }];
+  }));
+}
+
 // Returns the names of fields whose values are missing or out of range.
 export function invalidFields(v) {
   return MORTGAGE_FIELDS.filter((f) => {

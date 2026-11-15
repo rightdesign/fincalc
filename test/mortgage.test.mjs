@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, simulate } from '../site/mortgage.js';
+import { floorProblem, invalidFields, mortgageDefaults, payment, rateAfter, scenarios, simulate } from '../site/mortgage.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -62,6 +62,17 @@ test('the menu lists every calculator, and each page exists', () => {
     assert.ok(readFileSync(new URL(`../site/${c.href}`, import.meta.url), 'utf8').includes('menu.js'));
   }
   assert.ok(html.includes('aria-current="page">Variable-rate'));
+});
+
+test('best, expected and worst cases bracket the expected path', () => {
+  const sc = scenarios(mortgageDefaults());
+  assert.equal(sc.worst.maxRate, 10.5);
+  assert.equal(sc.best.maxRate, 5.5);
+  assert.equal(sc.best.years[29].rate, 2);
+  assert.ok(sc.best.maxPayment <= sc.expected.maxPayment && sc.expected.maxPayment < sc.worst.maxPayment);
+  assert.ok(sc.best.totalInterest < sc.expected.totalInterest && sc.expected.totalInterest < sc.worst.totalInterest);
+  assert.ok(sc.worst.shock > 0.25);
+  near(sc.worst.years[29].balance, 0);
 });
 
 test('a first rate change at or past the end of the term never resets', () => {
