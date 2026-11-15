@@ -113,6 +113,23 @@ function cashNeeded(v, ownMonthly, rentMonthly) {
   return { down, closing, moving, reserve, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
 }
 
+// Three named cases around the user's own inputs. Owning does better when homes and rents grow
+// faster and investments return less, so the optimistic case shifts the three rates that way
+// and the pessimistic case the opposite way. Each result is a full compareRentOwn run.
+export const RENTOWN_SCENARIOS = [
+  { id: 'optimistic', label: 'Good for owning', shift: 1 },
+  { id: 'expected', label: 'Expected (your inputs)', shift: 0 },
+  { id: 'pessimistic', label: 'Bad for owning', shift: -1 },
+];
+
+export function compareScenarios(v) {
+  return RENTOWN_SCENARIOS.map((s) => {
+    const inputs = { ...v, growth: v.growth + 2 * s.shift, rentGrowth: v.rentGrowth + s.shift, investment: v.investment - s.shift };
+    const r = compareRentOwn(inputs);
+    return { id: s.id, label: s.label, growth: inputs.growth, rentGrowth: inputs.rentGrowth, investment: inputs.investment, breakEven: r.breakEven, difference: r.final.difference };
+  });
+}
+
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).
 export function encodeRentOwn(v) {
   const defaults = rentOwnDefaults();

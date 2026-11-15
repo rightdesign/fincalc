@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { RENTOWN_FIELDS, compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { RENTOWN_FIELDS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 import { CALCULATORS } from '../site/menu.js';
 
@@ -99,6 +99,25 @@ test('PMI is zero at 20% down', () => {
   assert.equal(r.firstPmi, 0);
   assert.equal(r.totalPmi, 0);
   assert.equal(compareRentOwn({ ...base(), pmi: 0 }).final.difference, r.final.difference);
+});
+
+test('scenarios bracket the expected case and move the three rates together', () => {
+  const v = base();
+  const [opt, exp, pes] = compareScenarios(v);
+  assert.equal(exp.difference, compareRentOwn(v).final.difference);
+  assert.equal(exp.breakEven, compareRentOwn(v).breakEven);
+  assert.ok(opt.difference > exp.difference && exp.difference > pes.difference);
+  assert.ok(opt.breakEven == null ? false : exp.breakEven == null || opt.breakEven <= exp.breakEven);
+  assert.ok(pes.breakEven == null || (exp.breakEven != null && pes.breakEven >= exp.breakEven));
+  const w = compareScenarios({ ...v, growth: 5 });
+  assert.deepEqual(w.map((s) => s.growth), [7, 5, 3]);
+  assert.deepEqual(w.map((s) => s.rentGrowth), [4, 3, 2]);
+  assert.deepEqual(w.map((s) => s.investment), [4, 5, 6]);
+});
+
+test('T0: the expected case has renting ahead by about $27,910 after 7 years', () => {
+  const exp = compareScenarios(base())[1];
+  assert.ok(Math.abs(exp.difference + 27910) < 50, String(exp.difference));
 });
 
 test('cash needed to buy: down payment, closing, moving, reserve and the shortfall', () => {

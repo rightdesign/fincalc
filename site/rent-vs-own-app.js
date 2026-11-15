@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_GROUPS, compareRentOwn, compareScenarios, decodeRentOwn, encodeRentOwn, invalidRentOwn, parseAmount, rentOwnDefaults } from './rentown.js';
 import { rentOwnChartHtml } from './rentown-chart.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -114,6 +114,8 @@ function render() {
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
+  const pct = (n) => `${Math.round(n * 100) / 100}%`;
+  const scenarioRows = compareScenarios(v).map((s) => `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${s.difference >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(s.difference))}</td></tr>`).join('');
   out.innerHTML = `
     <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${detail}</p></div>
     <div class="m-card ro-cash"><h3>Cash needed to buy</h3>
@@ -125,6 +127,9 @@ function render() {
         <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
         ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
       </tbody></table></div>
+    <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}</caption>
+      <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>
+      <tbody>${scenarioRows}</tbody></table></div>
     <div class="m-charts">
       ${rentOwnChartHtml(r.years, r.breakEven, money)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year</caption>
