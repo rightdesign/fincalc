@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.57.0] — 2026-11-15
+
+- FINC-099 The rent vs own calculator now has HOA dues and extra utilities (dollars per month, default $0), each with its own yearly growth rate.
+
 ## [0.56.0] — 2026-11-15
 
 - FINC-101 The rent vs own calculator now shows the cash needed to buy (down payment, closing costs, moving and a reserve) and, if you enter cash saved, tells you when you are short instead of naming a winner.
