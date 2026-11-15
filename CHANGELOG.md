@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.69.0] — 2026-11-15
+
+- FINC-104 The rent vs own calculator now shows a pure net worth view beside the equal-cash view, with break-even for each, and says when the two disagree.
+
 ## [0.68.0] — 2026-11-15
 
 - FINC-111 The shareable link and print output are verified and hardened: every input, including inflation and the dollars basis, survives the round trip.
