@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
+import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -154,7 +154,7 @@ function render() {
     out.append(p);
     return;
   }
-  const conflict = floorProblem(v) || loanProblem(v);
+  const conflict = loanProblem(v);
   if (conflict) {
     out.innerHTML = '';
     const p = document.createElement('p');

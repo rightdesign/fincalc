@@ -68,7 +68,7 @@ export function payment(balance, annualRate, months) {
 // the fixed change.
 export function rateAfter(v, adjustments) {
   const ceiling = v.initialRate + v.lifetimeCap;
-  const floor = Math.min(v.floor, v.initialRate);
+  const floor = v.floor; // binds only at resets; the fixed period runs at the starting rate
   const byIndex = v.rateBasis === 'index';
   let rate = v.initialRate;
   for (let i = 1; i <= adjustments; i += 1) {
@@ -244,14 +244,6 @@ export function loanProblem(v) {
   if (v.ioMonths >= months) return `The interest-only period (${v.ioMonths} months) must be shorter than the loan term (${months} months).`;
   if (v.refiMonth > 0 && v.refiMonth >= simulate(v).monthly.length) return `The loan is paid off before month ${v.refiMonth}, so there is nothing to refinance. Lower the refinance month.`;
   return '';
-}
-
-// Returns a message when the floor sits above the starting rate (a rate that
-// can never fall below the floor would have to start above the starting rate).
-export function floorProblem(v) {
-  return v.floor > v.initialRate
-    ? `The lowest possible rate (${v.floor}%) is above the starting rate (${v.initialRate}%). Lower the floor or raise the starting rate.`
-    : '';
 }
 
 export const MORTGAGE_INPUTS_KEY = 'fincalc.mortgage.inputs';

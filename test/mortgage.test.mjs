@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
+import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -68,10 +68,14 @@ test('invalid values are named', () => {
   assert.deepEqual(invalidFields({ ...mortgageDefaults(), fixedMonths: 0 }), ['Months before the first rate change']);
 });
 
-test('a floor above the starting rate is reported', () => {
-  assert.equal(floorProblem(mortgageDefaults()), '');
-  assert.equal(floorProblem({ ...mortgageDefaults(), floor: 5.5 }), '');
-  assert.match(floorProblem({ ...mortgageDefaults(), floor: 7 }), /above the starting rate/);
+test('a floor above the starting rate applies only at resets', () => {
+  const v = { ...mortgageDefaults(), initialRate: 2.225, floor: 3, fixedMonths: 20, adjustMonths: 6, firstCap: 5, periodicCap: 1, lifetimeCap: 5, rateBasis: 'change', change: -1 };
+  assert.equal(rateAfter(v, 0), 2.225);
+  assert.equal(rateAfter(v, 1), 3);
+  const r = simulate(v);
+  assert.equal(r.years[0].rate, 2.225);
+  assert.equal(r.monthly[19].rate, 2.225);
+  assert.equal(r.monthly[20].rate, 3);
 });
 
 test('the menu lists every calculator, and each page exists', () => {
