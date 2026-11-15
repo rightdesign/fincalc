@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rent vs own calculator</title>
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="menu.js"></script>
+    <script type="module" src="rent-vs-own-app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Rent vs own</h1>
+    </header>
+    <main class="m-page">
+      <p>Compare buying a home with renting a similar one and investing the difference. Enter the home price and today's rent; the calculator shows which leaves you with more money after the years you plan to stay.</p>
+      <form id="rentown-inputs" class="m-inputs ro-inputs"></form>
+      <p class="no-print ro-actions"><button type="button" id="rentown-copy">Copy link to these inputs</button> <button type="button" id="rentown-print">Print&hellip;</button> <button type="button" id="rentown-reset">Reset to defaults</button> <span class="share-message" id="rentown-message" role="status"></span></p>
+      <section id="rentown-results" aria-live="polite"></section>
+    </main>
+    <section class="methodology" id="methodology">
+      <details>
+        <summary>Methodology and assumptions</summary>
+        <ul>
+          <li>Owning: you pay the down payment and closing costs, then the monthly mortgage payment (a standard fixed-rate loan) plus property tax, insurance and maintenance, each a percentage of the home's value that year. The home's value grows at the rate you enter. When you sell, selling costs are deducted and the loan is repaid. Your net worth is what is left.</li>
+          <li>Renting: you pay rent (rising once a year by the rent growth) plus renter's insurance, and invest the down payment and closing costs you did not spend. Each month, whatever owning costs beyond renting is also invested; if renting costs more, the shortfall is taken from the investments. Investments grow at the return you enter. Your net worth is the investment balance.</li>
+          <li>Break-even is the first year after which owning stays ahead through the end of your stay.</li>
+          <li>Not modelled: mortgage insurance, income tax effects (the mortgage interest and property tax deductions, taxes on investment gains), variable rates (see the variable-rate mortgage calculator), and inflation. The investment return is a steady assumption, not a forecast.</li>
+        </ul>
+      </details>
+    </section>
+    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real costs and returns differ; talk to a qualified professional before buying a home.</p>
+  </body>
+</html>

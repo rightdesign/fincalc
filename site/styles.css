@@ -771,3 +771,9 @@ legend {
 }
 .m-inputs .field input[type="range"] { padding: 0; }
 .m-inputs .field-note { color: var(--muted); font-size: 0.85rem; }
+
+/* Rent vs own page */
+.ro-group .m-inputs { margin-top: 0.25rem; }
+.ro-headline h2 { margin: 0; }
+.ro-table-wrap { overflow-x: auto; }
+.ro-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
