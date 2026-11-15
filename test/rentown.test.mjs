@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, followThrough, RENTOWN_CHECKLIST, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 import { CALCULATORS } from '../site/menu.js';
 
@@ -288,4 +288,26 @@ test('the default inputs are the 20% down preset and 10% down changes the headli
   assert.equal(ftb.down, 10);
   assert.ok(compareRentOwn(ftb).firstPmi > 0);
   assert.notEqual(compareRentOwn(ftb).final.difference, compareRentOwn(base()).final.difference);
+});
+
+test('follow-through quotes the Year-1 monthly gap, not the total spread over the stay', () => {
+  const r = compareRentOwn(base());
+  const f = followThrough(r);
+  assert.equal(f.winner, 'rent');
+  assert.equal(f.direction, 'ownCostsMore');
+  near(f.monthly, 879, 1);
+  assert.ok(Math.abs(f.monthly - Math.abs(r.final.difference) / 84) > 100);
+});
+
+test('follow-through when owning wins says what owning costs per month', () => {
+  const v = { ...base(), price: 500000, rent: 2086, years: 7, investment: 3, growth: 5 };
+  const r = compareRentOwn(v);
+  const f = followThrough(r);
+  assert.equal(f.winner, 'own');
+  assert.equal(f.direction, 'ownCostsMore');
+  near(f.monthly, r.firstOwnMonthly - r.firstRentMonthly);
+});
+
+test('the checklist has four items', () => {
+  assert.equal(RENTOWN_CHECKLIST.length, 4);
 });

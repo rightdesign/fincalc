@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults, rentOwnThresholds } from './rentown.js';
+import { RENTOWN_CHECKLIST, RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, compareRentOwn, compareScenarios, decodeBasis, decodeRentOwn, encodeRentOwn, followThrough, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults, rentOwnThresholds } from './rentown.js';
 import { rentOwnChartHtml } from './rentown-chart.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -150,6 +150,17 @@ function render() {
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
   const drivers = rentOwnThresholds(v).map((t) => `<li>${t.text}</li>`).join('');
   const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
+  const ft = followThrough(r);
+  const perMonth = money(ft.monthly);
+  const followHtml = ft.winner === 'rent'
+    ? (ft.direction === 'ownCostsMore'
+      ? `<p>Renting comes out ahead only if you actually invest the difference: <strong>${perMonth} a month</strong>, what owning would cost beyond your rent in year 1.</p>
+      <ol><li>Keep a cushion of 3 to 6 months of expenses in savings first.</li><li>Put what is comfortable beyond that into low-cost, diversified funds such as index ETFs.</li><li>Automate the transfer each month so it happens without a decision.</li></ol>`
+      : `<p>Renting is ahead and costs ${ft.direction === 'same' ? 'about the same as' : `${perMonth} a month more than`} owning in year 1, so there is no monthly difference to invest. Keep a 3 to 6 month cushion and invest whatever you can spare, ideally automatically.</p>`)
+    : (ft.direction === 'ownCostsMore'
+      ? `<p>Owning costs <strong>${perMonth} a month more</strong> than renting in year 1. Make sure your budget holds that, and your 3 to 6 month cushion, before you buy.</p>`
+      : `<p>Owning costs ${ft.direction === 'same' ? 'about the same as' : `${perMonth} a month less than`} renting in year 1. Keep a 3 to 6 month cushion for repairs and surprises.</p>`);
+  const checklistHtml = RENTOWN_CHECKLIST.map((c) => `<li><strong>${c.label}.</strong> ${c.ask}</li>`).join('');
   const pct = (n) => `${Math.round(n * 100) / 100}%`;
   const scenarioRows = compareScenarios(v).map((s) => { const d = today ? s.differenceReal : s.difference; return `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${d >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(d))}</td></tr>`; }).join('');
   out.innerHTML = `
@@ -164,6 +175,8 @@ function render() {
         <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
         ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
       </tbody></table></div>
+    <div class="m-card ro-follow"><h3>${ft.winner === 'rent' ? 'If you rent: invest the difference' : 'If you buy: check the monthly budget'}</h3>${followHtml}</div>
+    <div class="m-card ro-checklist"><h3>Before you decide</h3><ul>${checklistHtml}</ul><p><small>This calculator ignores these, and they can matter more than the money.</small></p></div>
     ${waterfallHtml(r.waterfall, v)}
     <div class="ro-table-wrap"><table class="m-table ro-scenarios"><caption>What if the growth rates are different? Ahead after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${label}</caption>
       <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>

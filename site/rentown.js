@@ -200,6 +200,23 @@ function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, i
   };
 }
 
+// What to do once the verdict is in. Renting ahead: the renter must put the Year-1 monthly gap
+// (owning cost less rent, not the total difference spread over the stay) into investments.
+// Owning ahead: the same gap is what owning costs per month beyond rent, so the budget has to hold.
+// `monthly` is the size of that gap, `direction` says which way it runs.
+export function followThrough(r) {
+  const gap = r.firstOwnMonthly - r.firstRentMonthly;
+  return { winner: r.final.difference >= 0 ? 'own' : 'rent', monthly: Math.abs(gap), direction: gap > 0.5 ? 'ownCostsMore' : gap < -0.5 ? 'rentCostsMore' : 'same' };
+}
+
+// Things the calculator does not weigh; shown as a short list of questions.
+export const RENTOWN_CHECKLIST = [
+  { label: 'How long you will stay', ask: 'Is your stay really as long as the years you entered? Selling early usually favors renting.' },
+  { label: 'Flexibility vs. roots', ask: 'Do you want to be free to move easily, or settle in and make the place your own?' },
+  { label: 'Maintenance appetite', ask: 'Are you happy to handle repairs and upkeep, or do you want a landlord to?' },
+  { label: 'Job and location risk', ask: 'How likely is a job change or a move that would force a sale or a lease break?' },
+];
+
 // Cash needed to buy: down payment, closing costs, moving and a reserve of
 // months of owning costs. With cash saved entered, also the shortfall and how
 // many months it would take to close it by saving what owning would cost beyond
