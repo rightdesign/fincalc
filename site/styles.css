@@ -88,6 +88,16 @@ body {
   color: var(--text);
 }
 
+.methodology dt {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.methodology dd {
+  margin: 0.125rem 0 0;
+}
+
 .site-footer {
   margin-top: calc(var(--gap) * 2);
   font-size: 0.875rem;

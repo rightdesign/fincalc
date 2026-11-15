@@ -20,6 +20,52 @@
       <p><button type="button" id="mortgage-reset">Reset to defaults</button></p>
       <section id="mortgage-results" aria-live="polite"></section>
     </main>
+    <section class="methodology" id="arm-guide">
+      <details>
+        <summary>Definitions</summary>
+        <dl>
+          <dt>Adjustable-rate mortgage (ARM)</dt>
+          <dd>A loan whose interest rate is fixed for an initial period and then changes at set intervals.</dd>
+          <dt>Initial (fixed) period</dt>
+          <dd>The months before the first rate change. Your rate and payment stay the same during this time.</dd>
+          <dt>Reset</dt>
+          <dd>A date when the rate is recalculated. The payment is then recalculated so the loan still ends on schedule.</dd>
+          <dt>Index</dt>
+          <dd>A published benchmark rate that the lender follows, such as SOFR. When the index moves, your rate moves with it.</dd>
+          <dt>Margin</dt>
+          <dd>A fixed number of percentage points the lender adds to the index. Your fully indexed rate is the index plus the margin. This calculator asks for the change you expect instead, so it does not use an index or margin.</dd>
+          <dt>Initial adjustment cap</dt>
+          <dd>The most the rate can change at the first reset.</dd>
+          <dt>Periodic (subsequent) adjustment cap</dt>
+          <dd>The most the rate can change at each reset after the first.</dd>
+          <dt>Lifetime cap</dt>
+          <dd>The most the rate can rise above the starting rate over the whole loan.</dd>
+          <dt>Floor</dt>
+          <dd>The lowest rate the loan can ever have, even if the index falls further.</dd>
+          <dt>Payment shock</dt>
+          <dd>A large jump in the monthly payment after a reset. This calculator flags it when the worst-case payment is 25% or more above the first payment.</dd>
+        </dl>
+      </details>
+    </section>
+    <section class="methodology" id="arm-basics">
+      <details>
+        <summary>How adjustable-rate mortgages work</summary>
+        <p>An ARM usually starts with a rate below a comparable fixed-rate loan. A name such as 5/1 means the rate is fixed for 5 years and then adjusts every year. A 2/1/5 cap structure means the rate can rise at most 2 points at the first reset, 1 point at each later reset, and 5 points over the starting rate in total.</p>
+        <p>After the initial period, the rate is the index plus the margin, limited by the caps and the floor. If the index rises, the rate and payment rise, up to the caps. If the index falls, they fall, down to the floor.</p>
+        <h3>Who an ARM may suit</h3>
+        <ul>
+          <li>People who expect to sell or refinance before the first reset.</li>
+          <li>People whose income is likely to grow and who could afford the worst-case payment.</li>
+          <li>People who want the lower starting payment and are comfortable with the risk that it rises.</li>
+        </ul>
+        <h3>Who should be careful</h3>
+        <ul>
+          <li>People who plan to stay in the home a long time on a tight budget.</li>
+          <li>Anyone who could not afford the payment at the lifetime cap rate. Check the worst case above.</li>
+        </ul>
+        <p>For a fuller explanation, see the Consumer Financial Protection Bureau's <a href="https://www.consumerfinance.gov/owning-a-home/loan-options/" target="_blank" rel="noopener noreferrer">guide to loan options</a> (opens in a new tab).</p>
+      </details>
+    </section>
     <section class="methodology" id="methodology">
       <details>
         <summary>Methodology and assumptions</summary>

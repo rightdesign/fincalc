@@ -35,3 +35,11 @@ test('the mortgage page shows field help only on demand, behind a "?" button', (
   assert.ok(src.includes("hint.className = 'hint'"));
   assert.ok(!src.includes("'hint-text open'"), 'help text starts closed');
 });
+
+test('the mortgage page explains ARM terms and how ARMs work', () => {
+  const html = readFileSync(new URL('site/mortgage.html', root), 'utf8');
+  assert.ok(html.includes('id="arm-guide"') && html.includes('id="arm-basics"'));
+  for (const term of ['Index', 'Margin', 'Initial adjustment cap', 'Periodic (subsequent) adjustment cap', 'Lifetime cap', 'Floor', 'Payment shock', 'Who an ARM may suit']) {
+    assert.ok(html.includes(term), `ARM education covers ${term}`);
+  }
+});
