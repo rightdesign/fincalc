@@ -8,7 +8,8 @@ export const MORTGAGE_FIELDS = [
   { id: 'fixedYears', label: 'Years before the first rate change', value: 5, min: 1, max: 50, integer: true },
   { id: 'adjustYears', label: 'Years between rate changes after that', value: 1, min: 1, max: 50, integer: true },
   { id: 'change', label: 'Rate change at each adjustment (percentage points)', value: 0.5, min: -10, max: 10, hint: 'Your assumption for how the rate moves each time it resets. Use a negative number for falling rates.' },
-  { id: 'periodicCap', label: 'Cap on a single adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at one reset, up or down.' },
+  { id: 'firstCap', label: 'Cap on the first adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at the first reset, up or down. Many loans allow a larger first move (a 2/1/5 loan allows 2).' },
+  { id: 'periodicCap', label: 'Cap on each later adjustment (percentage points)', value: 2, min: 0, max: 30, hint: 'The most the rate can move at each reset after the first, up or down (a 2/1/5 loan allows 1).' },
   { id: 'lifetimeCap', label: 'Cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30 },
   { id: 'floor', label: 'Lowest possible rate (%)', value: 2, min: 0, max: 30 },
 ];
@@ -22,13 +23,16 @@ export function payment(balance, annualRate, months) {
   return r === 0 ? balance / months : (balance * r) / (1 - (1 + r) ** -months);
 }
 
-// The rate in force after `adjustments` resets, applying the per-reset cap, the
-// lifetime cap above the starting rate, and the floor.
+// The rate in force after `adjustments` resets, applying the first-reset cap, the
+// cap on later resets, the lifetime cap above the starting rate, and the floor.
 export function rateAfter(v, adjustments) {
   const ceiling = v.initialRate + v.lifetimeCap;
-  const step = Math.max(-v.periodicCap, Math.min(v.periodicCap, v.change));
+  const stepWithin = (cap) => Math.max(-cap, Math.min(cap, v.change));
   let rate = v.initialRate;
-  for (let i = 0; i < adjustments; i += 1) rate = Math.min(ceiling, Math.max(Math.min(v.floor, v.initialRate), rate + step));
+  for (let i = 0; i < adjustments; i += 1) {
+    const step = stepWithin(i === 0 ? v.firstCap : v.periodicCap);
+    rate = Math.min(ceiling, Math.max(Math.min(v.floor, v.initialRate), rate + step));
+  }
   return rate;
 }
 

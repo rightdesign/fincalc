@@ -29,10 +29,18 @@ test('rising rates raise the payment after the initial period and total interest
 });
 
 test('caps and floor limit the rate', () => {
-  const v = { ...mortgageDefaults(), change: 3, periodicCap: 1, lifetimeCap: 2.5 };
+  const v = { ...mortgageDefaults(), change: 3, firstCap: 1, periodicCap: 1, lifetimeCap: 2.5 };
   assert.equal(rateAfter(v, 1), 6.5);
   assert.equal(rateAfter(v, 10), 8);
-  assert.equal(rateAfter({ ...v, change: -5, periodicCap: 5 }, 10), 2);
+  assert.equal(rateAfter({ ...v, change: -5, firstCap: 5, periodicCap: 5 }, 10), 2);
+});
+
+test('the first adjustment has its own cap', () => {
+  const v = { ...mortgageDefaults(), change: 3, firstCap: 2, periodicCap: 1, lifetimeCap: 5 };
+  assert.equal(rateAfter(v, 1), 7.5);
+  assert.equal(rateAfter(v, 2), 8.5);
+  assert.equal(rateAfter(v, 3), 9.5);
+  assert.equal(rateAfter(v, 4), 10.5);
 });
 
 test('invalid values are named', () => {
