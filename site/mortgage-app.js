@@ -26,9 +26,22 @@ for (const f of MORTGAGE_FIELDS) {
   label.append(text, input);
   if (f.hint) {
     const tip = document.createElement('span');
-    tip.className = 'hint-text open';
+    tip.className = 'hint-text';
     tip.id = `hint-${f.id}`;
     tip.textContent = f.hint;
+    const hint = document.createElement('button');
+    hint.type = 'button';
+    hint.className = 'hint';
+    hint.textContent = '?';
+    hint.setAttribute('aria-label', `Help: ${f.label}`);
+    hint.setAttribute('aria-expanded', 'false');
+    hint.setAttribute('aria-controls', tip.id);
+    // Help text shows only on demand and sits in the page flow, so it never covers another field.
+    hint.addEventListener('click', (e) => {
+      e.preventDefault();
+      hint.setAttribute('aria-expanded', String(tip.classList.toggle('open')));
+    });
+    text.append(' ', hint);
     input.setAttribute('aria-describedby', tip.id);
     label.append(tip);
   }

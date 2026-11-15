@@ -29,3 +29,9 @@ test('the entry page publishes the methodology and a not-financial-advice discla
   }
   assert.ok(html.includes('Not financial advice'));
 });
+
+test('the mortgage page shows field help only on demand, behind a "?" button', () => {
+  const src = readFileSync(new URL('site/mortgage-app.js', root), 'utf8');
+  assert.ok(src.includes("hint.className = 'hint'"));
+  assert.ok(!src.includes("'hint-text open'"), 'help text starts closed');
+});
