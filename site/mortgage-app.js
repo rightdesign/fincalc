@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { MORTGAGE_FIELDS, floorProblem, invalidFields, mortgageDefaults, scenarios, simulate } from './mortgage.js';
+import { INDEXES, MORTGAGE_FIELDS, floorProblem, invalidFields, mortgageDefaults, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -15,14 +15,21 @@ for (const f of MORTGAGE_FIELDS) {
   label.className = 'field';
   const text = document.createElement('span');
   text.textContent = f.label;
-  const input = document.createElement('input');
-  input.type = 'number';
+  label.dataset.field = f.id;
+  let input;
+  if (f.type === 'select') {
+    input = document.createElement('select');
+    for (const o of f.options) input.add(new Option(o.label, o.value));
+  } else {
+    input = document.createElement('input');
+    input.type = 'number';
+    input.min = f.min;
+    input.max = f.max ?? '';
+    input.step = f.integer ? '1' : 'any';
+    input.inputMode = 'decimal';
+  }
   input.name = f.id;
   input.id = `field-${f.id}`;
-  input.min = f.min;
-  input.max = f.max ?? '';
-  input.step = f.integer ? '1' : 'any';
-  input.inputMode = 'decimal';
   input.value = f.value;
   label.append(text, input);
   if (f.hint) {
@@ -53,13 +60,14 @@ function values() {
   const v = {};
   for (const f of MORTGAGE_FIELDS) {
     const raw = form.elements[f.id].value;
-    v[f.id] = raw.trim() === '' ? NaN : Number(raw);
+    v[f.id] = f.type === 'select' ? raw : raw.trim() === '' ? NaN : Number(raw);
   }
   return v;
 }
 
 function render() {
   const v = values();
+  for (const f of MORTGAGE_FIELDS) form.querySelector(`[data-field="${f.id}"]`).hidden = !!f.showIf && !f.showIf(v);
   const bad = invalidFields(v);
   if (bad.length) {
     out.innerHTML = '';
@@ -112,7 +120,13 @@ function render() {
       <tbody>${rows}</tbody></table>`;
 }
 
-form.addEventListener('input', render);
+form.addEventListener('input', (e) => {
+  if (e.target.name === 'indexName') {
+    const preset = INDEXES.find((i) => i.value === e.target.value);
+    if (preset?.rate != null) form.elements.indexRate.value = preset.rate;
+  }
+  render();
+});
 form.addEventListener('submit', (e) => e.preventDefault());
 document.getElementById('mortgage-reset').addEventListener('click', () => {
   for (const f of MORTGAGE_FIELDS) form.elements[f.id].value = defaults[f.id];

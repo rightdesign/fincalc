@@ -14,7 +14,7 @@
       <h1>Variable-rate mortgage</h1>
     </header>
     <main class="m-page">
-      <p>See how a loan whose rate resets over time changes your payment and total interest. Enter the rate change you expect at each reset; the caps and floor limit it.</p>
+      <p>See how a loan whose rate resets over time changes your payment and total interest. Enter your loan's index and margin (or a fixed change per reset); the caps and floor limit each new rate.</p>
       <p class="m-rates-link">Need a starting rate? <a href="https://www.bankrate.com/mortgages/mortgage-rates/" target="_blank" rel="noopener noreferrer">See current adjustable-rate mortgage rates on Bankrate</a> (opens in a new tab). Rates shown there are not used by this calculator.</p>
       <form id="mortgage-inputs" class="m-inputs"></form>
       <p><button type="button" id="mortgage-reset">Reset to defaults</button></p>
@@ -72,7 +72,7 @@
         <ul>
           <li>The loan is paid monthly. Interest each month is the balance times the annual rate divided by 12.</li>
           <li>The payment is the standard amortizing payment on the remaining balance over the remaining months. It is recalculated at each rate reset, so the loan still ends at the end of the term.</li>
-          <li>The first reset comes after the initial period. Later resets come at the interval you set. At each reset the rate moves by your assumed change, limited by the cap on the first adjustment or on each later one, then held between the lowest possible rate and the starting rate plus the lifetime cap.</li>
+          <li>The first reset comes after the initial period. Later resets come at the interval you set. With index + margin, the rate at each reset targets the index plus the margin, where the index starts at the value you enter and moves by your assumed change at every reset. With a fixed change, the target is the previous rate plus that change. Either way the move is limited by the cap on the first adjustment or on each later one, then held between the lowest possible rate and the starting rate plus the lifetime cap. The index values offered when you pick an index are illustrative; enter the current published figure.</li>
           <li>Best, expected and worst case: the expected case uses your assumed change. The best case lowers the rate by the full cap on a single adjustment at every reset, down to the lowest possible rate. The worst case raises it by the full cap at every reset, up to the starting rate plus the lifetime cap. A payment rise of 25% or more over the first payment in the worst case is flagged as payment shock.</li>
           <li>The comparison is the same loan held at the starting rate for the whole term.</li>
           <li>Not modelled: fees, points, taxes, insurance, extra payments, and rates that move by different amounts at different resets.</li>

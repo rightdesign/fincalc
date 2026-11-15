@@ -127,6 +127,10 @@ legend {
   flex-wrap: wrap;
 }
 
+.field[hidden] {
+  display: none;
+}
+
 /* A long label wraps its own text; the input never drops below it. */
 .field span {
   flex: 1;

@@ -13,7 +13,7 @@ test('payment matches the standard amortizing formula and handles 0%', () => {
 });
 
 test('with no rate change the loan equals a fixed loan and pays off exactly', () => {
-  const v = { ...mortgageDefaults(), change: 0 };
+  const v = { ...mortgageDefaults(), rateBasis: 'change', change: 0 };
   const r = simulate(v);
   near(r.extraInterest, 0, 0.5);
   assert.equal(r.years.length, 30);
@@ -30,18 +30,36 @@ test('rising rates raise the payment after the initial period and total interest
 });
 
 test('caps and floor limit the rate', () => {
-  const v = { ...mortgageDefaults(), change: 3, firstCap: 1, periodicCap: 1, lifetimeCap: 2.5 };
+  const v = { ...mortgageDefaults(), rateBasis: 'change', change: 3, firstCap: 1, periodicCap: 1, lifetimeCap: 2.5 };
   assert.equal(rateAfter(v, 1), 6.5);
   assert.equal(rateAfter(v, 10), 8);
   assert.equal(rateAfter({ ...v, change: -5, firstCap: 5, periodicCap: 5 }, 10), 2);
 });
 
 test('the first adjustment has its own cap', () => {
-  const v = { ...mortgageDefaults(), change: 3, firstCap: 2, periodicCap: 1, lifetimeCap: 5 };
+  const v = { ...mortgageDefaults(), rateBasis: 'change', change: 3, firstCap: 2, periodicCap: 1, lifetimeCap: 5 };
   assert.equal(rateAfter(v, 1), 7.5);
   assert.equal(rateAfter(v, 2), 8.5);
   assert.equal(rateAfter(v, 3), 9.5);
   assert.equal(rateAfter(v, 4), 10.5);
+});
+
+test('index + margin sets the rate at each reset, within the caps and floor', () => {
+  const v = { ...mortgageDefaults(), rateBasis: 'index', indexRate: 4, margin: 2.75, indexChange: 0.25, initialRate: 5.5, firstCap: 2, periodicCap: 2, lifetimeCap: 5, floor: 2 };
+  near(rateAfter(v, 1), 7, 1e-9); // 4.25 + 2.75
+  near(rateAfter(v, 2), 7.25, 1e-9);
+  assert.equal(rateAfter({ ...v, indexRate: 8 }, 1), 7.5); // target 11 limited by the 2-point cap
+  assert.equal(rateAfter({ ...v, indexRate: 8, firstCap: 10, periodicCap: 10 }, 1), 10.5); // limited by the lifetime cap
+  assert.equal(rateAfter({ ...v, indexRate: 0, indexChange: 0, margin: 0, firstCap: 10, periodicCap: 10 }, 1), 2); // floor
+  const r = simulate(v);
+  near(r.years[5].rate, 7);
+  near(r.years[29].balance, 0);
+});
+
+test('hidden fields are not validated, and an unknown index is rejected', () => {
+  const v = { ...mortgageDefaults(), change: NaN };
+  assert.deepEqual(invalidFields(v), []);
+  assert.equal(invalidFields({ ...v, rateBasis: 'nope' }).length, 1);
 });
 
 test('invalid values are named', () => {
@@ -66,12 +84,12 @@ test('the menu lists every calculator, and each page exists', () => {
 });
 
 test('the mortgage charts mark the peak payment and describe themselves', () => {
-  const r = simulate(mortgageDefaults());
+  const r = simulate({ ...mortgageDefaults(), rateBasis: 'change' });
   const c = mortgageChart(r.years, { key: 'payment', title: 'Monthly payment by year', fmt: (n) => `$${Math.round(n)}` });
   assert.match(c.svg, /<svg[^>]*role="img"/);
   assert.ok(c.svg.includes(`Peak: $${Math.round(r.maxPayment)}, year 15`));
   assert.ok(c.description.includes(`peaks at $${Math.round(r.maxPayment)} in year 15`));
-  const flat = mortgageChart(simulate({ ...mortgageDefaults(), change: 0 }).years, { key: 'rate', title: 'Rate', fmt: String });
+  const flat = mortgageChart(simulate({ ...mortgageDefaults(), rateBasis: 'change', change: 0 }).years, { key: 'rate', title: 'Rate', fmt: String });
   assert.ok(!flat.svg.includes('NaN'));
   const rate = mortgageChart(r.years, { key: 'rate', title: 'Rate', fmt: (n) => `${n.toFixed(1)}%` });
   assert.ok(rate.svg.includes('Peak: 10.5%, year 15'));
@@ -94,6 +112,15 @@ test('best, expected and worst cases bracket the expected path', () => {
   near(sc.worst.years[29].balance, 0);
 });
 
+test('best and worst cases ignore the index path; expected follows it', () => {
+  const d = mortgageDefaults();
+  const idx = scenarios({ ...d, rateBasis: 'index' });
+  const chg = scenarios({ ...d, rateBasis: 'change' });
+  assert.equal(idx.worst.maxRate, chg.worst.maxRate);
+  assert.equal(idx.best.maxRate, chg.best.maxRate);
+  assert.equal(idx.expected.maxRate, simulate({ ...d, rateBasis: 'index' }).maxRate);
+});
+
 test('a first rate change at or past the end of the term never resets', () => {
   const d = mortgageDefaults();
   assert.equal(simulate(d).noReset, false);
@@ -103,7 +130,7 @@ test('a first rate change at or past the end of the term never resets', () => {
 });
 
 test('rate changes can fall on month counts that are not whole years', () => {
-  const d = { ...mortgageDefaults(), fixedMonths: 18, adjustMonths: 6 };
+  const d = { ...mortgageDefaults(), rateBasis: 'change', fixedMonths: 18, adjustMonths: 6 };
   const r = simulate(d);
   assert.equal(r.years[0].rate, 5.5);
   assert.equal(r.years[1].rate, 6); // the reset at month 18 falls inside year 2
