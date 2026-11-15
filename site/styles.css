@@ -866,3 +866,5 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-headline h2 { margin: 0; }
 .ro-table-wrap { overflow-x: auto; }
 .ro-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.ro-cash h3 { margin: 0 0 0.5rem; }
+.ro-cash th[scope="row"] { text-align: left; font-weight: normal; }

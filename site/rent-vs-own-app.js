@@ -11,7 +11,7 @@ const form = document.getElementById('rentown-inputs');
 const out = document.getElementById('rentown-results');
 const message = document.getElementById('rentown-message');
 const defaults = rentOwnDefaults();
-const show = (f, n) => (f.money ? usd.format(n) : n);
+const show = (f, n) => (n == null ? '' : f.money ? usd.format(n) : n);
 
 for (const g of RENTOWN_GROUPS) {
   const set = document.createElement('fieldset');
@@ -68,7 +68,10 @@ for (const g of RENTOWN_GROUPS) {
 }
 
 function values() {
-  return Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, parseAmount(form.elements[f.id].value)]));
+  return Object.fromEntries(RENTOWN_FIELDS.map((f) => {
+    const text = form.elements[f.id].value;
+    return [f.id, f.optional && text.trim() === '' ? null : parseAmount(text)];
+  }));
 }
 
 function setValues(v) {
@@ -94,15 +97,34 @@ function render() {
   const r = compareRentOwn(v);
   const { final } = r;
   const ahead = final.difference >= 0;
-  const headline = Math.round(final.difference) === 0
+  const cash = r.cash;
+  const short = cash.shortfall > 0;
+  const word = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
+  const gap = cash.monthsToClose == null
+    ? ''
+    : ` Setting aside the ${money(cash.monthlyGap)} a month owning would cost beyond rent would close the gap in about ${word(cash.monthsToClose, 'month')}, not counting interest earned.`;
+  const headline = short
+    ? `You are ${money(cash.shortfall)} short — renting while you save is the only option on these numbers.`
+    : Math.round(final.difference) === 0
     ? `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, owning and renting leave you about even.`
     : `After ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} leaves you about ${money(Math.abs(final.difference))} ahead.`;
-  const detail = r.breakEven == null
+  const detail = short
+    ? `You need ${money(cash.total)} in cash to buy and have ${money(cash.saved)}.${gap} Once you have it, the numbers below apply: after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} would leave you about ${money(Math.abs(final.difference))} ahead.`
+    : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
   out.innerHTML = `
     <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${detail}</p></div>
+    <div class="m-card ro-cash"><h3>Cash needed to buy</h3>
+      <table class="m-table"><tbody>
+        <tr><th scope="row">Down payment</th><td>${money(cash.down)}</td></tr>
+        <tr><th scope="row">Closing costs</th><td>${money(cash.closing)}</td></tr>
+        <tr><th scope="row">Moving</th><td>${money(cash.moving)}</td></tr>
+        <tr><th scope="row">Reserve (${word(v.reserve, 'month')} of owning costs)</th><td>${money(cash.reserve)}</td></tr>
+        <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
+        ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
+      </tbody></table></div>
     <div class="m-charts">
       ${rentOwnChartHtml(r.years, r.breakEven, money)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year</caption>
