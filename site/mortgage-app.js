@@ -1,6 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageChartHtml } from './mortgage-chart.js';
-import { INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
+import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, refinance, scenarios, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -19,6 +19,21 @@ function setSlider(slider, n) {
 const form = document.getElementById('mortgage-inputs');
 const out = document.getElementById('mortgage-results');
 const defaults = mortgageDefaults();
+const presets = document.getElementById('mortgage-presets');
+
+for (const p of ARM_PRESETS) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = p.label;
+  b.title = `Fixed for ${p.fixedMonths / 12} years, then adjusts every ${p.adjustMonths / 12} year`;
+  b.addEventListener('click', () => {
+    for (const id of ['fixedMonths', 'adjustMonths']) {
+      form.elements[id].value = p[id];
+      form.elements[id].dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  presets.append(b);
+}
 const startInput = document.getElementById('mortgage-start');
 let view = 'annual';
 const monthLabel = (ym) => new Date(`${ym}-01T00:00:00`).toLocaleString('en-US', { month: 'short', year: 'numeric' });

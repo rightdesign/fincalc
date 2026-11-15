@@ -745,6 +745,7 @@ legend {
 .site-header h1 { padding-left: 3.5rem; padding-right: 1rem; }
 
 /* Variable-rate mortgage page */
+.m-presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: var(--gap); }
 .m-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--gap); }
 /* Single-column page: the two-column .calculator grid is for the rail layout only. */
 .m-inputs { align-items: start; }

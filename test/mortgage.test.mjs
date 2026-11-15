@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
+import { ARM_PRESETS, MORTGAGE_FIELDS, addMonths, decodeMortgage, encodeMortgage, extraSavings, floorProblem, invalidFields, loanProblem, maxRate, mortgageDefaults, parseAmount, payment, rateAfter, refinance, scenarios, simulate } from '../site/mortgage.js';
 import { mortgageChart } from '../site/mortgage-chart.js';
 import { CALCULATORS, menuHtml } from '../site/menu.js';
 
@@ -81,6 +81,15 @@ test('the menu lists every calculator, and each page exists', () => {
     assert.ok(readFileSync(new URL(`../site/${c.href}`, import.meta.url), 'utf8').includes('menu.js'));
   }
   assert.ok(html.includes('aria-current="page">Variable-rate'));
+});
+
+test('ARM presets set the months before the first change and a 12-month adjustment', () => {
+  assert.deepEqual(ARM_PRESETS.map((p) => p.label), ['3/1 ARM', '5/1 ARM', '7/1 ARM', '10/1 ARM']);
+  assert.deepEqual(ARM_PRESETS.map((p) => p.fixedMonths), [36, 60, 84, 120]);
+  assert.ok(ARM_PRESETS.every((p) => p.adjustMonths === 12));
+  const r = simulate({ ...mortgageDefaults(), fixedMonths: 84, adjustMonths: 12 });
+  near(r.years[6].payment, r.years[0].payment);
+  assert.ok(r.years[7].payment > r.years[6].payment);
 });
 
 test('total paid is principal plus interest and the monthly schedule matches the yearly one', () => {

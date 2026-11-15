@@ -6,6 +6,9 @@ export const RATE_BASES = [
   { value: 'change', label: 'Fixed change at each reset' },
 ];
 
+// Common ARM types: "5/1" is fixed for 5 years (60 months), then adjusts every 1 year (12 months).
+export const ARM_PRESETS = [3, 5, 7, 10].map((years) => ({ label: `${years}/1 ARM`, fixedMonths: years * 12, adjustMonths: 12 }));
+
 // Illustrative starting values only; the user is told to enter the current figure.
 export const INDEXES = [
   { value: 'treasury1', label: '1-year Treasury', rate: 4 },
