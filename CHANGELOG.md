@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.71.0] — 2026-11-15
+
+- FINC-117 The variable-rate mortgage calculator can now make the loan interest-only for its whole life, with the balloon payment due at the end shown in the results, alongside the existing interest-only start period.
+
 ## [0.70.1] — 2026-11-15
 
 - FINC-116 The rent vs own page is split into one module and one test file per results card, with contributor notes, so tickets that add a card stop conflicting; the page itself is unchanged.
