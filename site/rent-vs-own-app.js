@@ -150,6 +150,23 @@ function render() {
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
+  const mc = (m, label) => `<table class="m-table"><caption>${label}</caption><tbody>
+        <tr><th scope="row">Mortgage interest</th><td>${money(m.interest)}</td></tr>
+        <tr><th scope="row">Mortgage principal (goes to equity, not lost)</th><td>${money(m.principal)}</td></tr>
+        <tr><th scope="row">Property tax</th><td>${money(m.tax)}</td></tr>
+        <tr><th scope="row">Home insurance</th><td>${money(m.insurance)}</td></tr>
+        ${m.pmi > 0 ? `<tr><th scope="row">Mortgage insurance (PMI)</th><td>${money(m.pmi)}</td></tr>` : ''}
+        <tr><th scope="row">Maintenance</th><td>${money(m.maintenance)}</td></tr>
+        ${m.hoa > 0 ? `<tr><th scope="row">HOA dues</th><td>${money(m.hoa)}</td></tr>` : ''}
+        ${m.utilities > 0 ? `<tr><th scope="row">Extra utilities</th><td>${money(m.utilities)}</td></tr>` : ''}
+        <tr><th scope="row">Total to own</th><td><strong>${money(m.ownTotal)}</strong></td></tr>
+        <tr><th scope="row">True monthly cost excluding principal</th><td><strong>${money(m.ownCost)}</strong></td></tr>
+        <tr><th scope="row">Rent</th><td>${money(m.rent)}</td></tr>
+        <tr><th scope="row">Renter&rsquo;s insurance</th><td>${money(m.renterInsurance)}</td></tr>
+        <tr><th scope="row">Total to rent</th><td><strong>${money(m.rentTotal)}</strong></td></tr>
+      </tbody></table>`;
+  const lastMonthly = r.monthly[r.monthly.length - 1];
+  const yearLabel = (m) => `First month of year ${m.year}`;
   const lens = (breakEven) => breakEven == null
     ? 'Owning does not catch up within your stay.'
     : `Owning pulls ahead in year ${breakEven}.`;
@@ -191,6 +208,9 @@ function render() {
       <div class="m-card"><h3>Pure net worth view</h3><p>${verdict(final.pureDifference)} after ${span}, ${label} &mdash; ${lens(r.pureBreakEven)}</p><p>Owner: home equity after selling costs. Renter: only the down payment and closing costs, invested and taxed the same way; the monthly difference is not credited to either side.</p></div>
     </div>
     ${why}
+    <div class="m-card ro-monthly"><h3>Where the monthly cost goes</h3>
+      ${mc(r.monthly[0], yearLabel(r.monthly[0]))}
+      ${lastMonthly.year > 1 ? mc(lastMonthly, yearLabel(lastMonthly)) : ''}</div>
     <div class="m-card ro-follow"><h3>${ft.winner === 'rent' ? 'If you rent: invest the difference' : 'If you buy: check the monthly budget'}</h3>${followHtml}</div>
     <div class="m-card ro-checklist"><h3>Before you decide</h3><ul>${checklistHtml}</ul><p><small>This calculator ignores these, and they can matter more than the money.</small></p></div>
     ${waterfallHtml(r.waterfall, v)}

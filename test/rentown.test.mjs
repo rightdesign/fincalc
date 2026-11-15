@@ -251,6 +251,21 @@ test('cash saved is optional but must be valid when given', () => {
   assert.equal(decodeRentOwn('').saved, null);
 });
 
+test('monthly breakdown: year 1 components sum to the monthly cost and principal is split out', () => {
+  const r = compareRentOwn(base());
+  const m = r.monthly[0];
+  assert.equal(r.monthly.length, 7);
+  near(m.ownTotal, r.firstOwnMonthly);
+  near(m.ownTotal, 3194, 1);
+  assert.ok(m.interest > 1940 && m.interest < 1960);
+  assert.ok(m.principal > 320 && m.principal < 330);
+  near(m.interest + m.principal, 2275.3, 0.5);
+  near(m.ownCost, m.ownTotal - m.principal);
+  near(m.rentTotal, r.firstRentMonthly);
+  near(m.rent, 2300);
+  assert.ok(r.monthly[6].principal > m.principal && r.monthly[6].interest < m.interest);
+});
+
 test('every input survives the link round trip and reproduces the same headline', () => {
   const changed = Object.fromEntries(RENTOWN_FIELDS.map((f) => {
     const alt = f.integer ? (f.value === 0 ? 2 : f.value + 1) : (f.value ?? 1000) + 1;

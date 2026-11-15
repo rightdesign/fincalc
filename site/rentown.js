@@ -116,6 +116,7 @@ export function compareRentOwn(v) {
   let firstRent = 0;
   let firstPmi = 0;
   let totalPmi = 0;
+  const monthly = [];
   const upfront = portfolio;
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
@@ -128,6 +129,7 @@ export function compareRentOwn(v) {
     if (m <= stayMonths) totalPmi += pmi;
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
+    const before = balance;
     balance = Math.max(0, balance + interest - mortgage);
     const repair = v.repairYear > 0 && m === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
     repairs = repairs * invest + repair;
@@ -140,6 +142,10 @@ export function compareRentOwn(v) {
     const own = mortgage + pmi + tax + insurance + maintenance + hoa + utilities;
     const baseRent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn;
     const rent = baseRent + v.renterInsurance / 12;
+    if (m % 12 === 1 && m <= stayMonths) {
+      const part = { interest: before > 0 ? Math.min(interest, mortgage) : 0, principal: before - balance, tax, insurance, pmi, maintenance, hoa, utilities, rent: baseRent, renterInsurance: v.renterInsurance / 12 };
+      monthly.push(monthlyCosts(part, yearsIn + 1));
+    }
     Object.assign(sum, {
       mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
       hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
@@ -186,7 +192,7 @@ export function compareRentOwn(v) {
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
   const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax });
-  return { years, breakEven, pureBreakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+  return { years, monthly, breakEven, pureBreakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
 }
 
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash
@@ -210,6 +216,13 @@ function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, i
     moneyBack: { value, sellingCosts, balance, repairs, total: ownWorth },
     gap: upfront + recurring + opportunity - ownWorth,
   };
+}
+
+// First month of a year, itemized. Principal builds equity, so the cost of
+// owning leaves it out; rent has no such part.
+function monthlyCosts(m, year) {
+  const ownTotal = m.interest + m.principal + m.tax + m.insurance + m.pmi + m.maintenance + m.hoa + m.utilities;
+  return { year, ...m, ownTotal, ownCost: ownTotal - m.principal, rentTotal: m.rent + m.renterInsurance };
 }
 
 // What to do once the verdict is in. Renting ahead: the renter must put the Year-1 monthly gap
