@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.72.2] — 2026-11-15
+
+- FINC-122 The payoff date now matches the last row of the monthly schedule when some months of the loan have already been paid.
+
 ## [0.72.1] — 2026-11-15
 
 - FINC-121 Dollar amounts on the variable-rate mortgage calculator now show thousands commas while you type, so 1,700,000 is easy to tell from 17,000,000.
