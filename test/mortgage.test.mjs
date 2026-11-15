@@ -493,3 +493,11 @@ test('groupAmount adds commas as digits are typed and leaves non-numbers alone',
   assert.equal(groupAmount('-5000'), '-5000');
   assert.equal(parseAmount(groupAmount('1700000')), 1700000);
 });
+
+test('the final schedule row, counted from the loan start, is the payoff month even with elapsed months', () => {
+  const r = simulate({ ...mortgageDefaults(), elapsed: 75, ioMonths: 120 });
+  const last = r.monthly[r.monthly.length - 1];
+  assert.equal(last.month, 360);
+  assert.notEqual(r.payoffMonths, last.month); // the row count is only the months still to pay
+  assert.equal(addMonths('2020-08', last.month - 1), '2050-07');
+});

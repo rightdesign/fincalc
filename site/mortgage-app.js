@@ -281,7 +281,7 @@ function render() {
   const r = simulate(v);
   const start = startInput.value;
   const hasExtras = r.hasExtras;
-  const payoff = addMonths(start, r.payoffMonths - 1);
+  const payoff = r.monthly.length ? addMonths(start, r.monthly[r.monthly.length - 1].month - 1) : ''; // the schedule's final row, counted from the loan's start
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${pct(y.rate)}</td><td>${money(y.payment)}</td>${hasExtras ? `<td>${money(y.total)}</td>` : ''}<td>${money(y.interest)}</td><td>${money(y.principal)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const monthRows = r.monthly.map((m) => `<tr><td>${start ? monthLabel(addMonths(start, m.month - 1)) : m.month}</td><td>${pct(m.rate)}</td><td>${money(m.payment)}</td><td>${money(m.interest)}</td><td>${money(m.principal)}</td><td>${money(m.balance)}</td></tr>`).join('');
   const monthly = view === 'monthly';
