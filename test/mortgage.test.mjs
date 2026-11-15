@@ -192,6 +192,33 @@ test('every numeric mortgage input has a slider that holds its default within th
   }
 });
 
+test('months already elapsed shortens the term and the fixed period', () => {
+  const base = { ...mortgageDefaults(), loan: 1516256, term: 30, initialRate: 2.25, fixedMonths: 84, lifetimeCap: 5 };
+  const aged = simulate({ ...base, elapsed: 60 });
+  const manual = simulate({ ...base, term: 25, fixedMonths: 24 });
+  assert.equal(aged.remaining, 300);
+  assert.equal(aged.months, 360);
+  assert.ok(Math.abs(aged.totalInterest - manual.totalInterest) < 1e-6);
+  assert.equal(aged.years[0].year, 6); // starts in year 6 of the original loan
+  assert.equal(aged.monthly[0].month, 61);
+  assert.equal(aged.monthly.length, 300);
+});
+
+test('a loan already past its fixed period starts at the reset rate', () => {
+  const d = { ...mortgageDefaults(), rateBasis: 'change', change: 0.5, fixedMonths: 12, adjustMonths: 12, elapsed: 30 };
+  const r = simulate(d);
+  assert.equal(r.monthly[0].rate, 6.5); // resets at months 12 and 24 already happened
+  assert.equal(r.monthly.find((m) => m.month === 37).rate, 7); // next reset at month 36
+});
+
+test('elapsed months must be a whole number below the term', () => {
+  const d = mortgageDefaults();
+  assert.equal(invalidFields({ ...d, elapsed: 360 }).length, 1);
+  assert.equal(invalidFields({ ...d, elapsed: 359 }).length, 0);
+  assert.equal(invalidFields({ ...d, elapsed: -1 }).length, 1);
+  assert.equal(encodeMortgage({ ...d, elapsed: 60 }), 'elapsed=60');
+});
+
 const fixedLoan = { ...mortgageDefaults(), rateBasis: 'change', change: 0 };
 
 test('an extra monthly payment shortens the loan, saves interest and leaves the required payment alone', () => {
@@ -268,4 +295,13 @@ test('the new options round-trip and only show the refinance fields when asked',
   assert.deepEqual(invalidFields({ ...mortgageDefaults(), refiRate: NaN }), []);
   assert.deepEqual(invalidFields({ ...mortgageDefaults(), refiMonth: 12, refiRate: NaN }), ['New fixed rate (%)']);
   assert.deepEqual(invalidFields({ ...mortgageDefaults(), extra: -5 }), ['Extra payment each month ($)']);
+});
+
+test('elapsed months combine with an interest-only period and extra payments', () => {
+  const v = { ...mortgageDefaults(), rateBasis: 'change', change: 0, ioMonths: 24, elapsed: 12, extra: 100 };
+  const r = simulate(v);
+  assert.equal(r.monthly[0].month, 13);
+  near(r.monthly[0].scheduled, 400000 * 0.055 / 12); // still interest-only for 12 more months
+  assert.ok(r.monthly[12].scheduled > r.monthly[11].scheduled); // month 25 starts repaying
+  near(r.monthly[r.payoffMonths - 1].balance, 0);
 });

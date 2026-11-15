@@ -17,6 +17,7 @@ export const INDEXES = [
 export const MORTGAGE_FIELDS = [
   { id: 'loan', label: 'Loan amount ($)', value: 400000, min: 1, money: true, slider: { min: 50000, max: 2000000, step: 5000 } },
   { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true, slider: { min: 1, max: 40, step: 1 } },
+  { id: 'elapsed', label: 'Months already elapsed', value: 0, min: 0, max: 599, integer: true, slider: { min: 0, max: 360, step: 1 }, hint: 'For a loan you already have: how many months you have already paid. Enter the current balance as the loan amount and keep the original term and months before the first rate change; the schedule starts where the loan is today.' },
   { id: 'initialRate', label: 'Starting interest rate (%)', value: 5.5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'fixedMonths', label: 'Months before the first rate change', value: 60, min: 1, max: 600, integer: true, slider: { min: 1, max: 360, step: 1 } },
   { id: 'adjustMonths', label: 'Months between rate changes after that', value: 12, min: 1, max: 600, integer: true, slider: { min: 1, max: 120, step: 1 } },
@@ -83,6 +84,7 @@ export function rateAfter(v, adjustments) {
 // can end early (the rows then stop at the payoff month).
 export function simulate(v) {
   const months = Math.round(v.term * 12);
+  const elapsed = v.elapsed || 0;
   const fixedMonths = v.fixedMonths;
   const every = v.adjustMonths;
   const extra = v.extra || 0;
@@ -90,21 +92,22 @@ export function simulate(v) {
   const years = [];
   const monthly = [];
   let balance = v.loan;
-  let rate = v.initialRate;
-  let pay = io > 0 ? balance * rate / 100 / 12 : payment(balance, rate, months);
-  let adjustments = 0;
+  // Resets that already happened before today (an elapsed loan past its fixed period).
+  let adjustments = elapsed > fixedMonths ? Math.floor((elapsed - fixedMonths - 1) / every) + 1 : 0;
+  let rate = rateAfter(v, adjustments);
+  let pay = io > elapsed ? balance * rate / 100 / 12 : payment(balance, rate, months - elapsed);
   let cur = null;
-  for (let m = 0; m < months && balance > 0; m += 1) {
+  for (let m = elapsed; m < months && balance > 0; m += 1) {
     const reset = m >= fixedMonths && (m - fixedMonths) % every === 0;
     if (reset) {
       adjustments += 1;
       rate = rateAfter(v, adjustments);
     }
-    if (m >= io && (reset || m === io)) pay = payment(balance, rate, months - m);
+    if (m >= io && (reset || m === Math.max(io, elapsed))) pay = payment(balance, rate, months - m);
     const interest = balance * rate / 100 / 12;
     const scheduled = m < io ? interest : pay;
-    if (m % 12 === 0) {
-      cur = { year: m / 12 + 1, rate, payment: scheduled + extra, scheduled, interest: 0, principal: 0, balance };
+    if (cur === null || m % 12 === 0) {
+      cur = { year: Math.floor(m / 12) + 1, rate, payment: scheduled + extra, scheduled, interest: 0, principal: 0, balance };
       years.push(cur);
     }
     const last = m === months - 1;
@@ -120,13 +123,15 @@ export function simulate(v) {
     cur.scheduled = scheduled;
   }
   const sum = (key) => years.reduce((s, y) => s + y[key], 0);
-  const fixedPay = payment(v.loan, v.initialRate, months);
-  const fixedInterest = fixedPay * months - v.loan;
+  const remaining = months - elapsed;
+  const fixedPay = payment(v.loan, v.initialRate, remaining);
+  const fixedInterest = fixedPay * remaining - v.loan;
   const required = monthly.map((x) => x.scheduled);
   return {
     years,
     monthly,
     months,
+    remaining,
     payoffMonths: monthly.length,
     totalInterest: sum('interest'),
     totalPaid: v.loan + sum('interest'),
@@ -217,6 +222,7 @@ export function invalidFields(v) {
     if (f.showIf && !f.showIf(v)) return false;
     const n = v[f.id];
     if (f.type === 'select') return !f.options.some((o) => o.value === n);
+    if (f.id === 'elapsed' && Number.isFinite(n) && n >= Math.round(v.term * 12)) return true;
     return !Number.isFinite(n) || n < f.min || (f.max !== undefined && n > f.max) || (f.integer && !Number.isInteger(n));
   }).map((f) => f.label);
 }
