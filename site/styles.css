@@ -732,7 +732,11 @@ legend {
 
 /* Variable-rate mortgage page */
 .m-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--gap); }
-.m-inputs .field { display: flex; flex-direction: column; gap: 0.25rem; }
+/* Single-column page: the two-column .calculator grid is for the rail layout only. */
+.m-inputs { align-items: start; }
+.m-inputs .field { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.25rem; margin: 0; }
+.m-inputs .field span { flex: none; }
+.m-inputs .field input { width: 100%; box-sizing: border-box; }
 .m-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--gap); margin: var(--gap) 0; }
 .m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.75rem 1rem; }
 .m-card h3 { margin: 0; font-size: 0.9rem; color: var(--muted); }
