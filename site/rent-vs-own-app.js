@@ -131,6 +131,8 @@ function render() {
   const other = today ? r.final : r.finalReal;
   const phrase = (f) => (Math.round(f.difference) === 0 ? 'about even' : `${f.difference >= 0 ? 'owning' : 'renting'} ahead by ${money(Math.abs(f.difference))}`);
   const ahead = final.difference >= 0;
+  const span = `${v.years} ${v.years === 1 ? 'year' : 'years'}`;
+  const verdict = (diff) => (Math.round(diff) === 0 ? 'Owning and renting come out about even' : `${diff > 0 ? 'Owning' : 'Renting'} leaves you about ${money(Math.abs(diff))} ahead`);
   const cash = r.cash;
   const short = cash.shortfall > 0;
   const word = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
@@ -148,8 +150,16 @@ function render() {
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
     : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
+  const lens = (breakEven) => breakEven == null
+    ? 'Owning does not catch up within your stay.'
+    : `Owning pulls ahead in year ${breakEven}.`;
+  const winner = (d) => (Math.round(d) === 0 ? 'tie' : d > 0 ? 'own' : 'rent');
+  const differ = winner(final.difference) !== winner(final.pureDifference);
+  const why = differ
+    ? `<p class="ro-why"><strong>The two views disagree.</strong> Equal-cash credits the renter with the monthly difference between owning and renting (${final.rent >= final.pureRent ? 'owning costs more than renting, so the renter invests the difference' : 'renting costs more than owning, so the renter pays the difference out of the investments'}); the pure view gives neither side that credit, so it only compares the starting cash with the home. The headline above follows the equal-cash view.</p>`
+    : '';
   const drivers = rentOwnThresholds(v).map((t) => `<li>${t.text}</li>`).join('');
-  const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td></tr>`).join('');
+  const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td><td>${money(y.pureRent)}</td><td>${signed(y.pureDifference)}</td></tr>`).join('');
   const ft = followThrough(r);
   const perMonth = money(ft.monthly);
   const followHtml = ft.winner === 'rent'
@@ -165,7 +175,7 @@ function render() {
   const scenarioRows = compareScenarios(v).map((s) => { const d = today ? s.differenceReal : s.difference; return `<tr><th scope="row">${s.label}</th><td>${pct(s.growth)}</td><td>${pct(s.rentGrowth)}</td><td>${pct(s.investment)}</td><td>${s.breakEven == null ? 'Not within stay' : `Year ${s.breakEven}`}</td><td>${d >= 0 ? 'Owning' : 'Renting'} ${money(Math.abs(d))}</td></tr>`; }).join('');
   const inputRows = RENTOWN_FIELDS.map((f) => `<tr><th scope="row">${f.label}</th><td>${v[f.id] == null ? 'Not entered' : f.money ? money(v[f.id]) : v[f.id]}</td></tr>`).join('');
   out.innerHTML = `
-    <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${otherLine}</p><p>${detail}</p></div>
+    <div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${otherLine}</p><p>${detail}</p><p>Headline view: equal-cash (below).</p></div>
     <section class="m-card ro-drivers"><h2>What drives the verdict</h2><p>For each assumption, the value at which the winner flips at your ${v.years}-year stay, holding everything else as entered.</p><ul>${drivers}</ul></section>
     <div class="m-card ro-cash"><h3>Cash needed to buy</h3>
       <table class="m-table"><tbody>
@@ -176,6 +186,11 @@ function render() {
         <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
         ${cash.saved == null ? '' : `<tr><th scope="row">Cash you have saved</th><td>${money(cash.saved)}</td></tr><tr><th scope="row">${short ? 'Shortfall' : 'Left over after buying'}</th><td>${money(short ? cash.shortfall : cash.saved - cash.total)}</td></tr>`}
       </tbody></table></div>
+    <div class="ro-lenses">
+      <div class="m-card"><h3>Equal-cash view</h3><p>${verdict(final.difference)} after ${span}, ${label} &mdash; ${lens(r.breakEven)}</p><p>Both sides start with the same cash (the down payment and closing costs) and spend the same each month: whichever choice costs less that month invests the difference.</p></div>
+      <div class="m-card"><h3>Pure net worth view</h3><p>${verdict(final.pureDifference)} after ${span}, ${label} &mdash; ${lens(r.pureBreakEven)}</p><p>Owner: home equity after selling costs. Renter: only the down payment and closing costs, invested and taxed the same way; the monthly difference is not credited to either side.</p></div>
+    </div>
+    ${why}
     <div class="m-card ro-follow"><h3>${ft.winner === 'rent' ? 'If you rent: invest the difference' : 'If you buy: check the monthly budget'}</h3>${followHtml}</div>
     <div class="m-card ro-checklist"><h3>Before you decide</h3><ul>${checklistHtml}</ul><p><small>This calculator ignores these, and they can matter more than the money.</small></p></div>
     ${waterfallHtml(r.waterfall, v)}
@@ -186,7 +201,7 @@ function render() {
     <div class="m-charts">
       ${rentOwnChartHtml(today ? r.chartReal : r.chartYears, r.chartBreakEven, money, v.years)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
-        <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent</th><th scope="col">Difference</th></tr></thead>
+        <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent (equal-cash)</th><th scope="col">Difference (equal-cash)</th><th scope="col">Rent (pure)</th><th scope="col">Difference (pure)</th></tr></thead>
         <tbody>${rows}</tbody></table>
         <p>Tax on investments over ${v.years} ${v.years === 1 ? 'year' : 'years'}: ${money(final.dragPaid + final.saleTax)} (${money(final.dragPaid)} tax drag along the way, ${money(final.saleTax)} capital gains tax when you sell). Investment return after tax drag: ${Math.round(r.afterTaxReturn * 100) / 100}% per year, before the tax on sale.</p>
         <p>Monthly cost in year 1: own ${money(r.firstOwnMonthly)}${r.firstPmi > 0 ? ` (including ${money(r.firstPmi)} mortgage insurance)` : ''} · rent ${money(r.firstRentMonthly)}.</p>

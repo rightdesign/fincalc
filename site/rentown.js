@@ -71,24 +71,30 @@ export function invalidRentOwn(v) {
 // Net worth of each choice at the end of every year of the stay, in future
 // (nominal) dollars; `real` has the same years discounted to today's dollars by
 // the inflation rate.
-// Own: home value less the loan balance and selling costs. Rent: an investment
-// account that starts with the down payment and closing costs and then takes in
-// each month whatever owning costs beyond rent (or pays out the shortfall when
-// owning is cheaper), growing at the investment return. Each month the tax drag
-// (never more than that month's gain) is taken from the account, and the
-// capital gains tax on what is left above the money put in is deducted at the end.
+// Own: home value less the loan balance and selling costs. Rent has two lenses
+// that share the same starting cash (the down payment and closing costs,
+// invested) and differ in the monthly cash flow:
+// - Equal-cash (`rent`, the headline): both sides spend the same each month, so
+//   the renter's account also takes in whatever owning costs beyond rent (or
+//   pays out the shortfall when owning is cheaper).
+// - Pure net worth (`pureRent`): the starting cash only grows; the monthly
+//   difference is not credited to either side.
+// Each grows at the investment return. Each month the tax drag (never more than
+// that month's gain) is taken from the account, and the capital gains tax on
+// what is left above the money put in is deducted at the end. `difference` and
+// `pureDifference` are own minus that lens's renter.
 // An optional one-time major repair (roof, HVAC) is paid by the owner in the
 // first month of its year, on top of the smoothed maintenance. It comes off
-// the Own net worth along with the return that money would have earned; Rent is
-// unaffected.
+// the Own net worth along with the return that money would have earned; Rent
+// is unaffected.
 // PMI is charged on the original loan each month while the balance is above 80%
 // of the home's value then, so it stops by itself once paying down the loan and
 // appreciation reach that point.
 const CHART_YEARS = 30;
 
 // Owning pulls ahead for good from the year after the last year it trailed.
-function firstAheadYear(years) {
-  const lastBehind = years.map((y) => y.difference < 0).lastIndexOf(true);
+function firstAheadYear(years, field = 'difference') {
+  const lastBehind = years.map((y) => y[field] < 0).lastIndexOf(true);
   return lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
 }
 
@@ -104,6 +110,7 @@ export function compareRentOwn(v) {
   let portfolio = v.price * (v.down / 100 + v.closing / 100);
   let basis = portfolio;
   let dragPaid = 0;
+  let pure = portfolio;
   const all = [];
   let firstOwn = 0;
   let firstRent = 0;
@@ -147,18 +154,23 @@ export function compareRentOwn(v) {
     if (put < 0 && portfolio > 0) basis *= Math.max(0, portfolio + put) / portfolio;
     else basis += put;
     portfolio += put;
+    // Pure lens: the starting cash alone, with the same tax drag and no monthly flow.
+    const pureGain = pure * (invest - 1);
+    pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
     value *= growth;
     if (m % 12 === 0) {
       const ownWorth = value * (1 - v.selling / 100) - balance - repairs;
       const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
       const rentWorth = portfolio - saleTax;
-      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      const pureWorth = pure - Math.max(0, pure - upfront) * (v.capGains / 100);
+      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
     if (m === stayMonths) stay = { sum: { ...sum }, value, balance, portfolio, repairs };
   }
   const years = all.slice(0, v.years);
   const breakEven = firstAheadYear(years);
+  const pureBreakEven = firstAheadYear(years, 'pureDifference');
   // The chart runs to the break-even year or 30 years, whichever is first, and never ends before the stay.
   const chartBreakEven = firstAheadYear(all);
   const chartYears = all.slice(0, Math.max(v.years, chartBreakEven ?? CHART_YEARS));
@@ -166,7 +178,7 @@ export function compareRentOwn(v) {
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const deflate = (rows) => rows.map((y) => {
     const d = (1 + v.inflation / 100) ** y.year;
-    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d };
+    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d };
   });
   const real = deflate(years);
   const chartReal = deflate(chartYears);
@@ -174,7 +186,7 @@ export function compareRentOwn(v) {
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
   const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax });
-  return { years, breakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+  return { years, breakEven, pureBreakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
 }
 
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash
