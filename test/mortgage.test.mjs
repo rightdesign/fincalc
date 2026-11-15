@@ -459,3 +459,24 @@ test('the elapsed count and the original amount round-trip through the link', ()
   assert.deepEqual(decodeMortgage(encodeMortgage(v)), v);
   assert.match(encodeMortgage(v), /loan=1155000&elapsed=74/);
 });
+
+test('interest-only for the whole loan pays interest every month and a balloon at the end', () => {
+  const v = { ...fixedLoan, ioLife: 'yes' };
+  const r = simulate(v);
+  assert.equal(r.monthly.length, 360);
+  near(r.monthly[0].scheduled, 400000 * 0.055 / 12);
+  near(r.monthly[358].balance, 400000);
+  near(r.monthly[359].scheduled, 400000 * 0.055 / 12);
+  near(r.balloon, 400000);
+  near(r.monthly[359].balance, 0);
+  near(r.totalInterest, 400000 * 0.055 * 30);
+  assert.equal(loanProblem({ ...v, ioMonths: 360 }), '');
+  assert.equal(simulate(fixedLoan).balloon, 0);
+});
+
+test('interest-only for the whole loan survives the shared link round trip', () => {
+  const v = { ...mortgageDefaults(), ioLife: 'yes' };
+  assert.equal(encodeMortgage(v), 'ioLife=yes');
+  assert.equal(decodeMortgage('ioLife=yes').ioLife, 'yes');
+  assert.equal(decodeMortgage('ioLife=bogus').ioLife, 'no');
+});

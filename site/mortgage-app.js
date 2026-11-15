@@ -30,7 +30,7 @@ const GROUPS = [
 ];
 // Rarely used inputs, collapsed by default.
 const OPTIONAL = [
-  { title: 'Extra payment and interest-only', fields: ['extra', 'ioMonths'] },
+  { title: 'Extra payment and interest-only', fields: ['extra', 'ioMonths', 'ioLife'] },
   { title: 'Refinance', fields: ['refiMonth', 'refiRate', 'refiTerm', 'refiCosts'] },
   { title: 'Home price and monthly costs', fields: ['homePrice', 'closingCosts', 'pmiRate', 'propertyTax', 'insurance', 'hoa'] },
 ];
@@ -235,7 +235,7 @@ function updateChrome(v) {
   document.getElementById('caps-summary').textContent = `${n(v.firstCap)} / ${n(v.periodicCap)} / ${n(v.lifetimeCap)} · floor ${n(v.floor)}%`;
   const months = Number.isFinite(v.elapsed) ? v.elapsed : 0;
   document.getElementById('partway-summary').textContent = `${months} month${months === 1 ? '' : 's'} paid`;
-  const on = OPTIONAL_IDS.filter((id) => v[id] > 0);
+  const on = OPTIONAL_IDS.filter((id) => v[id] > 0 || (id === 'ioMonths' && v.ioLife === 'yes'));
   const names = { extra: 'Extra payment', ioMonths: 'Interest-only', refiMonth: 'Refinance', homePrice: 'Home price', closingCosts: 'Closing costs', pmiRate: 'PMI', propertyTax: 'Property tax', insurance: 'Insurance', hoa: 'HOA dues' };
   document.getElementById('optional-dot').hidden = !on.length;
   document.getElementById('optional-summary').textContent = on.length ? on.map((id) => names[id]).join(' · ') : 'Extra payment, interest-only, refinance, home costs';
@@ -279,7 +279,7 @@ function render() {
   const years = (n) => { const y = Math.floor(n / 12); const m = n % 12; return [y && `${y} year${y === 1 ? '' : 's'}`, m && `${m} month${m === 1 ? '' : 's'}`].filter(Boolean).join(' ') || '0 months'; };
   const extra = v.extra > 0 ? extraSavings(v) : null;
   const extraCard = extra ? `<div class="m-card"><h3>Extra ${money(v.extra)} a month</h3><p class="m-big">${money(extra.interestSaved)}</p><p>less interest, and the loan ends ${years(extra.monthsSaved)} early (after ${years(r.payoffMonths)})</p></div>` : '';
-  const ioNote = v.ioMonths > 0 ? `<p role="note">The first ${v.ioMonths} months are interest only: the required payment is ${money(r.firstPayment)}, then it is recalculated to repay the balance over the remaining ${years(r.months - v.ioMonths)}.</p>` : '';
+  const ioNote = v.ioLife === 'yes' ? `<p role="note">Every payment is interest only: the required payment is ${money(r.firstPayment)} and the balance does not fall (apart from any extra you pay). The remaining balance of ${money(r.balloon)} is due as a balloon payment with the last payment, after ${years(r.months)}.</p>` : v.ioMonths > 0 ? `<p role="note">The first ${v.ioMonths} months are interest only: the required payment is ${money(r.firstPayment)}, then it is recalculated to repay the balance over the remaining ${years(r.months - v.ioMonths)}.</p>` : '';
   const refi = refinance(v);
   const refiHtml = refi ? `
     <h2>Refinance after ${years(v.refiMonth)}</h2>
@@ -296,7 +296,7 @@ function render() {
   const breakdown = hasExtras ? `
     <table class="m-table m-breakdown"><caption>First month's payment, in full</caption>
       <tbody>
-        <tr><th scope="row">${v.ioMonths > 0 ? 'Interest (interest-only period)' : 'Principal and interest'}</th><td>${money(r.firstPayment)}</td></tr>
+        <tr><th scope="row">${v.ioMonths > 0 || v.ioLife === 'yes' ? 'Interest (interest-only period)' : 'Principal and interest'}</th><td>${money(r.firstPayment)}</td></tr>
         ${line('Extra payment', v.extra)}
         ${line('Property tax', v.propertyTax / 12)}${line('Homeowners insurance', v.insurance / 12)}${line('HOA dues', v.hoa)}${line('PMI', r.firstPmi)}
         <tr class="m-total"><th scope="row">Total monthly payment</th><td>${money(r.firstTotal)}</td></tr>

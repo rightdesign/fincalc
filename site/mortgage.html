@@ -52,7 +52,7 @@
           <dt>Floor</dt>
           <dd>The lowest rate the loan can ever have, even if the index falls further.</dd>
           <dt>Interest-only period</dt>
-          <dd>A stretch at the start when the required payment covers only interest, so the balance does not fall (apart from any extra you pay). The payment rises when it ends.</dd>
+          <dd>A stretch at the start when the required payment covers only interest, so the balance does not fall (apart from any extra you pay). The payment rises when it ends. Interest-only for the whole loan means the payment never rises, but the entire balance is due at the end as a balloon payment.</dd>
           <dt>Break-even point</dt>
           <dd>How long after a refinance it takes for the money saved on payments to cover the closing costs.</dd>
           <dt>Payment shock</dt>
@@ -90,7 +90,7 @@
           <li>The comparison is the same loan held at the starting rate for the whole term.</li>
           <li>Optional extras: property tax, insurance and HOA dues are held flat as entered. PMI is the entered percentage of the original loan per year, charged while the balance is above 80% of the home price. The down payment is the home price minus the loan amount, and cash needed at closing is the down payment plus closing costs.</li>
           <li>Extra payment: the amount you enter is paid on top of the required payment every month and goes entirely to principal. The required payment is not lowered, so the loan ends early. One-time lump sums are not modelled.</li>
-          <li>Interest only: for the months you enter, the required payment is the month's interest. Afterwards it is recalculated, as at a reset, to repay the balance over the months left in the term, so it jumps. Payment-option loans that let the balance grow (negative amortization) are not modelled.</li>
+          <li>Interest only: for the months you enter, the required payment is the month's interest. Afterwards it is recalculated, as at a reset, to repay the balance over the months left in the term, so it jumps. Choose "The whole loan" instead and every payment is interest only, with the balance due as a balloon payment with the last one. Payment-option loans that let the balance grow (negative amortization) are not modelled.</li>
           <li>Refinance: after the number of payments you enter, the remaining balance is replaced by a new fixed-rate loan with the rate and term you give. Closing costs are paid in cash at that point. Both paths are totalled from the refinance month until each is paid off, and the break-even point is the first month the refinance's cumulative cost, costs included, is no more than keeping the loan. Any extra payment continues on both.</li>
           <li>Not modelled: points, one-time lump-sum payments, rising taxes or insurance, and rates that move by different amounts at different resets.</li>
         </ul>

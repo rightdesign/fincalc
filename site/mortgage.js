@@ -17,6 +17,11 @@ export const INDEXES = [
   { value: 'custom', label: 'Other index', rate: null },
 ];
 
+export const IO_SPANS = [
+  { value: 'no', label: 'The months above only' },
+  { value: 'yes', label: 'The whole loan (balloon at the end)' },
+];
+
 export const MORTGAGE_FIELDS = [
   { id: 'loan', label: 'Loan amount ($, as originally borrowed)', value: 400000, min: 1, money: true, slider: { min: 50000, max: 2000000, step: 5000 } },
   { id: 'term', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true, slider: { min: 1, max: 40, step: 1 } },
@@ -37,6 +42,7 @@ export const MORTGAGE_FIELDS = [
   { id: 'floor', short: 'Floor', label: 'Lowest possible rate (%)', value: 2, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'extra', label: 'Extra payment each month ($)', value: 0, min: 0, money: true, hint: 'Paid on top of the required payment every month and applied to the balance. It shortens the loan; the required payment is unchanged.', slider: { min: 0, max: 5000, step: 50 } },
   { id: 'ioMonths', label: 'Interest-only months at the start', value: 0, min: 0, max: 600, integer: true, hint: 'For this many months the required payment covers interest only. After that it is recalculated to repay the balance over the months left. Negative amortization (payment-option loans) is not modelled.', slider: { min: 0, max: 120, step: 1 } },
+  { id: 'ioLife', label: 'Interest-only for', type: 'select', value: 'no', options: IO_SPANS, hint: 'Choose the whole loan for a loan that never amortizes: every payment covers interest only and the full balance is due as one balloon payment in the last month. The months above are then ignored.' },
   { id: 'refiMonth', label: 'Refinance after this many months (0 = do not compare)', value: 0, min: 0, max: 600, integer: true, hint: 'Compares keeping this loan with replacing it, after this many payments, by a new fixed-rate loan.', slider: { min: 0, max: 360, step: 1 } },
   { id: 'refiRate', label: 'New fixed rate (%)', value: 5, min: 0, max: 30, showIf: (v) => v.refiMonth > 0, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'refiTerm', label: 'New loan term (years)', value: 30, min: 1, max: 50, integer: true, showIf: (v) => v.refiMonth > 0, slider: { min: 1, max: 40, step: 1 } },
@@ -98,7 +104,8 @@ export function simulate(v) {
   const fixedMonths = v.fixedMonths;
   const every = v.adjustMonths;
   const extra = v.extra || 0;
-  const io = Math.min(v.ioMonths || 0, months);
+  const wholeLoanIo = v.ioLife === 'yes';
+  const io = wholeLoanIo ? months : Math.min(v.ioMonths || 0, months);
   const years = [];
   const escrow = (v.propertyTax + v.insurance) / 12 + v.hoa; // fixed monthly extras
   const pmiLimit = v.homePrice * 0.8;
@@ -180,6 +187,7 @@ export function simulate(v) {
     downPayment: v.homePrice > 0 ? v.homePrice - v.loan : 0,
     cashToClose: (v.homePrice > 0 ? v.homePrice - v.loan : 0) + v.closingCosts,
     maxPayment,
+    balloon: wholeLoanIo && monthly.length ? monthly[monthly.length - 1].principal : 0, // due with the last payment of an interest-only-for-life loan
     maxPaymentYear: Math.floor((elapsed + peak) / 12) + 1,
     firstReset: reset && { year: Math.floor(fixedMonths / 12) + 1, payment: reset.scheduled },
     maxRate: Math.max(...years.map((y) => y.rate)),
@@ -290,7 +298,7 @@ export function priceProblem(v) {
 // month falls after the loan is paid off; '' when the loan options are consistent.
 export function loanProblem(v) {
   const months = Math.round(v.term * 12);
-  if (v.ioMonths >= months) return `The interest-only period (${v.ioMonths} months) must be shorter than the loan term (${months} months).`;
+  if (v.ioLife !== 'yes' && v.ioMonths >= months) return `The interest-only period (${v.ioMonths} months) must be shorter than the loan term (${months} months).`;
   if (v.refiMonth > 0 && v.refiMonth >= simulate(v).monthly.length) return `The loan is paid off before month ${v.refiMonth}, so there is nothing to refinance. Lower the refinance month.`;
   return '';
 }
