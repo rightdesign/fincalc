@@ -84,6 +84,14 @@ export function invalidRentOwn(v) {
 // PMI is charged on the original loan each month while the balance is above 80%
 // of the home's value then, so it stops by itself once paying down the loan and
 // appreciation reach that point.
+const CHART_YEARS = 30;
+
+// Owning pulls ahead for good from the year after the last year it trailed.
+function firstAheadYear(years) {
+  const lastBehind = years.map((y) => y.difference < 0).lastIndexOf(true);
+  return lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
+}
+
 export function compareRentOwn(v) {
   const loan = v.price * (1 - v.down / 100);
   const monthlyRate = v.rate / 100 / 12;
@@ -96,7 +104,7 @@ export function compareRentOwn(v) {
   let portfolio = v.price * (v.down / 100 + v.closing / 100);
   let basis = portfolio;
   let dragPaid = 0;
-  const years = [];
+  const all = [];
   let firstOwn = 0;
   let firstRent = 0;
   let firstPmi = 0;
@@ -104,9 +112,13 @@ export function compareRentOwn(v) {
   const upfront = portfolio;
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
-  for (let m = 1; m <= v.years * 12; m += 1) {
+  let stay = null;
+  // The model runs past the stay (to 30 years) so the chart can show where, or
+  // whether, owning catches up; everything else is reported for the stay only.
+  const stayMonths = v.years * 12;
+  for (let m = 1; m <= Math.max(v.years, CHART_YEARS) * 12; m += 1) {
     const pmi = balance > value * 0.8 + 0.005 ? (loan * v.pmi) / 100 / 12 : 0;
-    totalPmi += pmi;
+    if (m <= stayMonths) totalPmi += pmi;
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
     balance = Math.max(0, balance + interest - mortgage);
@@ -140,23 +152,29 @@ export function compareRentOwn(v) {
       const ownWorth = value * (1 - v.selling / 100) - balance - repairs;
       const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
       const rentWorth = portfolio - saleTax;
-      years.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
+    // The cost breakdown describes the end of the stay, not the end of the longer chart run.
+    if (m === stayMonths) stay = { sum: { ...sum }, value, balance, portfolio, repairs };
   }
-  // Owning pulls ahead for good from the year after the last year it trailed.
-  const lastBehind = years.map((y) => y.difference < 0).lastIndexOf(true);
-  const breakEven = lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
+  const years = all.slice(0, v.years);
+  const breakEven = firstAheadYear(years);
+  // The chart runs to the break-even year or 30 years, whichever is first, and never ends before the stay.
+  const chartBreakEven = firstAheadYear(all);
+  const chartYears = all.slice(0, Math.max(v.years, chartBreakEven ?? CHART_YEARS));
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
-  const real = years.map((y) => {
+  const deflate = (rows) => rows.map((y) => {
     const d = (1 + v.inflation / 100) ** y.year;
     return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d };
   });
+  const real = deflate(years);
+  const chartReal = deflate(chartYears);
   const cash = cashNeeded(v, firstOwn, firstRent);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth: final.own, invest, repairs, saleTax: final.saleTax });
-  return { years, breakEven, real, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
+  const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax });
+  return { years, breakEven, real, chartYears, chartReal, chartBreakEven, afterTaxReturn, final, finalReal, firstOwnMonthly: firstOwn, firstRentMonthly: firstRent, firstPmi, totalPmi, cash, waterfall };
 }
 
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash

@@ -194,6 +194,11 @@ legend {
   stroke-dasharray: 4 3;
 }
 
+.chart .stay,
+.chart .breakeven {
+  stroke: var(--guide);
+}
+
 .chart .crosshair {
   stroke: var(--guide);
 }

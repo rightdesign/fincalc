@@ -169,7 +169,7 @@ function render() {
       <thead><tr><th scope="col">Case</th><th scope="col">Home growth</th><th scope="col">Rent growth</th><th scope="col">Investment return</th><th scope="col">Break-even</th><th scope="col">Ahead</th></tr></thead>
       <tbody>${scenarioRows}</tbody></table></div>
     <div class="m-charts">
-      ${rentOwnChartHtml(rows_, r.breakEven, money)}
+      ${rentOwnChartHtml(today ? r.chartReal : r.chartYears, r.chartBreakEven, money, v.years)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent</th><th scope="col">Difference</th></tr></thead>
         <tbody>${rows}</tbody></table>

@@ -216,6 +216,39 @@ test('cash saved is optional but must be valid when given', () => {
   assert.equal(decodeRentOwn('').saved, null);
 });
 
+test('the chart runs past the stay to the break-even year; the table and verdict stay on the stay', () => {
+  const nw = { ...base(), price: 400000, down: 10, rate: 7.5, years: 4 };
+  const r = compareRentOwn(nw);
+  assert.equal(r.years.length, 4);
+  assert.equal(r.breakEven, null);
+  assert.ok(r.chartBreakEven >= 12 && r.chartBreakEven <= 16);
+  assert.equal(r.chartYears.length, r.chartBreakEven);
+  const { svg, description } = rentOwnChart(r.chartYears, r.chartBreakEven, String, nw.years);
+  assert.ok(svg.includes(`Break-even: year ${r.chartBreakEven}`));
+  assert.ok(svg.includes('Your stay: year 4'));
+  assert.ok(description.includes('plan to stay 4 years'));
+});
+
+test('with no crossover inside 30 years the chart runs 30 years and draws no break-even', () => {
+  const r = compareRentOwn({ ...base(), growth: 0, investment: 7 });
+  assert.equal(r.chartBreakEven, null);
+  assert.equal(r.chartYears.length, 30);
+  const { svg } = rentOwnChart(r.chartYears, r.chartBreakEven, String, 7);
+  assert.ok(!svg.includes('Break-even'));
+  assert.ok(svg.includes('Your stay: year 7'));
+});
+
+test('a stay longer than 30 years keeps the whole stay on the chart', () => {
+  assert.equal(compareRentOwn({ ...base(), years: 40 }).chartYears.length, 40);
+});
+
+test('the chart in today\'s dollars is deflated and keeps the same break-even year', () => {
+  const r = compareRentOwn({ ...base(), inflation: 3 });
+  assert.equal(r.chartReal.length, r.chartYears.length);
+  assert.ok(Math.abs(r.chartReal.at(-1).own) < Math.abs(r.chartYears.at(-1).own));
+  assert.equal(r.chartReal.findIndex((y) => y.difference >= 0), r.chartYears.findIndex((y) => y.difference >= 0));
+});
+
 test('scenario cases carry a today\'s-dollars gap that matches the basis at 0% inflation', () => {
   const v = { ...rentOwnDefaults(), inflation: 0 };
   for (const s of compareScenarios(v)) assert.equal(s.differenceReal, s.difference);

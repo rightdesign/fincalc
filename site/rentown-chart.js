@@ -6,8 +6,9 @@ const PAD = { l: 72, r: 16, t: 20, b: 28 };
 
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// years: [{ year, own, rent }]. Returns { svg, description }.
-export function rentOwnChart(years, breakEven, fmt) {
+// years: [{ year, own, rent }]; stay is the year the visitor plans to leave.
+// Returns { svg, description }.
+export function rentOwnChart(years, breakEven, fmt, stay) {
   const xs = years.map((y) => y.year);
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
@@ -43,20 +44,25 @@ export function rentOwnChart(years, breakEven, fmt) {
   const above = last.own >= last.rent;
   svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-1)">Own</text>`;
   svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent</text>`;
+  const mark = (year, label, cls, dash, row) => {
+    const x = sx(year);
+    const anchor = year > (xMin + xMax) / 2 ? 'end' : 'start';
+    return `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="${cls}" stroke-dasharray="${dash}"/>`
+      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 12}" text-anchor="${anchor}" font-size="10">${escape(label)}</text>`;
+  };
+  if (stay != null && stay >= xMin && stay <= xMax) svg += mark(stay, `Your stay: year ${stay}`, 'stay', '2 3', 0);
   if (breakEven != null) {
     const b = years.find((y) => y.year === breakEven);
-    const x = sx(b.year);
-    const anchor = b.year > (xMin + xMax) / 2 ? 'end' : 'start';
-    svg += `<circle class="ring" cx="${f(x)}" cy="${f(sy(b.own))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
-    svg += `<text x="${f(x + (anchor === 'end' ? -8 : 8))}" y="${f(sy(b.own) + 16)}" text-anchor="${anchor}" font-size="10">Break-even: year ${b.year}</text>`;
+    svg += mark(b.year, `Break-even: year ${b.year}`, 'breakeven', '5 3', stay === breakEven ? 1 : 0);
+    svg += `<circle class="ring" cx="${f(sx(b.year))}" cy="${f(sy(b.own))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
   }
   svg += '</svg>';
 
-  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}. ${breakEven == null ? 'Owning does not catch up within your stay.' : `Owning pulls ahead in year ${breakEven}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The values for every year are in the table beside the chart.`;
+  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in year ${breakEven}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
   return { svg, description };
 }
 
-export function rentOwnChartHtml(years, breakEven, fmt) {
-  const { svg, description } = rentOwnChart(years, breakEven, fmt);
+export function rentOwnChartHtml(years, breakEven, fmt, stay) {
+  const { svg, description } = rentOwnChart(years, breakEven, fmt, stay);
   return `<figure class="m-chart"><figcaption>Net worth by year: own (home equity after selling costs) vs rent (investments)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }
