@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.56.0] — 2026-11-15
+
+- FINC-101 The rent vs own calculator now shows the cash needed to buy (down payment, closing costs, moving and a reserve) and, if you enter cash saved, tells you when you are short instead of naming a winner.
+
 ## [0.55.0] — 2026-11-15
 
 - FINC-096 The rent vs own calculator now includes mortgage insurance (PMI, default 0.6% of the loan per year), charged only while the loan is above 80% of the home's value and itemized in the monthly cost.
