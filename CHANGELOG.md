@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.83.0] — 2026-11-16
+
+- FINC-139 The rent vs own calculator now has a "Download table (CSV)" button under the year-by-year table, exporting the columns shown, in the dollars basis shown, as rent-vs-own.csv.
+
 ## [0.82.0] — 2026-11-16
 
 - FINC-137 The rent vs own calculator now shows which input moves the answer most: mortgage rate, home growth, rent growth, investment return and stay length each moved down and up, with the break-even year and a bar for the swing in the end-of-stay gap.
