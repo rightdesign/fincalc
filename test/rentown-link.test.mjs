@@ -38,3 +38,21 @@ test('every input survives the link round trip and reproduces the same headline'
   assert.equal(decodeBasis(`#${encodeRentOwn(changed)}`), 'future');
   assert.deepEqual(decodeRentOwn(`#${encodeRentOwn(changed, 'today')}`), changed);
 });
+
+test('the dollar units for down payment and maintenance ride in the link and leave the percentages alone', async () => {
+  const { RENTOWN_UNITS, decodeUnits, defaultUnits } = await import('../site/rentown.js');
+  assert.equal(encodeRentOwn(base(), 'future', defaultUnits()), '');
+  const text = encodeRentOwn(base(), 'future', { down: 'usd', maintenance: 'usd' });
+  assert.equal(text, 'downUnit=usd&maintenanceUnit=usd');
+  assert.deepEqual(decodeUnits(`#${text}`), { down: 'usd', maintenance: 'usd' });
+  assert.deepEqual(decodeUnits('downUnit=bogus'), defaultUnits());
+  assert.deepEqual(decodeRentOwn(`#${text}`), base());
+});
+
+test('dollar amounts convert to and from the percentages at the home price', async () => {
+  const { RENTOWN_UNITS } = await import('../site/rentown.js');
+  assert.equal(RENTOWN_UNITS.down.toUsd(20, 450000), 90000);
+  assert.equal(RENTOWN_UNITS.down.toPct(90000, 450000), 20);
+  assert.equal(RENTOWN_UNITS.maintenance.toUsd(1, 450000), 375);
+  assert.ok(Math.abs(RENTOWN_UNITS.maintenance.toPct(375, 450000) - 1) < 1e-12);
+});

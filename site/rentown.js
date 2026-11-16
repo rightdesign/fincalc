@@ -513,13 +513,33 @@ export function rentOwnThresholds(v) {
   });
 }
 
+// Fields that can be entered as a percentage (the model's own unit) or in dollars. The dollar amount is
+// derived from the percentage and the home price, so changing the price moves the dollars, not the percentage.
+export const RENTOWN_UNITS = {
+  down: { label: { pct: 'Down payment (%)', usd: 'Down payment ($)' }, choices: { pct: '%', usd: '$' }, toUsd: (pct, price) => (price * pct) / 100, toPct: (usd, price) => (usd / price) * 100 },
+  maintenance: { label: { pct: 'Maintenance (% of value)', usd: 'Maintenance ($ per month)' }, choices: { pct: '% of value', usd: '$ per month' }, toUsd: (pct, price) => (price * pct) / 100 / 12, toPct: (usd, price) => (usd * 12 * 100) / price },
+};
+
+export const defaultUnits = () => ({ down: 'pct', maintenance: 'pct' });
+
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).
-export function encodeRentOwn(v, basis = 'future') {
+export function encodeRentOwn(v, basis = 'future', units = defaultUnits()) {
   const defaults = rentOwnDefaults();
   const params = new URLSearchParams();
   for (const f of RENTOWN_FIELDS) if (Number.isFinite(v[f.id]) && v[f.id] !== defaults[f.id]) params.set(f.id, String(v[f.id]));
   if (basis === 'today') params.set('dollars', 'today');
+  for (const id of Object.keys(RENTOWN_UNITS)) if (units[id] === 'usd') params.set(`${id}Unit`, 'usd');
   return params.toString();
+}
+
+// Which unit each flexible field is shown in; percent unless the fragment says 'usd'. The values themselves are always percentages.
+export function decodeUnits(text) {
+  const units = defaultUnits();
+  try {
+    const params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, ''));
+    for (const id of Object.keys(RENTOWN_UNITS)) if (params.get(`${id}Unit`) === 'usd') units[id] = 'usd';
+  } catch { /* keep defaults */ }
+  return units;
 }
 
 // Defaults for anything absent or invalid. Never throws.

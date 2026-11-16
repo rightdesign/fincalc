@@ -946,6 +946,12 @@ body.vg .m-tabs button[aria-selected="true"] { color: var(--text); border-bottom
 body.vg .m-presets button, body.vg .m-inputs .field > input:not([type="range"]), body.vg .m-inputs .field > select, body.vg button.ghost { border-radius: 0.125rem; }
 body.vg .m-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 body.vg .m-chart .chart { font-size: 0.75rem; }
+.m-inputs .field > .ro-pair { grid-column: 2; grid-row: 1; display: flex; gap: 0.4rem; align-items: center; justify-content: flex-end; min-width: 0; }
+.ro-pair > input, .ro-pair > select { box-sizing: border-box; min-height: 2rem; padding: 0.2rem 0.6rem; font-weight: 600; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; }
+.ro-pair > input { width: 7rem; min-width: 0; text-align: right; }
+.ro-pair > select { width: auto; max-width: 40vw; }
+.ro-pair > input:focus-visible, .ro-pair > select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.m-inputs .field > small { grid-column: 1 / -1; }
 .ro-tornado th[scope="row"] { text-align: left; font-weight: normal; }
 .ro-tornado-bar-cell { text-align: left; white-space: nowrap; }
 .ro-tornado-bar { display: inline-block; height: 0.6rem; min-width: 2px; background: var(--accent, #2a6fdb); border-radius: 2px; vertical-align: middle; }
