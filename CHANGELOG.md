@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.85.0] — 2026-11-16
+
+- FINC-141 The rent vs own calculator now lets you enter the down payment as a percentage or in dollars and maintenance as a percentage of value or dollars per month, shows the loan amount beside the down payment, and keeps the choice in the shareable link.
+
 ## [0.84.0] — 2026-11-16
 
 - FINC-135 The rent vs own calculator now has a monthly-cost chart comparing what owning and renting cost each month, with the month owning becomes cheaper marked.
