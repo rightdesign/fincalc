@@ -14,6 +14,7 @@ import { scenariosCard } from './scenarios.js';
 import { inputsCard } from './inputs.js';
 import { laterCard } from './later.js';
 import { chartCard } from './chart.js';
+import { faqCard } from './faq.js';
 
 export const CARDS = [
   headlineCard,
@@ -32,6 +33,7 @@ export const CARDS = [
   scenariosCard,
   inputsCard,
   chartCard,
+  faqCard,
 ];
 
 // Each card takes the context from context.js and returns its markup.

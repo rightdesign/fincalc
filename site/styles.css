@@ -873,6 +873,9 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-scenarios th[scope="row"] { text-align: left; }
 .ro-rate-source { font-size: 0.9rem; margin: 0.5rem 0; }
 .ro-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.ro-faq details { margin-block: 0.5rem; }
+.ro-faq summary { cursor: pointer; font-weight: 600; }
+.ro-faq h3 { margin: 1rem 0 0.5rem; }
 .ro-cash h3, .ro-follow h3, .ro-checklist h3 { margin: 0 0 0.5rem; }
 .ro-cash th[scope="row"] { text-align: left; font-weight: normal; }
 .print-only { display: none; }
