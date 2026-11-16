@@ -6,6 +6,7 @@ import { winner } from './format.js';
 
 // Every answer quotes the numbers on the page right now, so each is built from the inputs and the result.
 export function faqItems({ v, r, final, label, span }) {
+  const paper = v.view === 'unrealized';
   const stay = r.breakEven == null
     ? `Owning does not pull ahead within your ${span}.`
     : `On your inputs owning pulls ahead in ${monthPoint(r.breakEvenMonth)}, and your stay is ${span}.`;
@@ -19,7 +20,7 @@ export function faqItems({ v, r, final, label, span }) {
   return [
     {
       q: 'How is break-even calculated?',
-      a: `Each month the model values both paths as if you sold that day: the owner's home value less selling costs, the loan balance and any tax on the gain, against the renter's investments less tax on their gains. Break-even is the first year after which owning stays ahead through the end of your stay. ${stay}`,
+      a: `${paper ? "Each month the model values both paths on paper: the owner's home value less the loan balance and any major repair, against the renter's investment balance, with no selling costs and no tax on a sale." : "Each month the model values both paths as if you sold that day: the owner's home value less selling costs, the loan balance and any tax on the gain, against the renter's investments less tax on their gains."} Break-even is the first year after which owning stays ahead through the end of your stay. ${stay}`,
     },
     {
       q: 'What return should I assume on investments?',

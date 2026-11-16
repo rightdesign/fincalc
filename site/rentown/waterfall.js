@@ -16,7 +16,7 @@ export function waterfallCard({ r, v }) {
         ${lines}
         ${row('Rent and renter&rsquo;s insurance you would have paid', -(rec.rent + rec.renterInsurance), 'ro-sub')}
         ${row('Opportunity cost: return forgone by tying up money in the home, after tax on the investments', w.opportunity.total)}
-        ${row(`Money back: sale price less selling costs, loan payoff${w.moneyBack.homeTax > 0 ? ', tax on the home-sale gain' : ''} and any major repair`, -w.moneyBack.total)}
+        ${row(`Money back: ${v.view === 'unrealized' ? 'home value' : 'sale price less selling costs'}, less loan payoff${w.moneyBack.homeTax > 0 ? ', tax on the home-sale gain' : ''} and any major repair`, -w.moneyBack.total)}
         ${w.moneyBack.homeTax > 0 ? row('Tax on the home-sale gain, already taken out of the money back above', w.moneyBack.homeTax, 'ro-sub') : ''}
         <tr><th scope="row">Total: ${sign}</th><td></td><td><strong>${money(Math.abs(w.gap))}</strong></td></tr>
       </tbody></table>

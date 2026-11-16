@@ -80,3 +80,11 @@ test('the results show the rent-then-buy card and a third chart line', async () 
   assert.ok(html.includes('You buy at the start of year 4'));
   assert.ok(renderCards(buildContext({ ...rentOwnDefaults(), waitYears: 0 }, 'today')).includes('Buying immediately is the same as buying now.'));
 });
+
+test('the unrealized view applies to the rent-then-buy line too', () => {
+  const v = { ...base(), view: 'unrealized', repairYear: 3, repairCost: 8000 };
+  const r = compareRentOwn(v);
+  compareRentThenBuy({ ...v, waitYears: 0 }, r).chartYears.forEach((y, i) => near(y.later, r.chartYears[i].own));
+  const l = compareRentThenBuy({ ...v, waitYears: v.years }, r);
+  l.years.forEach((y, i) => near(y.later, r.years[i].rent));
+});

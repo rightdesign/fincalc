@@ -70,12 +70,13 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
     portfolio += put;
     value *= growth;
     if (m % 12 === 0) {
-      const saved = portfolio - Math.max(0, portfolio - basis) * capGains;
+      const paper = v.view === 'unrealized';
+      const saved = paper ? portfolio : portfolio - Math.max(0, portfolio - basis) * capGains;
       let later = saved;
       if (owned) {
-        const homeGain = value * (1 - v.selling / 100) - homeBasis;
-        const homeTax = Math.max(0, homeGain - (monthsOwned >= 24 ? v.exclusion : 0)) * capGains;
-        later = saved + value * (1 - v.selling / 100) - balance - repairs - homeTax;
+        const sale = paper ? value : value * (1 - v.selling / 100);
+        const homeTax = paper ? 0 : Math.max(0, sale - homeBasis - (monthsOwned >= 24 ? v.exclusion : 0)) * capGains;
+        later = saved + sale - balance - repairs - homeTax;
       }
       rows.push({ year: m / 12, later, owning: owned });
     }

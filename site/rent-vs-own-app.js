@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_UNITS, applyLiveRate, decodeUnits, defaultUnits, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, RENTOWN_UNITS, applyLiveRate, decodeUnits, defaultUnits, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, decodeView, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
 import { TABLE_COLUMNS, tableRows } from './rentown/chart.js';
@@ -29,6 +29,7 @@ if (live) {
 }
 const defaults = rentOwnDefaults();
 const basisSelect = document.getElementById('rentown-basis');
+const viewSelect = document.getElementById('rentown-view');
 const show = (f, n) => (n == null ? '' : f.money ? usd.format(n) : n);
 // Down payment and maintenance may be typed as dollars; the model keeps percentages, so these convert at the current price.
 let units = defaultUnits();
@@ -246,8 +247,9 @@ function render() {
     return;
   }
   const basis = basisSelect.value === 'today' ? 'today' : 'future';
-  save(v, basis);
-  const ctx = buildContext(v, basis);
+  const view = viewSelect.value === 'unrealized' ? 'unrealized' : 'realized';
+  save(v, basis, view);
+  const ctx = buildContext(v, basis, view);
   tableCsvText = tableCsv({ columns: TABLE_COLUMNS, rows: tableRows(ctx.r, ctx.today) });
   out.innerHTML = renderCards(ctx);
 }
@@ -264,8 +266,8 @@ function downloadCsv() {
 }
 
 // Inputs ride along in the address and in browser storage so a scenario survives a reload and can be shared.
-function save(v, basis = basisSelect.value) {
-  const text = encodeRentOwn(v, basis, units);
+function save(v, basis = basisSelect.value, view = viewSelect.value) {
+  const text = encodeRentOwn(v, basis, units, view);
   try { localStorage.setItem(STORE_KEY, text); } catch { /* storage unavailable */ }
   try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
 }
@@ -279,6 +281,7 @@ const setFrom = (text) => {
   for (const f of RENTOWN_FIELDS.filter((x) => RENTOWN_UNITS[x.id])) applyUnit(f);
   setValues(v);
   basisSelect.value = decodeBasis(text);
+  viewSelect.value = decodeView(text);
 };
 if (location.hash.length > 1 || stored) setFrom(location.hash.length > 1 ? location.hash : stored);
 window.addEventListener('hashchange', () => { if (location.hash.length > 1) { setFrom(location.hash); render(); } });
@@ -293,6 +296,7 @@ form.addEventListener('input', (e) => {
 });
 // The selector sits outside the form, so its events never reach the form listener.
 basisSelect.addEventListener('change', () => { message.textContent = ''; render(); });
+viewSelect.addEventListener('change', () => { message.textContent = ''; render(); });
 // The solved price or rent goes back into its field, so the page reproduces the break-even it quoted.
 out.addEventListener('click', (e) => {
   if (e.target.closest('#rentown-csv')) { downloadCsv(); return; }
@@ -310,6 +314,7 @@ document.getElementById('rentown-reset').addEventListener('click', () => {
   for (const f of RENTOWN_FIELDS.filter((x) => RENTOWN_UNITS[x.id])) applyUnit(f);
   setValues(defaults);
   basisSelect.value = 'future';
+  viewSelect.value = 'realized';
   render();
   message.textContent = 'Inputs reset to defaults.';
 });

@@ -203,6 +203,8 @@ function firstAheadMonth(months, field = 'difference') {
 
 export function compareRentOwn(v) {
   const fin = financing(v);
+  // The unrealized view is the paper number: no selling costs and no tax on a sale, for either side.
+  const paper = v.view === 'unrealized';
   const loan = fin.loan;
   const arm = v.arm === 1;
   const armLoan = arm ? { rateBasis: 'index', initialRate: v.armRate, indexRate: v.armIndexRate, margin: v.armMargin, indexChange: v.armIndexChange, firstCap: v.armFirstCap, periodicCap: v.armPeriodicCap, lifetimeCap: v.armLifetimeCap, floor: v.armFloor } : null;
@@ -299,11 +301,11 @@ export function compareRentOwn(v) {
     // selling costs and the price plus closing costs paid. The exclusion needs two years in the home; the
     // capital gains rate is the one the renter's gains use.
     const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
-    const homeTax = Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
-    const ownWorth = value * (1 - v.selling / 100) - balance - repairs - homeTax;
-    const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
+    const homeTax = paper ? 0 : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
+    const ownWorth = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
+    const saleTax = paper ? 0 : Math.max(0, portfolio - basis) * (v.capGains / 100);
     const rentWorth = portfolio - saleTax;
-    const pureWorth = pure - Math.max(0, pure - upfront) * (v.capGains / 100);
+    const pureWorth = paper ? pure : pure - Math.max(0, pure - upfront) * (v.capGains / 100);
     months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownWorth - pureWorth });
     if (m % 12 === 0) {
       all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
@@ -379,7 +381,7 @@ function costWaterfall(v, { upfront, cashFee, sum, value, balance, portfolio, ow
   const recurring = ownCosts - rentCosts;
   const opportunity = portfolio - saleTax - upfront - recurring;
   const opportunityUpfront = upfront * (invest ** (v.years * 12) - 1);
-  const sellingCosts = (value * v.selling) / 100;
+  const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;
   return {
     upfront: { down, closing, fee: cashFee, total: upfront },
     recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
@@ -523,11 +525,12 @@ export const RENTOWN_UNITS = {
 export const defaultUnits = () => ({ down: 'pct', maintenance: 'pct' });
 
 // Inputs that differ from the defaults, as a URL fragment (and a stored string).
-export function encodeRentOwn(v, basis = 'future', units = defaultUnits()) {
+export function encodeRentOwn(v, basis = 'future', units = defaultUnits(), view = 'realized') {
   const defaults = rentOwnDefaults();
   const params = new URLSearchParams();
   for (const f of RENTOWN_FIELDS) if (Number.isFinite(v[f.id]) && v[f.id] !== defaults[f.id]) params.set(f.id, String(v[f.id]));
   if (basis === 'today') params.set('dollars', 'today');
+  if (view === 'unrealized') params.set('view', 'unrealized');
   for (const id of Object.keys(RENTOWN_UNITS)) if (units[id] === 'usd') params.set(`${id}Unit`, 'usd');
   return params.toString();
 }
@@ -559,4 +562,9 @@ export function decodeRentOwn(text) {
 // The dollar basis named in a URL fragment or stored string; 'future' unless it says 'today'.
 export function decodeBasis(text) {
   try { return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('dollars') === 'today' ? 'today' : 'future'; } catch { return 'future'; }
+}
+
+// Which net worth the results show: 'realized' (after selling costs and tax, the default) unless it says 'unrealized'.
+export function decodeView(text) {
+  try { return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('view') === 'unrealized' ? 'unrealized' : 'realized'; } catch { return 'realized'; }
 }
