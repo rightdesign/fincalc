@@ -39,6 +39,8 @@ export const RENTOWN_FIELDS = [
   { id: 'rentGrowth', group: 'renting', label: 'Rent growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'renterInsurance', group: 'renting', label: "Renter's insurance ($ per year)", value: 180, min: 0, money: true },
   { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
+  { id: 'waitYears', group: 'both', label: 'Years you rent before buying (rent-then-buy path)', value: 2, min: 0, max: 50, integer: true },
+  { id: 'waitRate', group: 'both', label: 'Mortgage rate when you buy later, optional (%; blank = same as above)', value: null, min: 0, max: 30, optional: true },
   { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
   { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($250,000 single, $500,000 married)', value: 250000, min: 0, money: true },
   { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
@@ -213,6 +215,8 @@ export function compareRentOwn(v) {
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
   let stay = null;
+  // Month by month, what owning costs (all in), what renting costs, and the part of owning that is not the loan.
+  const series = [];
   // The model runs past the stay (to 30 years) so the chart can show where, or
   // whether, owning catches up; everything else is reported for the stay only.
   const stayMonths = v.years * 12;
@@ -243,6 +247,7 @@ export function compareRentOwn(v) {
       mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
       hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
     });
+    series.push({ own, rent, carry: tax + insurance + maintenance + hoa + utilities });
     if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
     const gain = portfolio * (invest - 1);
     const drag = Math.min(portfolio * dragRate, Math.max(0, gain));
@@ -318,6 +323,7 @@ export function compareRentOwn(v) {
     program: { id: v.program, fee: fin.fee, feeName: fin.feeName, financed: fin.fee > 0 && v.feeFinanced === 1, loan, insuranceName: fin.insuranceName },
     cash,
     waterfall,
+    series,
   };
 }
 

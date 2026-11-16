@@ -11,10 +11,12 @@ import { checklistCard } from './checklist.js';
 import { waterfallCard } from './waterfall.js';
 import { scenariosCard } from './scenarios.js';
 import { inputsCard } from './inputs.js';
+import { laterCard } from './later.js';
 import { chartCard } from './chart.js';
 
 export const CARDS = [
   headlineCard,
+  laterCard,
   ratioCard,
   driversCard,
   solveCard,

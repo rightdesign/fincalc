@@ -7,7 +7,8 @@ const PAD = { l: 72, r: 16, t: 20, b: 28 };
 
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// years: [{ year, own, rent, pureRent? }]; a pureRent adds the pure net worth renter line.
+// years: [{ year, own, rent, pureRent?, later? }]; a pureRent adds the pure net worth renter line and a
+// later adds the rent-then-buy line.
 // stay is the year the visitor plans to leave. Returns { svg, description }.
 // breakEvenMonth, when given, is the month (counted from 1) the crossing falls in; the marker sits there.
 export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
@@ -15,7 +16,8 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
   const hasPure = years.every((y) => Number.isFinite(y.pureRent));
-  const all = years.flatMap((y) => [y.own, y.rent, ...(hasPure ? [y.pureRent] : [])]);
+  const hasLater = years.every((y) => Number.isFinite(y.later));
+  const all = years.flatMap((y) => [y.own, y.rent, ...(hasPure ? [y.pureRent] : []), ...(hasLater ? [y.later] : [])]);
   const lo = Math.min(...all);
   const hi = Math.max(...all);
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
@@ -44,10 +46,12 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   svg += `<path d="${line('own')}" fill="none" style="stroke:var(--series-1)" stroke-width="2.5"/>`;
   svg += `<path d="${line('rent')}" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4"/>`;
   if (hasPure) svg += `<path d="${line('pureRent')}" fill="none" style="stroke:var(--series-2)" stroke-width="1.5" stroke-dasharray="2 3"/>`;
+  if (hasLater) svg += `<path d="${line('later')}" fill="none" style="stroke:var(--series-3)" stroke-width="2.5" stroke-dasharray="10 3 2 3"/>`;
   const last = years[years.length - 1];
   const above = last.own >= last.rent;
   svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-1)">Own</text>`;
   svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent${hasPure ? ' (equal-cash)' : ''}</text>`;
+  if (hasLater) svg += `<text x="${W - PAD.r}" y="${f(sy(last.later) + (last.later >= Math.max(last.own, last.rent) ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-3)">Rent, then buy</text>`;
   if (hasPure) svg += `<text x="${W - PAD.r}" y="${f(sy(last.pureRent) + (last.pureRent <= last.rent ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent (pure)</text>`;
   const mark = (year, label, cls, dash, row) => {
     const x = sx(year);
@@ -70,7 +74,7 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   }
   svg += '</svg>';
 
-  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in ${crossing}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
+  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasLater ? `; renting first and buying later is ${fmt(years[0].later)} in year ${xMin} and ${fmt(last.later)} in year ${xMax}` : ''}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in ${crossing}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
   return { svg, description };
 }
 

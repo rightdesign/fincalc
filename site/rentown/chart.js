@@ -1,11 +1,12 @@
 import { rentOwnChartHtml } from '../rentown-chart.js';
 import { money, signed } from './format.js';
 
-export function chartCard({ v, r, today, final, label }) {
+export function chartCard({ v, r, later, today, final, label }) {
+  const chartRows = (today ? r.chartReal : r.chartYears).map((y, i) => ({ ...y, later: (today ? later.chartReal : later.chartYears)[i].later }));
   const rows_ = today ? r.real : r.years;
   const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}${y.homeTax > 0 ? ` <small>(tax if you sell: ${money(y.homeTax)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td><td>${money(y.pureRent)}</td><td>${signed(y.pureDifference)}</td></tr>`).join('');
   return `<div class="m-charts">
-      ${rentOwnChartHtml(today ? r.chartReal : r.chartYears, r.chartBreakEven, money, v.years, r.chartBreakEvenMonth)}
+      ${rentOwnChartHtml(chartRows, r.chartBreakEven, money, v.years, r.chartBreakEvenMonth)}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr><th scope="col">Year</th><th scope="col">Own</th><th scope="col">Rent (equal-cash)</th><th scope="col">Difference (equal-cash)</th><th scope="col">Rent (pure)</th><th scope="col">Difference (pure)</th></tr></thead>
         <tbody>${rows}</tbody></table>
