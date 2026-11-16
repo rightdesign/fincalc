@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.73.0] — 2026-11-16
+
+- FINC-124 The rent vs own calculator now taxes the gain on selling the home, after the $250,000 single / $500,000 married primary-residence exclusion (stays of two years or more), so long stays and high appreciation no longer overstate owning.
+
 ## [0.72.2] — 2026-11-15
 
 - FINC-122 The payoff date now matches the last row of the monthly schedule when some months of the loan have already been paid.
