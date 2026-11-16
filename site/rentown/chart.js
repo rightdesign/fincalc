@@ -1,4 +1,5 @@
 import { rentOwnChartHtml } from '../rentown-chart.js';
+import { monthlyChartHtml } from '../rentown-monthly-chart.js';
 import { money, signed } from './format.js';
 
 // The year-by-year table as plain numbers, shared by the card below and the CSV download.
@@ -12,6 +13,7 @@ export function chartCard({ v, r, later, today, final, label }) {
   const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}${y.homeTax > 0 ? ` <small>(tax if you sell: ${money(y.homeTax)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td><td>${money(y.pureRent)}</td><td>${signed(y.pureDifference)}</td></tr>`).join('');
   return `<div class="m-charts">
       ${rentOwnChartHtml(chartRows, r.chartBreakEven, money, v.years, r.chartBreakEvenMonth)}
+      ${monthlyChartHtml(r.monthlyCurve, r.monthlyCross, money, v.years, today ? v.inflation : 0, Math.max(v.years, r.chartBreakEven ?? 0))}
       <div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr>${TABLE_COLUMNS.map((c) => `<th scope="col">${c}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody></table>
