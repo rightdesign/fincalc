@@ -2,6 +2,8 @@
 import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
+import { TABLE_COLUMNS, tableRows } from './rentown/chart.js';
+import { tableCsv } from './export.js';
 import { usd } from './rentown/format.js';
 
 const STORE_KEY = 'fincalc.rentown';
@@ -187,7 +189,20 @@ function render() {
   }
   const basis = basisSelect.value === 'today' ? 'today' : 'future';
   save(v, basis);
-  out.innerHTML = renderCards(buildContext(v, basis));
+  const ctx = buildContext(v, basis);
+  tableCsvText = tableCsv({ columns: TABLE_COLUMNS, rows: tableRows(ctx.r, ctx.today) });
+  out.innerHTML = renderCards(ctx);
+}
+
+// The CSV of the table last drawn, so the download always matches what is on screen.
+let tableCsvText = '';
+function downloadCsv() {
+  const url = URL.createObjectURL(new Blob([tableCsvText], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rent-vs-own.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // Inputs ride along in the address and in browser storage so a scenario survives a reload and can be shared.
@@ -208,6 +223,7 @@ form.addEventListener('input', () => { message.textContent = ''; render(); });
 basisSelect.addEventListener('change', () => { message.textContent = ''; render(); });
 // The solved price or rent goes back into its field, so the page reproduces the break-even it quoted.
 out.addEventListener('click', (e) => {
+  if (e.target.closest('#rentown-csv')) { downloadCsv(); return; }
   const button = e.target.closest('button[data-solve]');
   if (!button) return;
   const f = RENTOWN_FIELDS.find((x) => x.id === button.dataset.solve);
