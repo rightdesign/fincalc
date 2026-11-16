@@ -22,3 +22,18 @@ test('cost waterfall: selling costs of 0% add 6% of the final home value to mone
   near(zero.waterfall.moneyBack.total - six.waterfall.moneyBack.total, six.waterfall.moneyBack.value * 0.06);
   near(six.waterfall.moneyBack.sellingCosts, six.waterfall.moneyBack.value * 0.06);
 });
+
+test('waterfall card: only the bucket rows land in the total column, so it sums to the gap', async () => {
+  const { waterfallCard } = await import('../site/rentown/waterfall.js');
+  for (const extra of [{}, { hoa: 300, utilities: 150 }]) {
+    const v = { ...base(), ...extra };
+    const r = compareRentOwn(v);
+    const html = waterfallCard({ r, v });
+    const rows = [...html.matchAll(/<tr[^>]*>(.*?)<\/tr>/g)].map((m) => m[1]);
+    const num = (s) => { const t = s.replace(/<[^>]+>/g, '').trim(); return t ? Number(t.replace(/[−-]/, '-').replace(/[^0-9.-]/g, '')) : null; };
+    const totals = rows.map((row) => [...row.matchAll(/<td>(.*?)<\/td>/g)].map((m) => num(m[1]))[1]).filter((n) => n !== null && n !== undefined);
+    const buckets = totals.slice(0, -1).reduce((a, b) => a + b, 0);
+    assert.equal(totals.length, 5);
+    assert.ok(Math.abs(buckets - totals[totals.length - 1]) < 5, `${buckets} vs ${totals[totals.length - 1]}`);
+  }
+});
