@@ -14,6 +14,9 @@ export const RENTOWN_GROUPS = [
 export const RENTOWN_FIELDS = [
   { id: 'price', group: 'buying', label: 'Home price ($)', value: 450000, min: 1, money: true, slider: { min: 100000, max: 1500000, step: 5000 } },
   { id: 'down', group: 'buying', label: 'Down payment (%)', value: 20, min: 0, max: 100, slider: { min: 0, max: 100, step: 1 } },
+  { id: 'program', group: 'buying', label: 'Loan type', value: 0, min: 0, max: 2, integer: true, options: [[0, 'Conventional (PMI)'], [1, 'FHA (mortgage insurance premium)'], [2, 'VA (funding fee)']] },
+  { id: 'feeFinanced', group: 'buying', label: 'FHA or VA upfront fee', value: 1, min: 0, max: 1, integer: true, options: [[1, 'Financed into the loan'], [0, 'Paid in cash at closing']] },
+  { id: 'vaRepeat', group: 'buying', label: 'VA loan: first use or subsequent use', value: 0, min: 0, max: 1, integer: true, options: [[0, 'First use'], [1, 'Subsequent use']] },
   { id: 'rate', group: 'buying', label: 'Mortgage rate (%)', value: 6.5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'term', group: 'buying', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
   { id: 'closing', group: 'buying', label: 'Closing costs (% of price)', value: 3, min: 0, max: 20 },
@@ -22,7 +25,7 @@ export const RENTOWN_FIELDS = [
   { id: 'saved', group: 'buying', label: 'Cash you have saved, optional ($)', value: null, min: 0, money: true, optional: true },
   { id: 'tax', group: 'buying', label: 'Property tax (% of value, per year)', value: 1.1, min: 0, max: 10 },
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
-  { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year)', value: 0.6, min: 0, max: 5 },
+  { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year; conventional loans only)', value: 0.6, min: 0, max: 5 },
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
   { id: 'repairYear', group: 'buying', label: 'Major repair in year (0 = none)', value: 0, min: 0, max: 50, integer: true },
   { id: 'repairCost', group: 'buying', label: 'Major repair cost ($, one time)', value: 0, min: 0, money: true },
@@ -97,6 +100,37 @@ export function invalidRentOwn(v) {
 // appreciation reach that point.
 const CHART_YEARS = 30;
 
+// Loan programs (v.program): 0 conventional, 1 FHA, 2 VA.
+const FHA_UPFRONT = 1.75;
+const FHA_ANNUAL_HIGH_LTV = 0.55;
+const FHA_ANNUAL_LOW_LTV = 0.5;
+// FHA annual insurance lasts the whole loan when the original loan is above 90% of the price,
+// and 11 years otherwise; it does not stop at 80%.
+const FHA_SHORT_MONTHS = 132;
+
+// VA funding fee (% of the loan) by down payment, for first use and subsequent use.
+function vaFundingFeePct(downPct, repeat) {
+  if (downPct >= 10) return 1.25;
+  if (downPct >= 5) return 1.5;
+  return repeat ? 3.3 : 2.15;
+}
+
+// The financing the program implies: the upfront fee (FHA MIP or VA funding fee) and whether it
+// is added to the loan or paid in cash, and the yearly insurance percentage on the base loan.
+function financing(v) {
+  const base = v.price * (1 - v.down / 100);
+  const ltv = 100 - v.down;
+  if (v.program === 1) {
+    const fee = (base * FHA_UPFRONT) / 100;
+    return { base, fee, loan: v.feeFinanced ? base + fee : base, cashFee: v.feeFinanced ? 0 : fee, insurancePct: ltv > 90 ? FHA_ANNUAL_HIGH_LTV : FHA_ANNUAL_LOW_LTV, insuranceMonths: ltv > 90 ? Infinity : FHA_SHORT_MONTHS, insuranceName: 'FHA mortgage insurance', feeName: 'FHA upfront mortgage insurance premium' };
+  }
+  if (v.program === 2) {
+    const fee = (base * vaFundingFeePct(v.down, v.vaRepeat)) / 100;
+    return { base, fee, loan: v.feeFinanced ? base + fee : base, cashFee: v.feeFinanced ? 0 : fee, insurancePct: 0, insuranceMonths: 0, insuranceName: 'Mortgage insurance', feeName: 'VA funding fee' };
+  }
+  return { base, fee: 0, loan: base, cashFee: 0, insurancePct: v.pmi, insuranceMonths: null, insuranceName: 'Mortgage insurance (PMI)', feeName: '' };
+}
+
 // Owning pulls ahead for good from the year after the last year it trailed.
 function firstAheadYear(years, field = 'difference') {
   const lastBehind = years.map((y) => y[field] < 0).lastIndexOf(true);
@@ -104,7 +138,8 @@ function firstAheadYear(years, field = 'difference') {
 }
 
 export function compareRentOwn(v) {
-  const loan = v.price * (1 - v.down / 100);
+  const fin = financing(v);
+  const loan = fin.loan;
   const monthlyRate = v.rate / 100 / 12;
   const pay = payment(loan, v.rate, v.term * 12);
   const growth = (1 + v.growth / 100) ** (1 / 12);
@@ -112,7 +147,7 @@ export function compareRentOwn(v) {
   let balance = loan;
   let value = v.price;
   const dragRate = v.investDrag / 100 / 12;
-  let portfolio = v.price * (v.down / 100 + v.closing / 100);
+  let portfolio = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee;
   let basis = portfolio;
   let dragPaid = 0;
   let pure = portfolio;
@@ -130,7 +165,8 @@ export function compareRentOwn(v) {
   // whether, owning catches up; everything else is reported for the stay only.
   const stayMonths = v.years * 12;
   for (let m = 1; m <= Math.max(v.years, CHART_YEARS) * 12; m += 1) {
-    const pmi = balance > value * 0.8 + 0.005 ? (loan * v.pmi) / 100 / 12 : 0;
+    const insured = fin.insuranceMonths == null ? balance > value * 0.8 + 0.005 : m <= fin.insuranceMonths;
+    const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
     if (m <= stayMonths) totalPmi += pmi;
     const interest = balance * monthlyRate;
     const mortgage = m <= v.term * 12 ? pay : 0;
@@ -197,10 +233,10 @@ export function compareRentOwn(v) {
   });
   const real = deflate(years);
   const chartReal = deflate(chartYears);
-  const cash = cashNeeded(v, firstOwn, firstRent);
+  const cash = cashNeeded(v, firstOwn, firstRent, fin.cashFee);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
+  const waterfall = costWaterfall(v, { upfront, cashFee: fin.cashFee, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
   return {
     years,
     monthly,
@@ -217,6 +253,7 @@ export function compareRentOwn(v) {
     firstRentMonthly: firstRent,
     firstPmi,
     totalPmi,
+    program: { id: v.program, fee: fin.fee, feeName: fin.feeName, financed: fin.fee > 0 && v.feeFinanced === 1, loan, insuranceName: fin.insuranceName },
     cash,
     waterfall,
   };
@@ -227,7 +264,7 @@ export function compareRentOwn(v) {
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
 // are what the model above already adds up, so they sum to -final.difference.
 // Moving costs and the cash reserve are not part of the net worth comparison.
-function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
+function costWaterfall(v, { upfront, cashFee, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
@@ -237,7 +274,7 @@ function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, i
   const opportunityUpfront = upfront * (invest ** (v.years * 12) - 1);
   const sellingCosts = (value * v.selling) / 100;
   return {
-    upfront: { down, closing, total: upfront },
+    upfront: { down, closing, fee: cashFee, total: upfront },
     recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
     opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
     moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },
@@ -273,17 +310,17 @@ export const RENTOWN_CHECKLIST = [
 // months of owning costs. With cash saved entered, also the shortfall and how
 // many months it would take to close it by saving what owning would cost beyond
 // rent (null when owning costs no more than renting). Ignores interest earned.
-function cashNeeded(v, ownMonthly, rentMonthly) {
+function cashNeeded(v, ownMonthly, rentMonthly, fee = 0) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const moving = v.moving;
   const reserve = v.reserve * ownMonthly;
-  const total = down + closing + moving + reserve;
+  const total = down + closing + fee + moving + reserve;
   const hasSaved = v.saved != null;
   const shortfall = hasSaved ? Math.max(0, total - v.saved) : 0;
   const monthlyGap = ownMonthly - rentMonthly;
   const monthsToClose = shortfall > 0 && monthlyGap > 0 ? Math.ceil(shortfall / monthlyGap) : null;
-  return { down, closing, moving, reserve, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
+  return { down, closing, fee, moving, reserve, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
 }
 
 // Three named cases around the user's own inputs. Owning does better when homes and rents grow

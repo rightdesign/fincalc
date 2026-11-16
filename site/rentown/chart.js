@@ -11,6 +11,7 @@ export function chartCard({ v, r, today, final, label }) {
         <tbody>${rows}</tbody></table>
         <p>Tax on investments over ${v.years} ${v.years === 1 ? 'year' : 'years'}: ${money(final.dragPaid + final.saleTax)} (${money(final.dragPaid)} tax drag along the way, ${money(final.saleTax)} capital gains tax when you sell). Investment return after tax drag: ${Math.round(r.afterTaxReturn * 100) / 100}% per year, before the tax on sale.</p>
         <p>Monthly cost in year 1: own ${money(r.firstOwnMonthly)}${r.firstPmi > 0 ? ` (including ${money(r.firstPmi)} mortgage insurance)` : ''} · rent ${money(r.firstRentMonthly)}.</p>
-        ${r.totalPmi > 0 ? `<p>Mortgage insurance over your stay: ${money(r.totalPmi)} in total, charged only while the loan is above 80% of the home&rsquo;s value.</p>` : ''}</div>
+        ${r.totalPmi > 0 ? `<p>Mortgage insurance over your stay: ${money(r.totalPmi)} in total${r.program.id === 1 ? ', charged for the life of the loan or the first 11 years, depending on the down payment' : ', charged only while the loan is above 80% of the home&rsquo;s value'}.</p>` : ''}
+        ${r.program.fee > 0 ? `<p>${r.program.feeName}: ${money(r.program.fee)}, ${r.program.financed ? 'added to the loan' : 'paid in cash at closing'}.</p>` : ''}</div>
     </div>`;
 }

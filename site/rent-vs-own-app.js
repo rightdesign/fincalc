@@ -23,9 +23,11 @@ for (const g of RENTOWN_GROUPS) {
     label.className = 'field';
     const text = document.createElement('span');
     text.textContent = f.label;
-    const input = document.createElement('input');
-    input.type = f.money ? 'text' : 'number';
-    if (!f.money) {
+    const input = document.createElement(f.options ? 'select' : 'input');
+    if (f.options) {
+      for (const [value, name] of f.options) input.append(new Option(name, value));
+    } else input.type = f.money ? 'text' : 'number';
+    if (!f.money && !f.options) {
       input.min = f.min;
       input.max = f.max ?? '';
       input.step = f.integer ? '1' : 'any';

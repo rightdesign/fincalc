@@ -7,6 +7,7 @@ export function cashCard({ v, r }) {
       <table class="m-table"><tbody>
         <tr><th scope="row">Down payment</th><td>${money(cash.down)}</td></tr>
         <tr><th scope="row">Closing costs</th><td>${money(cash.closing)}</td></tr>
+        ${cash.fee > 0 ? `<tr><th scope="row">${r.program.feeName} (paid in cash)</th><td>${money(cash.fee)}</td></tr>` : ''}
         <tr><th scope="row">Moving</th><td>${money(cash.moving)}</td></tr>
         <tr><th scope="row">Reserve (${word(v.reserve, 'month')} of owning costs)</th><td>${money(cash.reserve)}</td></tr>
         <tr><th scope="row">Total cash needed</th><td><strong>${money(cash.total)}</strong></td></tr>
