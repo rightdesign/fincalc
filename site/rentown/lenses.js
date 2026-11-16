@@ -1,13 +1,13 @@
-import { money, verdict, winner } from './format.js';
+import { money, monthPoint, verdict, winner } from './format.js';
 
-const lens = (breakEven) => breakEven == null
+const lens = (breakEven, month) => breakEven == null
   ? 'Owning does not catch up within your stay.'
-  : `Owning pulls ahead in year ${breakEven}.`;
+  : `Owning pulls ahead in ${monthPoint(month)} (year ${breakEven} on a yearly basis).`;
 
 export function lensesCard({ r, final, label, span }) {
   return `<div class="ro-lenses">
-      <div class="m-card"><h3>Equal-cash view</h3><p>${verdict(final.difference)} after ${span}, ${label} &mdash; ${lens(r.breakEven)}</p><p>Both sides start with the same cash (the down payment and closing costs) and spend the same each month: whichever choice costs less that month invests the difference.</p></div>
-      <div class="m-card"><h3>Pure net worth view</h3><p>${verdict(final.pureDifference)} after ${span}, ${label} &mdash; ${lens(r.pureBreakEven)}</p><p>Owner: home equity after selling costs. Renter: only the down payment and closing costs, invested and taxed the same way; the monthly difference is not credited to either side.</p></div>
+      <div class="m-card"><h3>Equal-cash view</h3><p>${verdict(final.difference)} after ${span}, ${label} &mdash; ${lens(r.breakEven, r.breakEvenMonth)}</p><p>Both sides start with the same cash (the down payment and closing costs) and spend the same each month: whichever choice costs less that month invests the difference.</p></div>
+      <div class="m-card"><h3>Pure net worth view</h3><p>${verdict(final.pureDifference)} after ${span}, ${label} &mdash; ${lens(r.pureBreakEven, r.pureBreakEvenMonth)}</p><p>Owner: home equity after selling costs. Renter: only the down payment and closing costs, invested and taxed the same way; the monthly difference is not credited to either side.</p></div>
     </div>`;
 }
 

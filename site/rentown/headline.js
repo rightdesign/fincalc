@@ -1,4 +1,4 @@
-import { money, word } from './format.js';
+import { money, monthPoint, word } from './format.js';
 
 const phrase = (f) => (Math.round(f.difference) === 0 ? 'about even' : `${f.difference >= 0 ? 'owning' : 'renting'} ahead by ${money(Math.abs(f.difference))}`);
 
@@ -20,6 +20,6 @@ export function headlineCard({ v, r, today, final, label }) {
     ? `You need ${money(cash.total)} in cash to buy and have ${money(cash.saved)}.${gap} Once you have it, the numbers below apply: after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} would leave you about ${money(Math.abs(final.difference))} ahead, ${label}.`
     : r.breakEven == null
     ? 'Owning does not catch up within your stay: closing and selling costs and the cost of owning outweigh the gains.'
-    : `Break-even: owning pulls ahead in year ${r.breakEven}.${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
+    : `Break-even: owning pulls ahead in ${monthPoint(r.breakEvenMonth)} (year ${r.breakEven} on a yearly basis).${r.breakEven > 1 ? ' Renting is ahead before that, mostly because of closing and selling costs.' : ''}`;
   return `<div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${otherLine}</p><p>${detail}</p><p>Headline view: equal-cash (below).</p></div>`;
 }

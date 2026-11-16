@@ -45,3 +45,11 @@ test('the chart in today\'s dollars is deflated and keeps the same break-even ye
   assert.ok(Math.abs(r.chartReal.at(-1).own) < Math.abs(r.chartYears.at(-1).own));
   assert.equal(r.chartReal.findIndex((y) => y.difference >= 0), r.chartYears.findIndex((y) => y.difference >= 0));
 });
+
+test('the chart marks the crossing month, not just the year', () => {
+  const r = compareRentOwn({ ...base(), years: 15 });
+  const { svg, description } = rentOwnChart(r.years, r.breakEven, String, 15, r.breakEvenMonth);
+  const month = ((r.breakEvenMonth - 1) % 12) + 1;
+  assert.ok(svg.includes(`Break-even: year ${r.breakEven}, month ${month}`));
+  assert.ok(description.includes(`year ${r.breakEven}, month ${month}`));
+});

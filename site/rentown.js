@@ -167,6 +167,13 @@ function firstAheadYear(years, field = 'difference') {
   return lastBehind === years.length - 1 ? null : years[lastBehind + 1].year;
 }
 
+// The same rule evaluated monthly: the first month (counted from 1) after which owning stays ahead
+// through the last month of `months`, an array of { month, difference, pureDifference }.
+function firstAheadMonth(months, field = 'difference') {
+  const lastBehind = months.map((y) => y[field] < 0).lastIndexOf(true);
+  return lastBehind === months.length - 1 ? null : months[lastBehind + 1].month;
+}
+
 export function compareRentOwn(v) {
   const fin = financing(v);
   const loan = fin.loan;
@@ -186,6 +193,7 @@ export function compareRentOwn(v) {
   let dragPaid = 0;
   let pure = portfolio;
   const all = [];
+  const months = [];
   let firstOwn = 0;
   let firstRent = 0;
   let firstPmi = 0;
@@ -240,15 +248,17 @@ export function compareRentOwn(v) {
     pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
     value *= growth;
     assessed *= assessedGrowth;
+    // Net worth if everything were sold at the end of this month. The home-sale gain is what is left after
+    // selling costs and the price plus closing costs paid. The exclusion needs two years in the home; the
+    // capital gains rate is the one the renter's gains use.
+    const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
+    const homeTax = Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
+    const ownWorth = value * (1 - v.selling / 100) - balance - repairs - homeTax;
+    const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
+    const rentWorth = portfolio - saleTax;
+    const pureWorth = pure - Math.max(0, pure - upfront) * (v.capGains / 100);
+    months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownWorth - pureWorth });
     if (m % 12 === 0) {
-      // The home-sale gain is what is left after selling costs and the price plus closing costs paid. The
-      // exclusion needs two years in the home; the capital gains rate is the one the renter's gains use.
-      const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
-      const homeTax = Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
-      const ownWorth = value * (1 - v.selling / 100) - balance - repairs - homeTax;
-      const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
-      const rentWorth = portfolio - saleTax;
-      const pureWorth = pure - Math.max(0, pure - upfront) * (v.capGains / 100);
       all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
@@ -257,8 +267,12 @@ export function compareRentOwn(v) {
   const years = all.slice(0, v.years);
   const breakEven = firstAheadYear(years);
   const pureBreakEven = firstAheadYear(years, 'pureDifference');
+  const stayMonthRows = months.slice(0, stayMonths);
+  const breakEvenMonth = firstAheadMonth(stayMonthRows);
+  const pureBreakEvenMonth = firstAheadMonth(stayMonthRows, 'pureDifference');
   // The chart runs to the break-even year or 30 years, whichever is first, and never ends before the stay.
   const chartBreakEven = firstAheadYear(all);
+  const chartBreakEvenMonth = firstAheadMonth(months);
   const chartYears = all.slice(0, Math.max(v.years, chartBreakEven ?? CHART_YEARS));
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
@@ -277,10 +291,13 @@ export function compareRentOwn(v) {
     monthly,
     breakEven,
     pureBreakEven,
+    breakEvenMonth,
+    pureBreakEvenMonth,
     real,
     chartYears,
     chartReal,
     chartBreakEven,
+    chartBreakEvenMonth,
     afterTaxReturn,
     final,
     finalReal,

@@ -1,5 +1,6 @@
 // SVG line chart for the rent vs own calculator: net worth of each choice by
 // year, with the break-even year marked. Pure (data in, strings out).
+import { monthPoint } from './rentown/format.js';
 const W = 480;
 const H = 220;
 const PAD = { l: 72, r: 16, t: 20, b: 28 };
@@ -8,7 +9,8 @@ const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': 
 
 // years: [{ year, own, rent, pureRent? }]; a pureRent adds the pure net worth renter line.
 // stay is the year the visitor plans to leave. Returns { svg, description }.
-export function rentOwnChart(years, breakEven, fmt, stay) {
+// breakEvenMonth, when given, is the month (counted from 1) the crossing falls in; the marker sits there.
+export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   const xs = years.map((y) => y.year);
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
@@ -54,18 +56,25 @@ export function rentOwnChart(years, breakEven, fmt, stay) {
       + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 12}" text-anchor="${anchor}" font-size="10">${escape(label)}</text>`;
   };
   if (stay != null && stay >= xMin && stay <= xMax) svg += mark(stay, `Your stay: year ${stay}`, 'stay', '2 3', 0);
+  const crossing = breakEvenMonth == null ? `year ${breakEven}` : monthPoint(breakEvenMonth);
   if (breakEven != null) {
     const b = years.find((y) => y.year === breakEven);
-    svg += mark(b.year, `Break-even: year ${b.year}`, 'breakeven', '5 3', stay === breakEven ? 1 : 0);
-    svg += `<circle class="ring" cx="${f(sx(b.year))}" cy="${f(sy(b.own))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
+    // The crossing month, placed on the own line between the year points either side of it.
+    const at = breakEvenMonth == null ? b.year : Math.min(b.year, Math.max(xMin, breakEvenMonth / 12));
+    const next = years.findIndex((y) => y.year >= at);
+    const hi_ = years[next];
+    const lo_ = years[next - 1];
+    const own = !lo_ || hi_.year === at ? hi_.own : lo_.own + ((hi_.own - lo_.own) * (at - lo_.year)) / (hi_.year - lo_.year);
+    svg += mark(at, `Break-even: ${crossing}`, 'breakeven', '5 3', stay != null && Math.abs(stay - at) < 1 ? 1 : 0);
+    svg += `<circle class="ring" cx="${f(sx(at))}" cy="${f(sy(own))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
   }
   svg += '</svg>';
 
-  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in year ${breakEven}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
+  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in ${crossing}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
   return { svg, description };
 }
 
-export function rentOwnChartHtml(years, breakEven, fmt, stay) {
-  const { svg, description } = rentOwnChart(years, breakEven, fmt, stay);
+export function rentOwnChartHtml(years, breakEven, fmt, stay, breakEvenMonth) {
+  const { svg, description } = rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth);
   return `<figure class="m-chart"><figcaption>Net worth by year: own (home equity after selling costs) vs rent (investments, equal-cash dashed and pure dotted)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }

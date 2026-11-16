@@ -50,3 +50,15 @@ test('T0: the expected case has renting ahead by about $12,002 after 7 years (af
   const exp = compareScenarios(base())[1];
   assert.ok(Math.abs(exp.difference + 12002) < 50, String(exp.difference));
 });
+
+test('monthly break-even is the same rule as the yearly one, evaluated month by month', () => {
+  const r = compareRentOwn({ ...base(), years: 15 });
+  assert.ok(r.breakEvenMonth != null);
+  // It falls inside the break-even year, after the last year-end that trailed.
+  assert.equal(Math.ceil(r.breakEvenMonth / 12), r.breakEven);
+  assert.ok(r.breakEvenMonth > (r.breakEven - 1) * 12 || r.breakEven === 1);
+  // A shorter stay changes only where the run ends, so the crossing month is unchanged while the stay still contains it.
+  assert.equal(compareRentOwn({ ...base(), years: r.breakEven }).breakEvenMonth, r.breakEvenMonth);
+  assert.equal(compareRentOwn({ ...base(), years: 1, growth: 0 }).breakEvenMonth, null);
+  assert.ok(r.pureBreakEvenMonth == null || Math.ceil(r.pureBreakEvenMonth / 12) === r.pureBreakEven);
+});
