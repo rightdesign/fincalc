@@ -159,6 +159,15 @@ window.addEventListener('hashchange', () => { if (location.hash.length > 1) { se
 form.addEventListener('input', () => { message.textContent = ''; render(); });
 // The selector sits outside the form, so its events never reach the form listener.
 basisSelect.addEventListener('change', () => { message.textContent = ''; render(); });
+// The solved price or rent goes back into its field, so the page reproduces the break-even it quoted.
+out.addEventListener('click', (e) => {
+  const button = e.target.closest('button[data-solve]');
+  if (!button) return;
+  const f = RENTOWN_FIELDS.find((x) => x.id === button.dataset.solve);
+  setValues({ ...rentOwnDefaultsFrom(values()), [f.id]: Number(button.dataset.value) });
+  message.textContent = '';
+  render();
+});
 form.addEventListener('submit', (e) => e.preventDefault());
 document.getElementById('rentown-reset').addEventListener('click', () => {
   setValues(defaults);
