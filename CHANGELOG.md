@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.82.0] — 2026-11-16
+
+- FINC-137 The rent vs own calculator now shows which input moves the answer most: mortgage rate, home growth, rent growth, investment return and stay length each moved down and up, with the break-even year and a bar for the swing in the end-of-stay gap.
+- FINC-140 The rent vs own calculator now has an FAQ answering seven common questions with the page's own live numbers, plus a sources list with links and as-of dates.
+- FINC-142 The rent vs own "Where the difference comes from" table now shows the parts of the Recurring bucket (and the home-sale tax detail) in a separate column, so the four bucket lines add up to the total.
+
 ## [0.81.0] — 2026-11-16
 
 - FINC-132 The rent vs own calculator now has an adjustable-rate mortgage option that reuses the variable-rate calculator's fields (start rate, fixed months, index and margin, caps and floor), with fixed vs ARM shown side by side.
