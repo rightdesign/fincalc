@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.81.0] — 2026-11-16
+
+- FINC-132 The rent vs own calculator now has an adjustable-rate mortgage option that reuses the variable-rate calculator's fields (start rate, fixed months, index and margin, caps and floor), with fixed vs ARM shown side by side.
+
 ## [0.80.0] — 2026-11-16
 
 - FINC-130 The rent vs own calculator now has a "rent, then buy" path: rent for N years while investing, then buy the same home at its appreciated price, shown as a third net worth line next to buy now and rent forever.
