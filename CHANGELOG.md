@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.75.0] — 2026-11-16
+
+- FINC-131 The rent vs own calculator now solves for the break-even home price and the break-even monthly rent at your chosen stay, and can apply either to the inputs.
+
 ## [0.74.0] — 2026-11-16
 
 - FINC-126 The rent vs own calculator now has a loan type choice (Conventional, FHA or VA) that applies FHA mortgage insurance or the VA funding fee, with the upfront fee financed or paid in cash.
