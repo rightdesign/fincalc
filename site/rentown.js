@@ -24,6 +24,7 @@ export const RENTOWN_FIELDS = [
   { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60 },
   { id: 'saved', group: 'buying', label: 'Cash you have saved, optional ($)', value: null, min: 0, money: true, optional: true },
   { id: 'tax', group: 'buying', label: 'Property tax (% of value, per year)', value: 1.1, min: 0, max: 10 },
+  { id: 'assessed', group: 'buying', label: 'Assessed value growth for property tax (% per year; blank = same as home value growth)', value: null, min: -20, max: 30, optional: true },
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
   { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year; conventional loans only)', value: 0.6, min: 0, max: 5 },
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
@@ -80,6 +81,13 @@ export const RENTOWN_PRESETS = [
   { id: 'longterm', label: 'Long-term owner, 15-year stay', values: { down: 20, rate: 6.5, term: 30, years: 15, maintenance: 1.5 } },
 ];
 
+// Places that cap how fast the taxable (assessed) value can rise, whatever the market does.
+// Each sets only the assessed growth.
+export const RENTOWN_TAX_CAPS = [
+  { id: 'ca', label: 'California Prop 13 (2%)', values: { assessed: 2 } },
+  { id: 'fl', label: 'Florida Save Our Homes (3%)', values: { assessed: 3 } },
+];
+
 // The preset whose five settings all match the inputs, or null ("Custom").
 export const matchRentOwnPreset = (v) => RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
 
@@ -111,6 +119,8 @@ export function invalidRentOwn(v) {
 // first month of its year, on top of the smoothed maintenance. It comes off
 // the Own net worth along with the return that money would have earned; Rent
 // is unaffected.
+// Property tax is the rate times the assessed value, which grows at its own rate when one is entered
+// (a cap such as California's Prop 13) and otherwise at the home's growth rate.
 // Selling the home is taxed too: the gain (sale price less selling costs less the
 // price and closing costs paid) above the primary-residence exclusion, which applies
 // only once the stay reaches two years, at the capital gains rate. It comes off the
@@ -166,6 +176,10 @@ export function compareRentOwn(v) {
   const invest = (1 + v.investment / 100) ** (1 / 12);
   let balance = loan;
   let value = v.price;
+  // Property tax is charged on the assessed value, which follows the home's value unless a cap is entered,
+  // and never more than the market value.
+  const assessedGrowth = v.assessed == null ? growth : (1 + v.assessed / 100) ** (1 / 12);
+  let assessed = v.price;
   const dragRate = v.investDrag / 100 / 12;
   let portfolio = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee;
   let basis = portfolio;
@@ -197,7 +211,7 @@ export function compareRentOwn(v) {
     const yearsIn = Math.floor((m - 1) / 12);
     const hoa = v.hoa * (1 + v.hoaGrowth / 100) ** yearsIn;
     const utilities = v.utilities * (1 + v.utilitiesGrowth / 100) ** yearsIn;
-    const tax = (value * v.tax) / 100 / 12;
+    const tax = (Math.min(assessed, value) * v.tax) / 100 / 12;
     const insurance = (value * v.insurance) / 100 / 12;
     const maintenance = (value * v.maintenance) / 100 / 12;
     const own = mortgage + pmi + tax + insurance + maintenance + hoa + utilities;
@@ -225,6 +239,7 @@ export function compareRentOwn(v) {
     const pureGain = pure * (invest - 1);
     pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
     value *= growth;
+    assessed *= assessedGrowth;
     if (m % 12 === 0) {
       // The home-sale gain is what is left after selling costs and the price plus closing costs paid. The
       // exclusion needs two years in the home; the capital gains rate is the one the renter's gains use.

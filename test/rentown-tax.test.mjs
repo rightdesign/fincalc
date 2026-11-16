@@ -27,6 +27,41 @@ test('tax on investments is reported and the after-tax return shows the drag', (
   near(r.afterTaxReturn, 4.3, 1e-9);
 });
 
+test('assessed growth left blank or equal to home growth changes nothing', () => {
+  const plain = compareRentOwn(base());
+  near(compareRentOwn({ ...base(), assessed: 3 }).final.difference, plain.final.difference, 1e-6);
+  assert.deepEqual(compareRentOwn({ ...base(), assessed: null }).final, plain.final);
+});
+
+test('a 2% assessment cap lowers property tax and favors owning', () => {
+  const v = { ...base(), years: 30 };
+  const plain = compareRentOwn(v);
+  const capped = compareRentOwn({ ...v, assessed: 2 });
+  const tax = (r) => r.monthly[29].tax * 12;
+  // Year 30's tax runs on the value at the start of that year (29 years of growth).
+  near(tax(plain), 450000 * 1.03 ** 29 * 0.011, 1);
+  near(tax(capped), 450000 * 1.02 ** 29 * 0.011, 1);
+  assert.ok(capped.final.difference > plain.final.difference);
+  assert.ok(capped.waterfall.recurring.tax < plain.waterfall.recurring.tax);
+});
+
+test('an assessment cap above the home growth never raises property tax', () => {
+  const v = { ...base(), growth: 0, years: 10 };
+  const plain = compareRentOwn(v);
+  const capped = compareRentOwn({ ...v, assessed: 5 });
+  near(capped.monthly[9].tax, plain.monthly[9].tax, 1e-6);
+  assert.ok(capped.waterfall.recurring.tax <= plain.waterfall.recurring.tax + 1e-6);
+});
+
+test('assessed growth is optional, range-checked and kept in the link', async () => {
+  const { invalidRentOwn, encodeRentOwn, decodeRentOwn, RENTOWN_TAX_CAPS } = await import('../site/rentown.js');
+  assert.deepEqual(invalidRentOwn(base()), []);
+  assert.equal(invalidRentOwn({ ...base(), assessed: 99 }).length, 1);
+  assert.equal(encodeRentOwn(base()).includes('assessed'), false);
+  assert.equal(decodeRentOwn(encodeRentOwn({ ...base(), assessed: 2 })).assessed, 2);
+  assert.deepEqual(RENTOWN_TAX_CAPS.map((c) => c.values.assessed), [2, 3]);
+});
+
 test('the home sale is taxed above the primary-residence exclusion', () => {
   const none = { ...base(), exclusion: 1e9 };
   // T0 defaults: the gain sits inside the exclusion, so nothing changes.

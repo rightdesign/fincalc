@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
 import { usd } from './rentown/format.js';
@@ -81,6 +81,24 @@ for (const g of RENTOWN_GROUPS) {
     }
     label.append(input);
     grid.append(label);
+    if (f.id === 'assessed') {
+      const caps = document.createElement('div');
+      caps.className = 'ro-presets';
+      caps.setAttribute('role', 'group');
+      caps.setAttribute('aria-label', 'Property tax caps');
+      for (const c of RENTOWN_TAX_CAPS) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = c.label;
+        button.addEventListener('click', () => {
+          setValues({ ...rentOwnDefaultsFrom(values()), ...c.values });
+          message.textContent = '';
+          render();
+        });
+        caps.append(button);
+      }
+      grid.append(caps);
+    }
   }
   form.append(set);
 }
