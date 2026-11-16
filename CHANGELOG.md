@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.80.0] — 2026-11-16
+
+- FINC-130 The rent vs own calculator now has a "rent, then buy" path: rent for N years while investing, then buy the same home at its appreciated price, shown as a third net worth line next to buy now and rent forever.
+- FINC-138 The rent vs own calculator now says "Too close to call" instead of naming a winner when the gap at the end of your stay is under $5,000 or 5% of the larger side's net worth; the gap is still shown.
+
 ## [0.79.0] — 2026-11-16
 
 - FINC-129 The rent vs own calculator now has investment-return presets (Aggressive 10%, Moderate 8%, Conservative 6%, Savings 4%) that fill the return and a matching tax drag, labelled as long-run nominal averages rather than forecasts.
