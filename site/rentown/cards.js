@@ -1,5 +1,6 @@
 // The results cards in the order the page shows them. A new card is a new module and one new line here.
 import { headlineCard } from './headline.js';
+import { ratioCard } from './ratio.js';
 import { driversCard } from './drivers.js';
 import { solveCard } from './solve-card.js';
 import { cashCard } from './cash.js';
@@ -14,6 +15,7 @@ import { chartCard } from './chart.js';
 
 export const CARDS = [
   headlineCard,
+  ratioCard,
   driversCard,
   solveCard,
   cashCard,
