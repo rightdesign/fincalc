@@ -21,6 +21,7 @@ test('the dollar basis round-trips through the fragment', () => {
 
 test('every input survives the link round trip and reproduces the same headline', () => {
   const changed = Object.fromEntries(RENTOWN_FIELDS.map((f) => {
+    if (f.id === 'arm') return [f.id, 1];
     const alt = f.integer ? (f.value === 0 ? 2 : f.value + 1) : (f.value ?? 1000) + 1;
     const pick = f.max != null && alt > f.max ? f.max - 1 : alt;
     return [f.id, pick === f.value ? f.max : pick];

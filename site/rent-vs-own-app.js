@@ -39,6 +39,7 @@ for (const g of RENTOWN_GROUPS) {
     label.className = 'field';
     const text = document.createElement('span');
     text.textContent = f.label;
+    label.dataset.field = f.id;
     const input = document.createElement(f.options ? 'select' : 'input');
     if (f.options) {
       for (const [value, name] of f.options) input.append(new Option(name, value));
@@ -132,6 +133,11 @@ function values() {
   }));
 }
 
+// Fields that only apply to one mortgage type (the ARM terms, the fixed rate) show only for that type.
+function showFields(v) {
+  for (const f of RENTOWN_FIELDS) if (f.showIf) form.querySelector(`[data-field="${f.id}"]`).hidden = !f.showIf(v);
+}
+
 function setValues(v) {
   for (const f of RENTOWN_FIELDS) {
     form.elements[f.id].value = show(f, v[f.id]);
@@ -169,6 +175,7 @@ function showPreset(v) {
 function render() {
   const v = values();
   showPreset(v);
+  showFields(v);
   const bad = invalidRentOwn(v);
   if (bad.length) {
     out.innerHTML = '';

@@ -1,7 +1,7 @@
 // Rent vs own model: should you buy a home or rent a similar one and invest the
 // difference? Pure functions, no DOM. Rates are annual percentages; the model
 // steps monthly and reports year ends.
-import { parseAmount, payment } from './mortgage.js';
+import { parseAmount, payment, rateAfter } from './mortgage.js';
 
 export { parseAmount };
 
@@ -11,14 +11,29 @@ export const RENTOWN_GROUPS = [
   { id: 'both', label: 'Both' },
 ];
 
+// 0 = a fixed-rate loan, 1 = an adjustable-rate mortgage that resets as in the variable-rate calculator.
+export const MORTGAGE_TYPES = [[0, 'Fixed rate'], [1, 'Adjustable rate (ARM)']];
+const isArm = (v) => v.arm === 1;
+
 export const RENTOWN_FIELDS = [
   { id: 'price', group: 'buying', label: 'Home price ($)', value: 450000, min: 1, money: true, slider: { min: 100000, max: 1500000, step: 5000 } },
   { id: 'down', group: 'buying', label: 'Down payment (%)', value: 20, min: 0, max: 100, slider: { min: 0, max: 100, step: 1 } },
+  { id: 'arm', group: 'buying', label: 'Mortgage type', value: 0, min: 0, max: 1, integer: true, options: MORTGAGE_TYPES },
   { id: 'program', group: 'buying', label: 'Loan type', value: 0, min: 0, max: 2, integer: true, options: [[0, 'Conventional (PMI)'], [1, 'FHA (mortgage insurance premium)'], [2, 'VA (funding fee)']] },
   { id: 'feeFinanced', group: 'buying', label: 'FHA or VA upfront fee', value: 1, min: 0, max: 1, integer: true, options: [[1, 'Financed into the loan'], [0, 'Paid in cash at closing']] },
   { id: 'vaRepeat', group: 'buying', label: 'VA loan: first use or subsequent use', value: 0, min: 0, max: 1, integer: true, options: [[0, 'First use'], [1, 'Subsequent use']] },
-  { id: 'rate', group: 'buying', label: 'Mortgage rate (%)', value: 6.5, min: 0, max: 30, slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'rate', group: 'buying', label: 'Mortgage rate (%)', value: 6.5, min: 0, max: 30, showIf: (v) => !v.arm, slider: { min: 0, max: 15, step: 0.125 } },
   { id: 'term', group: 'buying', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
+  { id: 'armRate', group: 'buying', label: 'ARM starting rate (%)', value: 5.75, min: 0, max: 30, showIf: isArm, slider: { min: 0, max: 15, step: 0.125 } },
+  { id: 'armFixedMonths', group: 'buying', label: 'ARM months before the first rate change', value: 84, min: 1, max: 600, integer: true, showIf: isArm },
+  { id: 'armAdjustMonths', group: 'buying', label: 'ARM months between rate changes after that', value: 6, min: 1, max: 600, integer: true, showIf: isArm },
+  { id: 'armIndexRate', group: 'buying', label: 'ARM index value today (%)', value: 4.3, min: 0, max: 30, showIf: isArm },
+  { id: 'armMargin', group: 'buying', label: 'ARM margin (percentage points)', value: 2.75, min: 0, max: 15, showIf: isArm },
+  { id: 'armIndexChange', group: 'buying', label: 'ARM assumed index change per reset (percentage points)', value: 0, min: -10, max: 10, showIf: isArm },
+  { id: 'armFirstCap', group: 'buying', label: 'ARM cap on the first adjustment (percentage points)', value: 5, min: 0, max: 30, showIf: isArm },
+  { id: 'armPeriodicCap', group: 'buying', label: 'ARM cap on each later adjustment (percentage points)', value: 1, min: 0, max: 30, showIf: isArm },
+  { id: 'armLifetimeCap', group: 'buying', label: 'ARM cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30, showIf: isArm },
+  { id: 'armFloor', group: 'buying', label: 'ARM lowest possible rate (%)', value: 2, min: 0, max: 30, showIf: isArm },
   { id: 'closing', group: 'buying', label: 'Closing costs (% of price)', value: 3, min: 0, max: 20 },
   { id: 'moving', group: 'buying', label: 'Moving costs ($)', value: 0, min: 0, money: true },
   { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60 },
@@ -189,8 +204,12 @@ function firstAheadMonth(months, field = 'difference') {
 export function compareRentOwn(v) {
   const fin = financing(v);
   const loan = fin.loan;
-  const monthlyRate = v.rate / 100 / 12;
-  const pay = payment(loan, v.rate, v.term * 12);
+  const arm = v.arm === 1;
+  const armLoan = arm ? { rateBasis: 'index', initialRate: v.armRate, indexRate: v.armIndexRate, margin: v.armMargin, indexChange: v.armIndexChange, firstCap: v.armFirstCap, periodicCap: v.armPeriodicCap, lifetimeCap: v.armLifetimeCap, floor: v.armFloor } : null;
+  let loanRate = arm ? v.armRate : v.rate;
+  let monthlyRate = loanRate / 100 / 12;
+  let pay = payment(loan, loanRate, v.term * 12);
+  let resets = 0;
   const growth = (1 + v.growth / 100) ** (1 / 12);
   const invest = (1 + v.investment / 100) ** (1 / 12);
   let balance = loan;
@@ -209,6 +228,8 @@ export function compareRentOwn(v) {
   let firstOwn = 0;
   let firstRent = 0;
   let firstPmi = 0;
+  let firstMortgage = 0;
+  let peakRate = loanRate;
   let totalPmi = 0;
   const monthly = [];
   const upfront = portfolio;
@@ -221,6 +242,14 @@ export function compareRentOwn(v) {
   // whether, owning catches up; everything else is reported for the stay only.
   const stayMonths = v.years * 12;
   for (let m = 1; m <= Math.max(v.years, CHART_YEARS) * 12; m += 1) {
+    // An ARM re-amortizes the balance over the months left at each reset, with the rate the caps allow.
+    const sinceFixed = m - 1 - v.armFixedMonths;
+    if (arm && sinceFixed >= 0 && sinceFixed % v.armAdjustMonths === 0 && m <= v.term * 12) {
+      resets += 1;
+      loanRate = rateAfter(armLoan, resets);
+      monthlyRate = loanRate / 100 / 12;
+      pay = payment(balance, loanRate, v.term * 12 - (m - 1));
+    }
     const insured = fin.insuranceMonths == null ? balance > value * 0.8 + 0.005 : m <= fin.insuranceMonths;
     const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
     if (m <= stayMonths) totalPmi += pmi;
@@ -247,8 +276,9 @@ export function compareRentOwn(v) {
       mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
       hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
     });
+    if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
     series.push({ own, rent, carry: tax + insurance + maintenance + hoa + utilities });
-    if (m === 1) { firstOwn = own; firstRent = rent; firstPmi = pmi; }
+    if (m === 1) { firstMortgage = mortgage; firstOwn = own; firstRent = rent; firstPmi = pmi; }
     const gain = portfolio * (invest - 1);
     const drag = Math.min(portfolio * dragRate, Math.max(0, gain));
     dragPaid += drag;
@@ -319,6 +349,8 @@ export function compareRentOwn(v) {
     firstOwnMonthly: firstOwn,
     firstRentMonthly: firstRent,
     firstPmi,
+    firstMortgage,
+    peakRate,
     totalPmi,
     program: { id: v.program, fee: fin.fee, feeName: fin.feeName, financed: fin.fee > 0 && v.feeFinanced === 1, loan, insuranceName: fin.insuranceName },
     cash,
@@ -408,6 +440,14 @@ export function compareScenarios(v) {
   });
 }
 
+// The same inputs with a fixed-rate loan and with the ARM, side by side. Only meaningful when the ARM is chosen.
+export function compareMortgageTypes(v) {
+  return [{ id: 'fixed', label: 'Fixed rate', arm: 0 }, { id: 'arm', label: 'Adjustable rate (ARM)', arm: 1 }].map((t) => {
+    const r = compareRentOwn({ ...v, arm: t.arm });
+    return { id: t.id, label: t.label, startRate: t.arm ? v.armRate : v.rate, peakRate: r.peakRate, firstMortgage: r.firstMortgage, breakEven: r.breakEven, difference: r.final.difference, differenceReal: r.finalReal.difference };
+  });
+}
+
 // What drives the verdict: for each of these inputs, the value at which the
 // winner at the end of the stay flips, holding every other input as entered.
 // Ranges are the search span (whole percentages, like the inputs).
@@ -449,8 +489,10 @@ export function rentOwnFlipPoint(v, driver) {
 
 // One plain-language line per driver, in the order of RENTOWN_DRIVERS.
 export function rentOwnThresholds(v) {
+  // An ARM has no single mortgage rate to flip, so its starting rate takes that place.
+  const drivers = v.arm === 1 ? RENTOWN_DRIVERS.map((d) => (d.id === 'rate' ? { ...d, id: 'armRate', label: 'ARM starting rate' } : d)) : RENTOWN_DRIVERS;
   const ahead = (x, d) => compareRentOwn({ ...v, [d.id]: x }).final.difference >= 0;
-  return RENTOWN_DRIVERS.map((d) => {
+  return drivers.map((d) => {
     const flip = rentOwnFlipPoint(v, d);
     const entered = pct(v[d.id]);
     if (flip == null) {
