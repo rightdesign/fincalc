@@ -2,6 +2,7 @@
 import { headlineCard } from './headline.js';
 import { ratioCard } from './ratio.js';
 import { driversCard } from './drivers.js';
+import { tornadoCard } from './tornado.js';
 import { solveCard } from './solve-card.js';
 import { cashCard } from './cash.js';
 import { lensesCard, lensesDisagreeCard } from './lenses.js';
@@ -19,6 +20,7 @@ export const CARDS = [
   laterCard,
   ratioCard,
   driversCard,
+  tornadoCard,
   solveCard,
   cashCard,
   lensesCard,

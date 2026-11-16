@@ -942,3 +942,6 @@ body.vg .m-tabs button[aria-selected="true"] { color: var(--text); border-bottom
 body.vg .m-presets button, body.vg .m-inputs .field > input:not([type="range"]), body.vg .m-inputs .field > select, body.vg button.ghost { border-radius: 0.125rem; }
 body.vg .m-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 body.vg .m-chart .chart { font-size: 0.75rem; }
+.ro-tornado th[scope="row"] { text-align: left; font-weight: normal; }
+.ro-tornado-bar-cell { text-align: left; white-space: nowrap; }
+.ro-tornado-bar { display: inline-block; height: 0.6rem; min-width: 2px; background: var(--accent, #2a6fdb); border-radius: 2px; vertical-align: middle; }
