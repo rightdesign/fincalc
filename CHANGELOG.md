@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.79.0] — 2026-11-16
+
+- FINC-129 The rent vs own calculator now has investment-return presets (Aggressive 10%, Moderate 8%, Conservative 6%, Savings 4%) that fill the return and a matching tax drag, labelled as long-run nominal averages rather than forecasts.
+
 ## [0.78.0] — 2026-11-16
 
 - FINC-134 The rent vs own calculator now reports the break-even to the month ("owning pulls ahead in year 7, month 4"), keeping the year figure alongside, and the chart marks the crossing month.
