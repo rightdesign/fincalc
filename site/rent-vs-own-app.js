@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
 import { usd } from './rentown/format.js';
@@ -80,6 +80,28 @@ for (const g of RENTOWN_GROUPS) {
       });
     }
     label.append(input);
+    if (f.id === 'investment') {
+      const row = document.createElement('span');
+      row.className = 'no-print ro-return-presets';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'Investment return presets');
+      for (const p of RETURN_PRESETS) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = p.label;
+        button.title = `${p.detail}; a long-run nominal average, not a forecast. Also sets the tax drag to ${p.investDrag}%.`;
+        button.addEventListener('click', () => {
+          form.elements.investment.value = p.investment;
+          form.elements.investDrag.value = p.investDrag;
+          message.textContent = '';
+          render();
+        });
+        row.append(button);
+      }
+      const note = document.createElement('small');
+      note.textContent = 'Long-run nominal averages, not forecasts. A preset also sets the tax drag below.';
+      label.append(row, note);
+    }
     grid.append(label);
     if (f.id === 'assessed') {
       const caps = document.createElement('div');

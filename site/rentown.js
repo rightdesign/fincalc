@@ -91,6 +91,16 @@ export const RENTOWN_TAX_CAPS = [
 // The preset whose five settings all match the inputs, or null ("Custom").
 export const matchRentOwnPreset = (v) => RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
 
+// Long-run planning averages for the investment return (nominal, before the tax drag), not forecasts.
+// Each also suggests a yearly tax drag: more of a conservative portfolio's return arrives as taxable
+// interest rather than lightly taxed stock growth, so the drag rises as the stock share falls.
+export const RETURN_PRESETS = [
+  { id: 'aggressive', label: 'Aggressive 10%', detail: '100% stocks', investment: 10, investDrag: 0.7 },
+  { id: 'moderate', label: 'Moderate 8%', detail: '60% stocks, 40% bonds', investment: 8, investDrag: 0.8 },
+  { id: 'conservative', label: 'Conservative 6%', detail: '20% stocks, 80% bonds', investment: 6, investDrag: 0.9 },
+  { id: 'savings', label: 'Savings 4%', detail: 'savings account', investment: 4, investDrag: 1 },
+];
+
 // Labels of the fields whose value is blank, unreadable or out of range.
 export function invalidRentOwn(v) {
   return RENTOWN_FIELDS.filter((f) => {

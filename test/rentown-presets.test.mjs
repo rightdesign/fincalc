@@ -19,3 +19,14 @@ test('the default inputs are the 20% down preset and 10% down changes the headli
   assert.ok(compareRentOwn(ftb).firstPmi > 0);
   assert.notEqual(compareRentOwn(ftb).final.difference, compareRentOwn(base()).final.difference);
 });
+
+test('return presets fill the investment return and tax drag, and the defaults stay put', async () => {
+  const { RETURN_PRESETS } = await import('../site/rentown.js');
+  assert.deepEqual(RETURN_PRESETS.map((p) => p.investment), [10, 8, 6, 4]);
+  assert.equal(base().investment, 5);
+  assert.equal(base().investDrag, 0.7);
+  for (const p of RETURN_PRESETS) {
+    const r = compareRentOwn({ ...base(), investment: p.investment, investDrag: p.investDrag });
+    assert.ok(Number.isFinite(r.final.difference));
+  }
+});
