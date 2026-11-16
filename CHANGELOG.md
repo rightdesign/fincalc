@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.78.0] — 2026-11-16
+
+- FINC-134 The rent vs own calculator now reports the break-even to the month ("owning pulls ahead in year 7, month 4"), keeping the year figure alongside, and the chart marks the crossing month.
+
 ## [0.77.0] — 2026-11-16
 
 - FINC-133 The rent vs own calculator now shows a price-to-rent line under the headline: the ratio, rent as a share of price per year, and the rent share below which renting wins at your own mortgage rate and stay.
