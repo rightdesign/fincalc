@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.74.0] — 2026-11-16
+
+- FINC-126 The rent vs own calculator now has a loan type choice (Conventional, FHA or VA) that applies FHA mortgage insurance or the VA funding fee, with the upfront fee financed or paid in cash.
+- FINC-128 The rent vs own calculator now defaults to the latest Freddie Mac mortgage rate, with the survey week, a source link and the date the defaults were refreshed shown under the inputs.
+
 ## [0.73.0] — 2026-11-16
 
 - FINC-124 The rent vs own calculator now taxes the gain on selling the home, after the $250,000 single / $500,000 married primary-residence exclusion (stays of two years or more), so long stays and high appreciation no longer overstate owning.
