@@ -36,6 +36,7 @@ export const RENTOWN_FIELDS = [
   { id: 'renterInsurance', group: 'renting', label: "Renter's insurance ($ per year)", value: 180, min: 0, money: true },
   { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
   { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
+  { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($250,000 single, $500,000 married)', value: 250000, min: 0, money: true },
   { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
   { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
@@ -87,6 +88,10 @@ export function invalidRentOwn(v) {
 // first month of its year, on top of the smoothed maintenance. It comes off
 // the Own net worth along with the return that money would have earned; Rent
 // is unaffected.
+// Selling the home is taxed too: the gain (sale price less selling costs less the
+// price and closing costs paid) above the primary-residence exclusion, which applies
+// only once the stay reaches two years, at the capital gains rate. It comes off the
+// Own net worth as `homeTax`.
 // PMI is charged on the original loan each month while the balance is above 80%
 // of the home's value then, so it stops by itself once paying down the loan and
 // appreciation reach that point.
@@ -165,11 +170,15 @@ export function compareRentOwn(v) {
     pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
     value *= growth;
     if (m % 12 === 0) {
-      const ownWorth = value * (1 - v.selling / 100) - balance - repairs;
+      // The home-sale gain is what is left after selling costs and the price plus closing costs paid. The
+      // exclusion needs two years in the home; the capital gains rate is the one the renter's gains use.
+      const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
+      const homeTax = Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
+      const ownWorth = value * (1 - v.selling / 100) - balance - repairs - homeTax;
       const saleTax = Math.max(0, portfolio - basis) * (v.capGains / 100);
       const rentWorth = portfolio - saleTax;
       const pureWorth = pure - Math.max(0, pure - upfront) * (v.capGains / 100);
-      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
     if (m === stayMonths) stay = { sum: { ...sum }, value, balance, portfolio, repairs };
@@ -184,14 +193,14 @@ export function compareRentOwn(v) {
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const deflate = (rows) => rows.map((y) => {
     const d = (1 + v.inflation / 100) ** y.year;
-    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d };
+    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d };
   });
   const real = deflate(years);
   const chartReal = deflate(chartYears);
   const cash = cashNeeded(v, firstOwn, firstRent);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax });
+  const waterfall = costWaterfall(v, { upfront, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
   return {
     years,
     monthly,
@@ -218,7 +227,7 @@ export function compareRentOwn(v) {
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
 // are what the model above already adds up, so they sum to -final.difference.
 // Moving costs and the cash reserve are not part of the net worth comparison.
-function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax }) {
+function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
@@ -231,7 +240,7 @@ function costWaterfall(v, { upfront, sum, value, balance, portfolio, ownWorth, i
     upfront: { down, closing, total: upfront },
     recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
     opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
-    moneyBack: { value, sellingCosts, balance, repairs, total: ownWorth },
+    moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },
     gap: upfront + recurring + opportunity - ownWorth,
   };
 }

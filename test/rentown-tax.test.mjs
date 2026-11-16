@@ -26,3 +26,30 @@ test('tax on investments is reported and the after-tax return shows the drag', (
   assert.ok(r.final.dragPaid > 0 && r.final.saleTax > 0);
   near(r.afterTaxReturn, 4.3, 1e-9);
 });
+
+test('the home sale is taxed above the primary-residence exclusion', () => {
+  const none = { ...base(), exclusion: 1e9 };
+  // T0 defaults: the gain sits inside the exclusion, so nothing changes.
+  const t0 = compareRentOwn(base());
+  near(t0.final.homeTax, 0);
+  near(t0.final.difference, compareRentOwn(none).final.difference);
+  // 15 years at 5% growth: gain $415,888, single owes 15% of the excess over $250,000.
+  const long = { ...base(), years: 15, growth: 5 };
+  near(compareRentOwn(long).final.homeTax, 24883, 1);
+  near(compareRentOwn({ ...long, exclusion: 500000 }).final.homeTax, 0);
+  near(compareRentOwn(long).final.difference, compareRentOwn({ ...long, exclusion: 1e9 }).final.difference - 24883, 1);
+});
+
+test('the exclusion needs a two-year stay', () => {
+  const r = compareRentOwn({ ...base(), years: 3, growth: 30 });
+  assert.ok(r.years[0].homeTax > r.years[1].homeTax, 'year 1 sale gets no exclusion, year 2 does');
+  assert.ok(r.years[1].homeTax > 0, 'a large enough gain still exceeds the exclusion');
+  const noExclusion = compareRentOwn({ ...base(), years: 3, growth: 30, exclusion: 0 });
+  near(r.years[0].homeTax, noExclusion.years[0].homeTax);
+});
+
+test('T0 verdict is unchanged by the home-sale tax', () => {
+  const r = compareRentOwn(base());
+  near(r.final.difference, compareRentOwn({ ...base(), exclusion: 1e9 }).final.difference);
+  assert.equal(r.breakEven, compareRentOwn({ ...base(), exclusion: 1e9 }).breakEven);
+});
