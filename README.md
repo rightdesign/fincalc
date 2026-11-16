@@ -13,3 +13,7 @@ Each card on `site/rent-vs-own.html` is its own module, so branches that add or 
 3. If the card needs new model output, add it to `compareRentOwn()` in `site/rentown.js` as one new line in the returned object.
 4. Add one new `<li>` to the methodology list in `site/rent-vs-own.html`. Do not extend an existing item.
 5. Add `test/rentown-<name>.test.mjs` for the feature. `test/rentown.test.mjs` is only for the core model. `npm test` picks up every `test/*.test.mjs`.
+
+### Refreshing the default mortgage rate
+
+The rent vs own page defaults its mortgage rate to the latest Freddie Mac 30-year fixed average, read from `site/data/rates.json` (falling back to a built-in 6.5% if the file cannot be read). Update it weekly, or at least monthly, with `node scripts/update-rate.mjs` (pulls the FRED series `MORTGAGE30US`), commit the change and release as usual.

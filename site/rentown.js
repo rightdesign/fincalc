@@ -53,6 +53,26 @@ export const BASES = ['future', 'today'];
 
 // One-click starting points. Each sets down payment, rate, term, stay and maintenance together
 // and leaves everything else (price, rent, ...) as the user has it. The 20% down preset is the default set.
+// The default mortgage rate comes from a small data file (site/data/rates.json) holding the latest
+// Freddie Mac 30-year fixed average. Returns the file's content when it is usable, else null.
+export function parseLiveRate(data) {
+  const f = RENTOWN_FIELDS.find((x) => x.id === 'rate');
+  if (!data || typeof data !== 'object') return null;
+  const { rate, week, updated, source, url } = data;
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < f.min || rate > f.max) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(week)) || Number.isNaN(Date.parse(week))) return null;
+  if (typeof url !== 'string' || !/^https:\/\//.test(url)) return null;
+  return { rate, week, updated: /^\d{4}-\d{2}-\d{2}$/.test(String(updated)) ? updated : null, source: String(source || 'Freddie Mac survey'), url };
+}
+
+// Makes the live rate the default for the rate field. Inputs in the address still win over it.
+export function applyLiveRate(live) {
+  RENTOWN_FIELDS.find((x) => x.id === 'rate').value = live.rate;
+}
+
+// "Oct 22, 2026" from an ISO date, in UTC so the day never shifts.
+export const longDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
 export const RENTOWN_PRESETS = [
   { id: 'ftb3', label: 'First-time buyer, 3% down', values: { down: 3, rate: 7, term: 30, years: 7, maintenance: 1 } },
   { id: 'ftb10', label: 'First-time buyer, 10% down', values: { down: 10, rate: 7.5, term: 30, years: 7, maintenance: 1 } },

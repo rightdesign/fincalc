@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_GROUPS, RENTOWN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { RENTOWN_FIELDS, applyLiveRate, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, decodeBasis, decodeRentOwn, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
 import { usd } from './rentown/format.js';
@@ -9,6 +9,22 @@ const STORE_KEY = 'fincalc.rentown';
 const form = document.getElementById('rentown-inputs');
 const out = document.getElementById('rentown-results');
 const message = document.getElementById('rentown-message');
+// The default rate is the latest published survey average; any failure leaves the built-in default.
+let live = null;
+try {
+  const res = await fetch('data/rates.json', { cache: 'no-cache' });
+  if (res.ok) live = parseLiveRate(await res.json());
+} catch { /* offline or file missing */ }
+if (live) {
+  applyLiveRate(live);
+  const note = document.getElementById('rentown-rate-source');
+  const a = document.createElement('a');
+  a.href = live.url;
+  a.textContent = live.source;
+  note.append(`Default mortgage rate ${live.rate}% \u2014 `, a, `, week of ${longDate(live.week)}.`);
+  if (live.updated) note.append(` Defaults as of ${longDate(live.updated)}.`);
+  note.hidden = false;
+}
 const defaults = rentOwnDefaults();
 const basisSelect = document.getElementById('rentown-basis');
 const show = (f, n) => (n == null ? '' : f.money ? usd.format(n) : n);
