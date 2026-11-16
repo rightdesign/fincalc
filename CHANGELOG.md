@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.77.0] — 2026-11-16
+
+- FINC-133 The rent vs own calculator now shows a price-to-rent line under the headline: the ratio, rent as a share of price per year, and the rent share below which renting wins at your own mortgage rate and stay.
+
 ## [0.76.0] — 2026-11-16
 
 - FINC-127 The rent vs own calculator now has an optional assessed value growth for property tax, with California Prop 13 (2%) and Florida (3%) presets; the taxed value is never more than the home's market value.
