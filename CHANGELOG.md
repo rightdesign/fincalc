@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.87.0] — 2026-11-17
+
+- FINC-143 Dollar amount inputs on every calculator now show thousands separators (1,000,000) live as you type or paste, with the caret kept in place and backspace removing the digit beside a comma; calculations and shared links are unchanged.
+
 ## [0.86.0] — 2026-11-16
 
 - FINC-136 The rent vs own calculator now has a Realized / Unrealized net worth toggle above the results; Realized (the default, and the basis of the verdict) deducts selling costs and sale tax, Unrealized shows home value minus loan balance, and the choice is carried in the shareable URL.
