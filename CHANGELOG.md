@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.87.2] — 2026-11-17
+
+- FINC-145 The rent vs own monthly breakdown totals are now summed from the rounded amounts shown, so the listed components always add up to the displayed total (no more $1 gaps).
+- FINC-146 A bare rent vs own link (no #hash) now opens with the default inputs instead of restoring values from browser storage; links with an explicit hash and Reset behave as before.
+
 ## [0.87.1] — 2026-11-17
 
 - FINC-144 The starting-point presets on the rent vs own calculator no longer change your mortgage rate; they set only down payment, term, length of stay and maintenance.
