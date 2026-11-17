@@ -8,7 +8,6 @@ import { TABLE_COLUMNS, tableRows } from './rentown/chart.js';
 import { tableCsv } from './export.js';
 import { usd } from './rentown/format.js';
 
-const STORE_KEY = 'fincalc.rentown';
 
 const form = document.getElementById('rentown-inputs');
 const out = document.getElementById('rentown-results');
@@ -269,15 +268,13 @@ function downloadCsv() {
   URL.revokeObjectURL(url);
 }
 
-// Inputs ride along in the address and in browser storage so a scenario survives a reload and can be shared.
+// Inputs ride along in the address so a scenario survives a reload and can be shared. A bare address always
+// means the defaults, so nothing is restored from browser storage.
 function save(v, basis = basisSelect.value, view = viewSelect.value) {
   const text = encodeRentOwn(v, basis, units, view);
-  try { localStorage.setItem(STORE_KEY, text); } catch { /* storage unavailable */ }
   try { history.replaceState(null, '', text ? `#${text}` : location.pathname + location.search); } catch { /* not allowed here */ }
 }
 
-let stored = null;
-try { stored = localStorage.getItem(STORE_KEY); } catch { /* storage unavailable */ }
 const setFrom = (text) => {
   const v = decodeRentOwn(text);
   units = decodeUnits(text);
@@ -287,7 +284,7 @@ const setFrom = (text) => {
   basisSelect.value = decodeBasis(text);
   viewSelect.value = decodeView(text);
 };
-if (location.hash.length > 1 || stored) setFrom(location.hash.length > 1 ? location.hash : stored);
+if (location.hash.length > 1) setFrom(location.hash);
 window.addEventListener('hashchange', () => { if (location.hash.length > 1) { setFrom(location.hash); render(); } });
 
 form.addEventListener('input', (e) => {
