@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.87.3] — 2026-11-17
+
+- FINC-148 The rent vs own calculator's mortgage-rate slider now matches the typed rate exactly (7.32% shows at 7.32, not 7.375), and still snaps to its steps when dragged.
+- FINC-149 Backspace or delete next to a thousands comma in a dollar input now removes the digit beside the comma instead of stepping over it.
+
 ## [0.87.2] — 2026-11-17
 
 - FINC-145 The rent vs own monthly breakdown totals are now summed from the rounded amounts shown, so the listed components always add up to the displayed total (no more $1 gaps).
