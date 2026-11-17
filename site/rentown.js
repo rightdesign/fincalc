@@ -69,8 +69,8 @@ export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) =
 // Which dollars the results are shown in: 'future' (nominal) or 'today' (discounted by inflation).
 export const BASES = ['future', 'today'];
 
-// One-click starting points. Each sets down payment, rate, term, stay and maintenance together
-// and leaves everything else (price, rent, ...) as the user has it. The 20% down preset is the default set.
+// One-click starting points. Each sets down payment, term, stay and maintenance together
+// and leaves everything else (price, rent, the mortgage rate, ...) as the user has it. The 20% down preset is the default set.
 // The default mortgage rate comes from a small data file (site/data/rates.json) holding the latest
 // Freddie Mac 30-year fixed average. Returns the file's content when it is usable, else null.
 export function parseLiveRate(data) {
@@ -92,10 +92,10 @@ export function applyLiveRate(live) {
 export const longDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 export const RENTOWN_PRESETS = [
-  { id: 'ftb3', label: 'First-time buyer, 3% down', values: { down: 3, rate: 7, term: 30, years: 7, maintenance: 1 } },
-  { id: 'ftb10', label: 'First-time buyer, 10% down', values: { down: 10, rate: 7.5, term: 30, years: 7, maintenance: 1 } },
-  { id: 'down20', label: '20% down, 7-year stay', values: { down: 20, rate: 6.5, term: 30, years: 7, maintenance: 1 } },
-  { id: 'longterm', label: 'Long-term owner, 15-year stay', values: { down: 20, rate: 6.5, term: 30, years: 15, maintenance: 1.5 } },
+  { id: 'ftb3', label: 'First-time buyer, 3% down', values: { down: 3, term: 30, years: 7, maintenance: 1 } },
+  { id: 'ftb10', label: 'First-time buyer, 10% down', values: { down: 10, term: 30, years: 7, maintenance: 1 } },
+  { id: 'down20', label: '20% down, 7-year stay', values: { down: 20, term: 30, years: 7, maintenance: 1 } },
+  { id: 'longterm', label: 'Long-term owner, 15-year stay', values: { down: 20, term: 30, years: 15, maintenance: 1.5 } },
 ];
 
 // Places that cap how fast the taxable (assessed) value can rise, whatever the market does.
@@ -105,7 +105,7 @@ export const RENTOWN_TAX_CAPS = [
   { id: 'fl', label: 'Florida Save Our Homes (3%)', values: { assessed: 3 } },
 ];
 
-// The preset whose five settings all match the inputs, or null ("Custom").
+// The preset whose four settings all match the inputs, or null ("Custom").
 export const matchRentOwnPreset = (v) => RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
 
 // Long-run planning averages for the investment return (nominal, before the tax drag), not forecasts.

@@ -4,7 +4,7 @@ import { RENTOWN_PRESETS, matchRentOwnPreset, compareRentOwn, rentOwnDefaults } 
 
 const base = () => rentOwnDefaults();
 
-test('presets set the five settings together and are recognised again', () => {
+test('presets set their settings together and are recognised again', () => {
   for (const p of RENTOWN_PRESETS) {
     const v = { ...base(), ...p.values };
     assert.equal(matchRentOwnPreset(v), p);
@@ -29,4 +29,12 @@ test('return presets fill the investment return and tax drag, and the defaults s
     const r = compareRentOwn({ ...base(), investment: p.investment, investDrag: p.investDrag });
     assert.ok(Number.isFinite(r.final.difference));
   }
+});
+
+test('presets never touch the mortgage rate', () => {
+  for (const p of RENTOWN_PRESETS) assert.equal('rate' in p.values, false);
+  const custom = { ...base(), rate: 8.25 };
+  const applied = { ...custom, ...RENTOWN_PRESETS.find((p) => p.id === 'ftb3').values };
+  assert.equal(applied.rate, 8.25);
+  assert.equal(matchRentOwnPreset({ ...base(), rate: 8.25 }).id, 'down20');
 });
