@@ -9,6 +9,16 @@ import { tableCsv } from './export.js';
 import { usd } from './rentown/format.js';
 
 
+// A range input snaps to its step, so a typed value between steps (7.32 on a 0.125 grid) would
+// show a different position than the box. Off-grid values switch the slider to free movement.
+function setSlider(slider, n) {
+  const step = Number(slider.dataset.step);
+  const min = Number(slider.min);
+  const onGrid = Math.abs((n - min) / step - Math.round((n - min) / step)) < 1e-6;
+  slider.step = onGrid ? slider.dataset.step : 'any';
+  slider.value = n;
+}
+
 const form = document.getElementById('rentown-inputs');
 const out = document.getElementById('rentown-results');
 const message = document.getElementById('rentown-message');
@@ -88,13 +98,22 @@ for (const g of RENTOWN_GROUPS) {
       slider.min = f.slider.min;
       slider.max = f.slider.max;
       slider.step = f.slider.step;
-      slider.value = f.value;
+      slider.dataset.step = f.slider.step;
+      setSlider(slider, f.value);
       slider.id = `slider-${f.id}`;
       slider.setAttribute('aria-label', `${f.label} slider`);
-      slider.addEventListener('input', () => { input.value = shown(f, Number(slider.value)); });
+      slider.addEventListener('input', () => {
+        // Dragging goes back to the configured grid after setSlider left it on free movement.
+        if (slider.step !== slider.dataset.step) {
+          const raw = slider.value;
+          slider.step = slider.dataset.step;
+          slider.value = raw;
+        }
+        input.value = shown(f, Number(slider.value));
+      });
       input.addEventListener('input', () => {
         const n = readValue(f);
-        if (Number.isFinite(n)) slider.value = n;
+        if (Number.isFinite(n)) setSlider(slider, n);
       });
       label.append(slider);
     }
@@ -198,7 +217,7 @@ function setValues(v) {
   for (const f of RENTOWN_FIELDS) {
     form.elements[f.id].value = shown(f, v[f.id]);
     const slider = document.getElementById(`slider-${f.id}`);
-    if (slider) slider.value = v[f.id];
+    if (slider) setSlider(slider, v[f.id]);
   }
 }
 
