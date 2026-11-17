@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.87.1] — 2026-11-17
+
+- FINC-144 The starting-point presets on the rent vs own calculator no longer change your mortgage rate; they set only down payment, term, length of stay and maintenance.
+
 ## [0.87.0] — 2026-11-17
 
 - FINC-143 Dollar amount inputs on every calculator now show thousands separators (1,000,000) live as you type or paste, with the caret kept in place and backspace removing the digit beside a comma; calculations and shared links are unchanged.
