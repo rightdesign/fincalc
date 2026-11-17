@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.87.4] — 2026-11-17
+
+- FINC-150 The rent vs own "Where the difference comes from" table now lists only the four buckets (upfront, recurring, opportunity, money back) and the total, so the values add up to the total; the parts of Recurring and the sale-tax detail moved to a separate detail table below.
+
 ## [0.87.3] — 2026-11-17
 
 - FINC-148 The rent vs own calculator's mortgage-rate slider now matches the typed rate exactly (7.32% shows at 7.32, not 7.375), and still snaps to its steps when dragged.
