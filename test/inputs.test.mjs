@@ -61,3 +61,13 @@ test('the key drivers carry a slider range that contains their default', () => {
     assert.equal(f.kind === 'choice', false);
   }
 });
+
+test('amounts typed with thousands commas read as plain numbers', () => {
+  const money = FIELDS.find((f) => f.kind === 'money');
+  assert.equal(parseValue(money, '450,000'), 450000);
+  assert.equal(parseValue(money, '450000'), 450000);
+  assert.equal(parseValue(money, '1,234,567.5'), 1234567.5);
+  assert.equal(parseValue(money, ' '), null);
+  assert.equal(parseValue(money, '12a'), null);
+  assert.deepEqual(parseRepairs([{ year: '3', amount: '12,500' }]), [{ year: 3, amount: 12500 }]);
+});

@@ -1,5 +1,7 @@
 // Page script for the rent vs own calculator.
 import { RENTOWN_FIELDS, RENTOWN_UNITS, applyLiveRate, decodeUnits, defaultUnits, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, decodeView, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { groupAmount } from './mortgage.js';
+import { groupWhileTyping } from './grouping.js';
 import { renderCards } from './rentown/cards.js';
 import { buildContext } from './rentown/context.js';
 import { TABLE_COLUMNS, tableRows } from './rentown/chart.js';
@@ -98,9 +100,10 @@ for (const g of RENTOWN_GROUPS) {
       label.append(slider);
     }
     if (f.money) {
+      groupWhileTyping(input);
       input.addEventListener('focus', () => {
         const n = parseAmount(input.value);
-        if (Number.isFinite(n)) input.value = String(n);
+        if (Number.isFinite(n)) input.value = groupAmount(String(n));
       });
       input.addEventListener('blur', () => {
         const n = parseAmount(input.value);
@@ -124,9 +127,10 @@ for (const g of RENTOWN_GROUPS) {
         input.addEventListener(e, () => {
           if (!inUsd(f)) return;
           const n = parseAmount(input.value);
-          if (Number.isFinite(n)) input.value = e === 'focus' ? plain(n) : usd.format(n);
+          if (Number.isFinite(n)) input.value = e === 'focus' ? groupAmount(plain(n)) : usd.format(n);
         });
       }
+      groupWhileTyping(input);
       if (f.id === 'down') {
         const loan = document.createElement('small');
         loan.id = 'rentown-loan';

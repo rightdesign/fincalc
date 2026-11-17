@@ -1,5 +1,6 @@
 // Page script for the variable-rate mortgage calculator.
 import { mortgageScenarioChartHtml } from './mortgage-chart.js';
+import { groupWhileTyping } from './grouping.js';
 import { ARM_PRESETS, INDEXES, MORTGAGE_FIELDS, MORTGAGE_INPUTS_KEY, addMonths, decodeMortgage, encodeMortgage, extraSavings, invalidFields, loanProblem, maxRate, groupAmount, mortgageDefaults, parseAmount, priceProblem, refinance, scenarios, scopeNote, simulate } from './mortgage.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -99,19 +100,7 @@ for (const f of MORTGAGE_FIELDS) {
   }
   if (f.money) {
     // Commas appear as digits are typed, so 1,700,000 is told from 17,000,000 at a glance.
-    // The caret stays after the same digit it was after, however many commas were added.
-    input.addEventListener('input', () => {
-      const before = input.value;
-      const grouped = groupAmount(before);
-      if (grouped === before) return;
-      const caret = input.selectionStart ?? before.length;
-      const keep = before.slice(0, caret).replace(/[^\d.]/g, '').length;
-      input.value = grouped;
-      let seen = 0;
-      let pos = 0;
-      while (pos < grouped.length && seen < keep) if (/[\d.]/.test(grouped[pos++])) seen++;
-      input.setSelectionRange(pos, pos);
-    });
+    groupWhileTyping(input);
     input.addEventListener('focus', () => {
       const n = parseAmount(input.value);
       if (Number.isFinite(n)) input.value = groupAmount(String(n));

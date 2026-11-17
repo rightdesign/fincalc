@@ -2,6 +2,8 @@
 // #calculator. Saved scenarios and the current inputs are kept in this
 // browser's localStorage; the current inputs are also mirrored into the URL
 // fragment so the page can be bookmarked and shared.
+import { groupAmount, parseAmount } from './mortgage.js';
+import { groupWhileTyping } from './grouping.js';
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
 import { csvFilename, tableCsv } from './export.js';
@@ -9,6 +11,9 @@ import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
 import { buildResults, changedInputs, headlineHtml, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
+
+// What a field shows for a number: dollar amounts carry thousands commas, the rest are plain.
+const amountText = (field, n) => (field.kind === 'money' ? groupAmount(String(n)) : n);
 
 function renderField(field, value) {
   const label = document.createElement('label');
@@ -29,11 +34,15 @@ function renderField(field, value) {
     label.classList.add('checkbox-field');
   } else {
     input = document.createElement('input');
-    input.type = 'number';
-    input.min = '0';
-    input.step = field.kind === 'years' ? '1' : 'any';
+    // A dollar amount is plain text so thousands commas can show as it is typed.
+    input.type = field.kind === 'money' ? 'text' : 'number';
+    if (field.kind === 'money') groupWhileTyping(input);
+    else {
+      input.min = '0';
+      input.step = field.kind === 'years' ? '1' : 'any';
+    }
     input.inputMode = 'decimal';
-    input.value = value;
+    input.value = amountText(field, value);
   }
   input.name = field.id;
   input.id = `field-${field.id}`;
@@ -77,10 +86,10 @@ function renderField(field, value) {
     // Dragging the slider types into the number field, whose input event reaches the form.
     slider.addEventListener('input', (e) => {
       e.stopPropagation();
-      input.value = slider.value;
+      input.value = amountText(field, slider.value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    input.addEventListener('input', () => { slider.value = input.value; });
+    input.addEventListener('input', () => { const n = parseAmount(input.value); if (Number.isFinite(n)) slider.value = n; });
     label.classList.add('has-slider');
     label.append(text, slider, input);
     if (label.hintText) label.append(label.hintText);
@@ -115,9 +124,12 @@ function renderRepairs() {
       const t = document.createElement('span');
       t.textContent = label;
       const i = document.createElement('input');
-      i.type = 'number';
-      i.min = name === 'year' ? '1' : '0';
-      i.step = step;
+      i.type = name === 'amount' ? 'text' : 'number';
+      if (name === 'amount') groupWhileTyping(i);
+      else {
+        i.min = '1';
+        i.step = step;
+      }
       i.inputMode = 'decimal';
       i.name = `repair-${name}`;
       l.append(t, i);
@@ -272,7 +284,7 @@ function writeInputs(form, values) {
       continue;
     }
     if (values[field.id] == null) continue;
-    form.elements[field.id].value = values[field.id];
+    form.elements[field.id].value = amountText(field, values[field.id]);
     if (field.slider) form.elements[`${field.id}-slider`].value = values[field.id];
   }
   form.querySelectorAll('.repair-row').forEach((r) => r.remove());
@@ -282,7 +294,7 @@ function writeInputs(form, values) {
     const rows = form.querySelectorAll('.repair-row');
     const row = rows[rows.length - 1];
     row.querySelector('[name="repair-year"]').value = rep.year;
-    row.querySelector('[name="repair-amount"]').value = rep.amount;
+    row.querySelector('[name="repair-amount"]').value = groupAmount(String(rep.amount));
   }
   syncProceedsFields(form);
 }

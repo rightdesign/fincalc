@@ -100,7 +100,9 @@ export function parseValue(field, raw) {
   if (field.kind === 'checkbox') return raw === '1' ? 1 : raw === '0' ? 0 : null;
   if (field.kind === 'choice') return field.options.some((o) => o.value === raw) ? raw : null;
   if (raw === '' || raw == null) return null;
-  const n = Number(raw);
+  const text = String(raw).replace(/[\s,]/g, '');
+  if (text === '') return null;
+  const n = Number(text);
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
@@ -112,7 +114,7 @@ export function parseRepairs(rows) {
   const out = [];
   for (const row of rows) {
     const year = String(row.year ?? '').trim();
-    const amount = String(row.amount ?? '').trim();
+    const amount = String(row.amount ?? '').replace(/,/g, '').trim();
     if (year === '' && amount === '') continue;
     const y = year === '' ? NaN : Number(year);
     const a = amount === '' ? NaN : Number(amount);
