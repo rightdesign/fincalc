@@ -1,5 +1,5 @@
 // Page script for the compound interest calculator.
-import { compoundChartHtml } from './compound-chart.js';
+import { compoundChartHtml, compoundTip } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
 import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, parseNumber, simulateCompound } from './compound.js';
@@ -137,6 +137,47 @@ function render() {
     <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)</caption>
       <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col">Interest this year</th><th scope="col">Total contributed</th><th scope="col">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
+  wireChart(out.querySelector('.cc-wrap'), r.years);
+}
+
+// Hover, tap and arrow keys show one year's balance, contributions and interest in a tooltip.
+function wireChart(wrap, years) {
+  const points = JSON.parse(wrap.dataset.points);
+  const line = wrap.querySelector('.cc-hover-line');
+  const dot = wrap.querySelector('.cc-hover-dot');
+  const tip = wrap.querySelector('.cc-tip');
+  const svg = wrap.querySelector('svg');
+  const [, , vw, vh] = svg.getAttribute('viewBox').split(' ').map(Number);
+  let index = -1;
+  const show = (i) => {
+    index = Math.max(0, Math.min(points.length - 1, i));
+    const p = points[index];
+    const t = compoundTip(years[index], money);
+    line.setAttribute('x1', p.x * vw); line.setAttribute('x2', p.x * vw);
+    dot.setAttribute('cx', p.x * vw); dot.setAttribute('cy', p.y * vh);
+    line.classList.remove('cc-off'); dot.classList.remove('cc-off');
+    tip.innerHTML = `<strong>${t.title}</strong>${t.lines.map(([k, v]) => `<span>${k}: ${v}</span>`).join('')}`;
+    tip.hidden = false;
+    tip.classList.toggle('flip', p.x > 0.55);
+    tip.style.left = `${p.x * 100}%`;
+  };
+  const hide = () => { index = -1; line.classList.add('cc-off'); dot.classList.add('cc-off'); tip.hidden = true; };
+  const nearest = (clientX) => {
+    const box = svg.getBoundingClientRect();
+    const x = (clientX - box.left) / box.width;
+    let best = 0;
+    points.forEach((p, i) => { if (Math.abs(p.x - x) < Math.abs(points[best].x - x)) best = i; });
+    return best;
+  };
+  wrap.addEventListener('pointermove', (e) => show(nearest(e.clientX)));
+  wrap.addEventListener('pointerdown', (e) => show(nearest(e.clientX)));
+  wrap.addEventListener('pointerleave', hide);
+  wrap.addEventListener('blur', hide);
+  wrap.addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (step !== undefined) { e.preventDefault(); show(index < 0 ? (step > 0 ? 0 : points.length - 1) : index + step); }
+    else if (e.key === 'Escape') hide();
+  });
 }
 
 const say = (text) => { message.textContent = text; };

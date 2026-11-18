@@ -63,3 +63,49 @@ test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in
   assert.deepEqual(decodeCompound(encodeCompound(w)), w);
   assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
 });
+
+import { compoundChartHtml, compoundTip, crossoverYear } from '../site/compound-chart.js';
+
+test('compound chart marks the year interest passes contributions at the defaults', () => {
+  const years = simulateCompound(compoundDefaults()).years;
+  const cross = crossoverYear(years);
+  assert.ok(cross >= 13 && cross <= 18, `crossover year ${cross}`);
+  assert.ok(years[cross - 1].totalInterest > years[cross - 1].totalContributed);
+  assert.ok(cross === 1 || years[cross - 2].totalInterest <= years[cross - 2].totalContributed);
+  const html = compoundChartHtml(years, (n) => `$${Math.round(n)}`);
+  assert.match(html, new RegExp(`Interest passes contributions in year ${cross}`));
+  assert.match(html, /cc-hover-line/);
+});
+
+test('compound chart has no crossover when interest never catches up', () => {
+  const years = simulateCompound({ start: 0, monthly: 500, rate: 1, years: 5, frequency: 'monthly' }).years;
+  assert.equal(crossoverYear(years), null);
+  assert.doesNotMatch(compoundChartHtml(years, String), /passes contributions/);
+});
+
+test('compound tooltip numbers match the table row for every year', () => {
+  const years = simulateCompound(compoundDefaults()).years;
+  const fmt = (n) => `$${Math.round(n)}`;
+  for (const y of years) {
+    const tip = compoundTip(y, fmt);
+    assert.equal(tip.title, `Year ${y.year}`);
+    assert.deepEqual(tip.lines, [['Balance', fmt(y.balance)], ['Put in to date', fmt(y.totalContributed)], ['Interest to date', fmt(y.totalInterest)]]);
+  }
+});
+
+test('compound chart keeps the crossover label inside the plot and hides hover marks at rest', () => {
+  const fmt = (n) => `$${Math.round(n)}`;
+  for (const v of [compoundDefaults(), { ...compoundDefaults(), years: 10, rate: 12 }, { ...compoundDefaults(), years: 40, start: 0, monthly: 100, rate: 9 }]) {
+    const html = compoundChartHtml(simulateCompound(v).years, fmt);
+    const m = html.match(/<text x="([\d.]+)"[^>]*text-anchor="(start|end)"[^>]*class="cc-cross-label">([^<]*)</);
+    if (!m) continue;
+    const x = Number(m[1]);
+    const width = m[3].length * 8;
+    const [lo, hi] = m[2] === 'end' ? [x - width, x] : [x, x + width];
+    assert.ok(lo >= 80 && hi <= 700, `label ${m[3]} spans ${lo}-${hi}`);
+  }
+  const html = compoundChartHtml(simulateCompound(compoundDefaults()).years, fmt);
+  assert.match(html, /cc-hover-line cc-off/);
+  assert.match(html, /cc-hover-dot cc-off/);
+  assert.doesNotMatch(html, /<(line|circle)[^>]* hidden/);
+});

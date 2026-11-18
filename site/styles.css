@@ -958,6 +958,18 @@ body {
 .ro-location { font-size: 0.9rem; margin: 0.5rem 0; }
 .ro-location input { width: 8em; }
 
+/* Compound chart: large, with a hover and tap tooltip */
+.cc-wrap { position: relative; touch-action: pan-y; }
+.cc-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cc-chart { min-height: 18rem; }
+.cc-cross-dot { fill: var(--bg); stroke: currentColor; stroke-width: 3; }
+.cc-hover-dot { fill: var(--bg); stroke: currentColor; stroke-width: 2; }
+.cc-tip { position: absolute; top: 2.5rem; transform: translateX(0.75rem); padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 0.4rem; background: var(--panel); font-size: 0.85rem; font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
+.cc-tip.flip { transform: translateX(calc(-100% - 0.75rem)); }
+.cc-tip span { display: block; }
+.cc-tip[hidden], .cc-off { display: none; }
+@media print { .cc-tip, .cc-hover-line, .cc-hover-dot { display: none; } }
+
 /* The same look for the shared components used by the home-page and rent vs own calculators. */
 fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-presets button, .ro-tornado-bar { border-radius: 0.125rem; }
 .group > h3 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
