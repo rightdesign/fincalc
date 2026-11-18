@@ -9,7 +9,13 @@ export const RENTOWN_GROUPS = [
   { id: 'buying', label: 'Buying' },
   { id: 'renting', label: 'Renting' },
   { id: 'both', label: 'Both' },
+  { id: 'taxes', label: 'Income tax' },
 ];
+
+// Federal figures for 2026, as in the main calculator: standard deduction by filing status, and the
+// state and local tax (SALT) deduction cap for 2025-2029.
+export const STANDARD_DEDUCTION = { 1: 16100, 2: 32200 };
+export const SALT_CAP = 40000;
 
 // 0 = a fixed-rate loan, 1 = an adjustable-rate mortgage that resets as in the variable-rate calculator.
 export const MORTGAGE_TYPES = [[0, 'Fixed rate'], [1, 'Adjustable rate (ARM)']];
@@ -62,6 +68,9 @@ export const RENTOWN_FIELDS = [
   { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
   { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
+  { id: 'filing', group: 'taxes', label: 'Filing status', value: 2, min: 1, max: 2, integer: true, options: [[1, 'Single'], [2, 'Married filing jointly']] },
+  { id: 'marginalTaxRate', group: 'taxes', label: 'Marginal income tax rate (federal + state, %)', value: 22, min: 0, max: 60 },
+  { id: 'itemize', group: 'taxes', label: 'Deductions', value: 1, min: 0, max: 1, integer: true, options: [[1, 'I itemize'], [0, 'I take the standard deduction']] },
   { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments (%)', value: 15, min: 0, max: 100 },
 ];
 
@@ -128,6 +137,14 @@ export function invalidRentOwn(v) {
   }).map((f) => f.label.replace(/ \(.*\)$/, ''));
 }
 
+// Income tax saved in one year by owning: mortgage interest plus property tax (up to the SALT cap)
+// counts only for the part above the standard deduction, and not at all if you take the standard deduction.
+export function taxBenefit(v, interest, propertyTax) {
+  if (!v.itemize) return 0;
+  const itemized = interest + Math.min(propertyTax, SALT_CAP);
+  return Math.max(0, itemized - STANDARD_DEDUCTION[v.filing]) * (v.marginalTaxRate / 100);
+}
+
 // Net worth of each choice at the end of every year of the stay, in future
 // (nominal) dollars; `real` has the same years discounted to today's dollars by
 // the inflation rate.
@@ -156,6 +173,8 @@ export function invalidRentOwn(v) {
 // price and closing costs paid) above the primary-residence exclusion, which applies
 // only once the stay reaches two years, at the capital gains rate. It comes off the
 // Own net worth as `homeTax`.
+// At the end of each year the tax saved by deducting mortgage interest and property tax is a refund to
+// the owner: it cuts what owning cost, so the renter's account invests that much less.
 // PMI is charged on the original loan each month while the balance is above 80%
 // of the home's value then, so it stops by itself once paying down the loan and
 // appreciation reach that point.
@@ -240,6 +259,11 @@ export function compareRentOwn(v) {
   let firstMortgage = 0;
   let peakRate = loanRate;
   let totalPmi = 0;
+  let yearInterest = 0;
+  let yearPropertyTax = 0;
+  let firstTaxBenefit = 0;
+  let yearBenefit = 0;
+  let totalTaxBenefit = 0;
   const monthly = [];
   const curve = [];
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
@@ -266,6 +290,7 @@ export function compareRentOwn(v) {
     const mortgage = m <= v.term * 12 ? pay : 0;
     const before = balance;
     balance = Math.max(0, balance + interest - mortgage);
+    yearInterest += before > 0 ? Math.min(interest, mortgage) : 0;
     const repair = v.repairYear > 0 && m === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
     repairs = repairs * invest + repair;
     const yearsIn = Math.floor((m - 1) / 12);
@@ -274,6 +299,7 @@ export function compareRentOwn(v) {
     const tax = (Math.min(assessed, value) * v.tax) / 100 / 12;
     const insurance = (value * v.insurance) / 100 / 12;
     const maintenance = (value * v.maintenance) / 100 / 12;
+    yearPropertyTax += tax;
     const own = mortgage + pmi + tax + insurance + maintenance + hoa + utilities;
     const baseRent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn;
     const rent = baseRent + v.renterInsurance / 12;
@@ -298,6 +324,17 @@ export function compareRentOwn(v) {
     if (put < 0 && portfolio > 0) basis *= Math.max(0, portfolio + put) / portfolio;
     else basis += put;
     portfolio += put;
+    if (m % 12 === 0) {
+      const benefit = taxBenefit(v, yearInterest, yearPropertyTax);
+      yearInterest = 0;
+      yearPropertyTax = 0;
+      if (m === 12) firstTaxBenefit = benefit;
+      if (m <= stayMonths) totalTaxBenefit += benefit;
+      yearBenefit = benefit;
+      // The refund is money the renter did not need to put in, like any other cut in what owning costs.
+      if (portfolio > 0) basis *= Math.max(0, portfolio - benefit) / portfolio;
+      portfolio -= benefit;
+    } else yearBenefit = 0;
     // Pure lens: the starting cash alone, with the same tax drag and no monthly flow.
     const pureGain = pure * (invest - 1);
     pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
@@ -314,10 +351,10 @@ export function compareRentOwn(v) {
     const pureWorth = (paper ? pure : pure - Math.max(0, pure - pureStart) * (v.capGains / 100)) + deposit;
     months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownWorth - pureWorth });
     if (m % 12 === 0) {
-      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, taxBenefit: yearBenefit, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
-    if (m === stayMonths) stay = { sum: { ...sum }, value, balance, portfolio, repairs };
+    if (m === stayMonths) stay = { sum: { ...sum }, taxBenefit: totalTaxBenefit, value, balance, portfolio, repairs };
   }
   const years = all.slice(0, v.years);
   const breakEven = firstAheadYear(years);
@@ -333,7 +370,7 @@ export function compareRentOwn(v) {
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const deflate = (rows) => rows.map((y) => {
     const d = (1 + v.inflation / 100) ** y.year;
-    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d };
+    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d, taxBenefit: y.taxBenefit / d };
   });
   // Monthly lines cross when renting stays the dearer one from some month on.
   const lastCheaper = curve.map((c) => c.own > c.rent).lastIndexOf(true);
@@ -364,6 +401,7 @@ export function compareRentOwn(v) {
     firstOwnMonthly: firstOwn,
     firstRentMonthly: firstRent,
     firstPmi,
+    firstTaxBenefit,
     firstMortgage,
     peakRate,
     totalPmi,
@@ -401,19 +439,20 @@ export function equivalentRent(v) {
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
 // are what the model above already adds up, so they sum to -final.difference.
 // Moving costs and the cash reserve are not part of the net worth comparison.
-function costWaterfall(v, { upfront, deposit, cashFee, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
+function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
   const rentCosts = sum.rent + sum.renterInsurance;
-  const recurring = ownCosts - rentCosts;
+  // Income tax refunds from the home deductions cut what owning cost.
+  const recurring = ownCosts - taxBenefit - rentCosts;
   const opportunity = portfolio - saleTax + deposit - upfront - recurring;
   // The deposit is part of the starting cash but earns nothing while the landlord holds it.
   const opportunityUpfront = (upfront - deposit) * (invest ** (v.years * 12) - 1);
   const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;
   return {
     upfront: { down, closing, fee: cashFee, deposit, total: upfront },
-    recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
+    recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, taxBenefit, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
     opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
     moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },
     gap: upfront + recurring + opportunity - ownWorth,

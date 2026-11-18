@@ -99,3 +99,26 @@ test('equivalentRent leaves renting and owning level at the stay', () => {
   const v = rentOwnDefaults();
   assert.ok(Math.abs(compareRentOwn({ ...v, rent: equivalentRent(v) }).final.difference) < 1);
 });
+
+test('the tax benefit counts only deductions above the standard deduction', () => {
+  // Joint, year 1: interest ~$23,300 + property tax $4,950 stays under the $32,200 standard deduction.
+  assert.equal(compareRentOwn(base()).firstTaxBenefit, 0);
+  const single = compareRentOwn({ ...base(), filing: 1 });
+  assert.ok(single.firstTaxBenefit > 0);
+  assert.ok(single.firstTaxBenefit < 0.22 * (23400 + 4950));
+  assert.equal(single.years[0].taxBenefit, single.firstTaxBenefit);
+});
+
+test('a zero rate, or taking the standard deduction, gives no benefit', () => {
+  const withTax = compareRentOwn({ ...base(), filing: 1 }).final.difference;
+  for (const off of [{ marginalTaxRate: 0 }, { itemize: 0 }]) {
+    const r = compareRentOwn({ ...base(), filing: 1, ...off });
+    assert.equal(r.firstTaxBenefit, 0);
+    assert.ok(r.final.difference < withTax);
+  }
+});
+
+test('the SALT cap limits the property tax deduction', () => {
+  const capped = compareRentOwn({ ...base(), price: 3000000, tax: 3, filing: 1 }).firstTaxBenefit;
+  assert.ok(capped < 0.22 * (2400000 * 0.065 + 40000));
+});

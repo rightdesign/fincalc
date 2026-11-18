@@ -88,3 +88,22 @@ test('T0 verdict is unchanged by the home-sale tax', () => {
   near(r.final.difference, compareRentOwn({ ...base(), exclusion: 1e9 }).final.difference);
   assert.equal(r.breakEven, compareRentOwn({ ...base(), exclusion: 1e9 }).breakEven);
 });
+
+test('income tax lens: joint filers at T0 get no benefit, single filers do, and 0% or the standard deduction give none', () => {
+  const joint = compareRentOwn({ ...base(), marginalTaxRate: 22 });
+  assert.equal(joint.firstTaxBenefit, 0);
+  near(joint.final.difference, compareRentOwn({ ...base(), marginalTaxRate: 0 }).final.difference, 1e-6);
+  const single = compareRentOwn({ ...base(), filing: 1 });
+  near(single.firstTaxBenefit, 2684, 1);
+  assert.ok(single.firstTaxBenefit < 0.22 * (23300 + 4950));
+  assert.equal(single.years[0].taxBenefit, single.firstTaxBenefit);
+  const none = compareRentOwn({ ...base(), filing: 1, marginalTaxRate: 0 });
+  assert.equal(none.firstTaxBenefit, 0);
+  assert.ok(none.final.difference < single.final.difference);
+  assert.equal(compareRentOwn({ ...base(), filing: 1, itemize: 0 }).firstTaxBenefit, 0);
+});
+
+test('the SALT cap limits the property tax deduction', () => {
+  const capped = compareRentOwn({ ...base(), price: 3000000, tax: 3, filing: 1 }).firstTaxBenefit;
+  assert.ok(capped < 0.22 * (2400000 * 0.065 + 40000));
+});
