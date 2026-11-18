@@ -2,7 +2,7 @@
 import { compoundChartHtml, compoundTip } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, parseNumber, simulateCompound } from './compound.js';
+import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, parseNumber, simulateCompound } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -10,6 +10,8 @@ const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
 const form = document.getElementById('compound-inputs');
 const hero = document.getElementById('compound-hero');
 const out = document.getElementById('compound-results');
+const explainer = document.getElementById('compound-explainer');
+const explainerBody = document.getElementById('compound-explainer-body');
 const message = document.getElementById('compound-message');
 const group = form.querySelector('fieldset');
 
@@ -114,6 +116,7 @@ function render() {
   const bad = invalidCompound(v);
   if (bad.length) {
     hero.innerHTML = '';
+    explainer.hidden = true;
     out.innerHTML = `<p class="placeholder" role="alert">Enter a valid value for: ${bad.join(', ')}.</p>`;
     return;
   }
@@ -137,6 +140,8 @@ function render() {
     <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)</caption>
       <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col">Interest this year</th><th scope="col">Total contributed</th><th scope="col">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
+  explainerBody.innerHTML = compoundingExplainer(v, r).map((p) => `<h3>${p.title}</h3><p>${p.text}</p>`).join('');
+  explainer.hidden = false;
   wireChart(out.querySelector('.cc-wrap'), r.years);
 }
 

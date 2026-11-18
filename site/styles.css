@@ -958,6 +958,10 @@ body {
 .ro-location { font-size: 0.9rem; margin: 0.5rem 0; }
 .ro-location input { width: 8em; }
 
+.m-explainer { margin-top: calc(var(--gap) * 2); }
+.m-explainer h2 { margin: 0 0 0.5rem; font-size: 1.25rem; }
+.m-explainer h3 { margin: var(--gap) 0 0.25rem; font-size: 1rem; }
+.m-explainer p { margin: 0; max-width: 60ch; }
 /* Compound chart: large, with a hover and tap tooltip */
 .cc-wrap { position: relative; touch-action: pan-y; }
 .cc-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

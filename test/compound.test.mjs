@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -122,4 +122,35 @@ test('compound chart keeps the crossover label inside the plot and hides hover m
   assert.match(html, /cc-hover-line cc-off/);
   assert.match(html, /cc-hover-dot cc-off/);
   assert.doesNotMatch(html, /<(line|circle)[^>]* hidden/);
+});
+
+const explain = (over = {}) => {
+  const v = { ...compoundDefaults(), ...over };
+  return Object.fromEntries(compoundingExplainer(v, simulateCompound(v)).map((p) => [p.id, p.text]));
+};
+
+test('explainer at the defaults: Rule of 72, last 10 vs first 20 years, doubling milestones', () => {
+  const e = explain();
+  assert.match(e['rule-of-72'], /72 ÷ 7 ≈ 10 years/);
+  assert.match(e['back-loaded'], /last 10 years add about \$390,000, more than the \$301,000 your first 20 years/);
+  assert.match(e.milestones, /\$100,000 in year 10.*\$200,000 in year 16.*\$400,000 in year 24/);
+  assert.ok(e['interest-on-interest']);
+});
+
+test('explainer follows the inputs: 5% gives a 14-year Rule of 72 and moved figures', () => {
+  const e = explain({ rate: 5 });
+  assert.match(e['rule-of-72'], /72 ÷ 5 ≈ 14 years/);
+  assert.match(e.milestones, /\$100,000 in year 11/);
+  const v = { ...compoundDefaults(), rate: 5 };
+  const r = simulateCompound(v);
+  assert.deepEqual(doublingMilestones(v, r).map((m) => m.year), [11, 19, 28]);
+  assert.ok(r.years[10].balance >= 100000 && r.years[9].balance < 100000);
+});
+
+test('explainer leaves out points that do not apply', () => {
+  const zero = explain({ rate: 0 });
+  assert.equal(zero['rule-of-72'], undefined);
+  assert.equal(zero['back-loaded'], undefined);
+  assert.match(zero['interest-on-interest'], /0% return/);
+  assert.equal(explain({ years: 2 })['back-loaded'], undefined);
 });

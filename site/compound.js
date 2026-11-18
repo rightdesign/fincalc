@@ -116,6 +116,74 @@ export function headline(v, r) {
   return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} — about ${roundedMoney(r.interest)} of it is interest.`;
 }
 
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// Year-end balance, with year 0 being the starting balance.
+const balanceAt = (v, r, year) => (year === 0 ? v.start : r.years[year - 1].balance);
+
+// The balance passes each doubling milestone (100,000, 200,000, 400,000 ...) in a given year.
+// A small final balance starts the ladder lower so there is always something to show.
+export function doublingMilestones(v, r) {
+  const final = r.futureValue;
+  const base = [100000, 10000, 1000].find((b) => final >= b);
+  if (!base) return [];
+  const out = [];
+  let prev = 0;
+  for (let amount = base; amount <= final; amount *= 2) {
+    if (v.start >= amount) continue;
+    const year = r.years.find((y) => y.balance >= amount).year;
+    out.push({ amount, year, after: year - prev });
+    prev = year;
+  }
+  return out;
+}
+
+// The four "why compounding is so powerful" points, built from the live inputs. Each is
+// { id, title, text } in plain English; a point that does not apply to the inputs is left out.
+export function compoundingExplainer(v, r) {
+  const points = [];
+  const first = r.years[0];
+  const last = r.years[r.years.length - 1];
+  points.push({
+    id: 'interest-on-interest',
+    title: 'Interest earns interest',
+    text: v.rate > 0
+      ? `In year 1 your money earns ${roundedMoney(first.interest)}. By year ${v.years} it earns ${roundedMoney(last.interest)} in a single year, because it is paid on a much bigger balance. Each year's growth is paid on everything that came before, so growth speeds up instead of staying level.`
+      : 'At a 0% return nothing grows on its own: your balance is only what you put in. Raise the return to see interest start earning interest.',
+  });
+  if (v.rate > 0) {
+    const doubling = 72 / v.rate;
+    const shown = doubling >= 10 ? String(Math.round(doubling)) : doubling.toFixed(1);
+    points.push({
+      id: 'rule-of-72',
+      title: 'The Rule of 72',
+      text: `Divide 72 by the return and you get roughly how many years it takes money to double: 72 ÷ ${v.rate} ≈ ${shown} years. At ${v.rate}% your money doubles about every ${shown} years, and each doubling is bigger than the last.`,
+    });
+  }
+  const lastN = Math.floor(v.years / 3);
+  if (lastN >= 1 && v.rate > 0) {
+    const firstN = v.years - lastN;
+    const early = balanceAt(v, r, firstN);
+    const late = last.balance - early;
+    points.push({
+      id: 'back-loaded',
+      title: 'The payoff comes late',
+      text: `Your last ${plural(lastN, 'year')} add about ${roundedMoney(late)}, ${late > early ? 'more than' : 'compared with'} the ${roundedMoney(early)} your first ${plural(firstN, 'year')} built. The money you invest early does the most work, because it has the most time left to compound.`,
+    });
+  }
+  const milestones = doublingMilestones(v, r);
+  if (milestones.length > 1) {
+    const faster = milestones.slice(1).every((m) => m.after < milestones[0].after);
+    const steps = milestones.map((m, i) => `${roundedMoney(m.amount)} in year ${m.year}${i === 0 ? '' : ` (${plural(m.after, 'year')} after the last)`}`);
+    points.push({
+      id: 'milestones',
+      title: 'Each doubling comes faster',
+      text: `Your balance passes ${steps.join(', then ')}. ${faster ? 'After the first, each doubling takes fewer years than the first one did, because growth starts to outweigh what you contribute.' : ''}`.trim(),
+    });
+  }
+  return points;
+}
+
 // Only values that differ from the defaults are written, so links stay short.
 export function encodeCompound(v) {
   const d = compoundDefaults();
