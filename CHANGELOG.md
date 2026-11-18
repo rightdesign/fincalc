@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.89.1] — 2026-11-18
+
+- FINC-147 Added a test that checks the rent vs own equal-cash and pure net worth summaries (winner, gap, break-even year and month) against the year-by-year table across many inputs, so a summary that contradicts its table is caught in CI. No user-visible change.
+
 ## [0.89.0] — 2026-11-18
 
 - FINC-125 The rent vs own calculator now models the renter's security deposit (default one month's rent, editable, $0 allowed): it is returned at the end of the stay and the return it forgoes while held counts against renting.
