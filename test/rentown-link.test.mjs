@@ -33,7 +33,7 @@ test('every input survives the link round trip and reproduces the same headline'
   const t0 = { ...base(), rent: 2000, growth: 4 };
   const back = decodeRentOwn(encodeRentOwn(t0));
   assert.equal(Math.round(compareRentOwn(back).final.difference), Math.round(compareRentOwn(t0).final.difference));
-  assert.equal(Math.round(compareRentOwn(base()).final.difference), -12002);
+  assert.equal(Math.round(compareRentOwn({ ...base(), deposit: 0 }).final.difference), -12002);
   assert.equal(decodeBasis(`#${encodeRentOwn(changed, 'today')}`), 'today');
   assert.equal(decodeBasis(`#${encodeRentOwn(changed)}`), 'future');
   assert.deepEqual(decodeRentOwn(`#${encodeRentOwn(changed, 'today')}`), changed);

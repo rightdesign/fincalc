@@ -22,6 +22,7 @@ const breakdown = (src, label, insurance) => {
         <tr><th scope="row">True monthly cost excluding principal</th><td><strong>${money(m.ownCost)}</strong></td></tr>
         <tr><th scope="row">Rent</th><td>${money(m.rent)}</td></tr>
         <tr><th scope="row">Renter&rsquo;s insurance</th><td>${money(m.renterInsurance)}</td></tr>
+        ${m.deposit > 0 ? `<tr><th scope="row">Security deposit (paid once, not in the total; returned when you leave)</th><td>${money(m.deposit)}</td></tr>` : ''}
         <tr><th scope="row">Total to rent</th><td><strong>${money(m.rentTotal)}</strong></td></tr>
       </tbody></table>`;
 };

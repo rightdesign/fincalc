@@ -49,7 +49,7 @@ test('invalid and out of range values are reported by label', () => {
 });
 
 test('T0: the expected case has renting ahead by about $12,002 after 7 years (after investment tax)', () => {
-  const exp = compareScenarios(base())[1];
+  const exp = compareScenarios({ ...base(), deposit: 0 })[1];
   assert.ok(Math.abs(exp.difference + 12002) < 50, String(exp.difference));
 });
 
@@ -80,7 +80,7 @@ const breakEvenCases = [
 ];
 for (const [name, inputs, months, equivalent] of breakEvenCases) {
   test(`break-even ${name} is pinned and does not move with the stay`, () => {
-    const v = { ...rentOwnDefaults(), ...inputs };
+    const v = { ...rentOwnDefaults(), deposit: 0, ...inputs };
     assert.equal(compareRentOwn(v).chartBreakEvenMonth, months);
     assert.equal(compareRentOwn({ ...v, years: 30 }).chartBreakEvenMonth, months);
     assert.equal(Math.round(equivalentRent(v)), equivalent);

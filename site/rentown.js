@@ -52,6 +52,7 @@ export const RENTOWN_FIELDS = [
   { id: 'growth', group: 'buying', label: 'Home value growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'rent', group: 'renting', label: 'Monthly rent ($)', value: 2300, min: 1, money: true },
   { id: 'rentGrowth', group: 'renting', label: 'Rent growth (% per year)', value: 3, min: -20, max: 30 },
+  { id: 'deposit', group: 'renting', label: "Security deposit ($, blank = one month's rent; returned when you leave)", value: null, min: 0, money: true, optional: true },
   { id: 'renterInsurance', group: 'renting', label: "Renter's insurance ($ per year)", value: 180, min: 0, money: true },
   { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
   { id: 'waitYears', group: 'both', label: 'Years you rent before buying (rent-then-buy path)', value: 2, min: 0, max: 50, integer: true },
@@ -142,6 +143,9 @@ export function invalidRentOwn(v) {
 // that month's gain) is taken from the account, and the capital gains tax on
 // what is left above the money put in is deducted at the end. `difference` and
 // `pureDifference` are own minus that lens's renter.
+// The renter's security deposit (one month's rent unless entered) comes out of
+// that same starting cash, so the renter invests that much less, and is handed
+// back untaxed at the end of the stay.
 // An optional one-time major repair (roof, HVAC) is paid by the owner in the
 // first month of its year, on top of the smoothed maintenance. It comes off
 // the Own net worth along with the return that money would have earned; Rent
@@ -221,10 +225,13 @@ export function compareRentOwn(v) {
   const assessedGrowth = v.assessed == null ? growth : (1 + v.assessed / 100) ** (1 / 12);
   let assessed = v.price;
   const dragRate = v.investDrag / 100 / 12;
-  let portfolio = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee;
+  const upfront = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee;
+  const deposit = v.deposit ?? v.rent;
+  let portfolio = upfront - deposit;
   let basis = portfolio;
   let dragPaid = 0;
   let pure = portfolio;
+  const pureStart = pure;
   const all = [];
   const months = [];
   let firstOwn = 0;
@@ -235,7 +242,6 @@ export function compareRentOwn(v) {
   let totalPmi = 0;
   const monthly = [];
   const curve = [];
-  const upfront = portfolio;
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
   let stay = null;
@@ -272,7 +278,7 @@ export function compareRentOwn(v) {
     const baseRent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn;
     const rent = baseRent + v.renterInsurance / 12;
     if (m % 12 === 1 && m <= stayMonths) {
-      const part = { interest: before > 0 ? Math.min(interest, mortgage) : 0, principal: before - balance, tax, insurance, pmi, maintenance, hoa, utilities, rent: baseRent, renterInsurance: v.renterInsurance / 12 };
+      const part = { deposit: m === 1 ? deposit : 0, interest: before > 0 ? Math.min(interest, mortgage) : 0, principal: before - balance, tax, insurance, pmi, maintenance, hoa, utilities, rent: baseRent, renterInsurance: v.renterInsurance / 12 };
       monthly.push(monthlyCosts(part, yearsIn + 1));
     }
     Object.assign(sum, {
@@ -304,8 +310,8 @@ export function compareRentOwn(v) {
     const homeTax = paper ? 0 : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
     const ownWorth = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
     const saleTax = paper ? 0 : Math.max(0, portfolio - basis) * (v.capGains / 100);
-    const rentWorth = portfolio - saleTax;
-    const pureWorth = paper ? pure : pure - Math.max(0, pure - upfront) * (v.capGains / 100);
+    const rentWorth = portfolio - saleTax + deposit;
+    const pureWorth = (paper ? pure : pure - Math.max(0, pure - pureStart) * (v.capGains / 100)) + deposit;
     months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownWorth - pureWorth });
     if (m % 12 === 0) {
       all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, repair: v.repairYear === m / 12 && v.repairCost > 0 });
@@ -334,10 +340,10 @@ export function compareRentOwn(v) {
   const monthlyCross = lastCheaper === curve.length - 1 ? null : curve[lastCheaper + 1].month;
   const real = deflate(years);
   const chartReal = deflate(chartYears);
-  const cash = cashNeeded(v, firstOwn, firstRent, fin.cashFee);
+  const cash = cashNeeded(v, firstOwn, firstRent, fin.cashFee, deposit);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, cashFee: fin.cashFee, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
+  const waterfall = costWaterfall(v, { upfront, deposit, cashFee: fin.cashFee, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
   return {
     years,
     monthly,
@@ -395,17 +401,18 @@ export function equivalentRent(v) {
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
 // are what the model above already adds up, so they sum to -final.difference.
 // Moving costs and the cash reserve are not part of the net worth comparison.
-function costWaterfall(v, { upfront, cashFee, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
+function costWaterfall(v, { upfront, deposit, cashFee, sum, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
   const rentCosts = sum.rent + sum.renterInsurance;
   const recurring = ownCosts - rentCosts;
-  const opportunity = portfolio - saleTax - upfront - recurring;
-  const opportunityUpfront = upfront * (invest ** (v.years * 12) - 1);
+  const opportunity = portfolio - saleTax + deposit - upfront - recurring;
+  // The deposit is part of the starting cash but earns nothing while the landlord holds it.
+  const opportunityUpfront = (upfront - deposit) * (invest ** (v.years * 12) - 1);
   const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;
   return {
-    upfront: { down, closing, fee: cashFee, total: upfront },
+    upfront: { down, closing, fee: cashFee, deposit, total: upfront },
     recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
     opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
     moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },
@@ -441,7 +448,7 @@ export const RENTOWN_CHECKLIST = [
 // months of owning costs. With cash saved entered, also the shortfall and how
 // many months it would take to close it by saving what owning would cost beyond
 // rent (null when owning costs no more than renting). Ignores interest earned.
-function cashNeeded(v, ownMonthly, rentMonthly, fee = 0) {
+function cashNeeded(v, ownMonthly, rentMonthly, fee = 0, deposit = 0) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const moving = v.moving;
@@ -451,7 +458,7 @@ function cashNeeded(v, ownMonthly, rentMonthly, fee = 0) {
   const shortfall = hasSaved ? Math.max(0, total - v.saved) : 0;
   const monthlyGap = ownMonthly - rentMonthly;
   const monthsToClose = shortfall > 0 && monthlyGap > 0 ? Math.ceil(shortfall / monthlyGap) : null;
-  return { down, closing, fee, moving, reserve, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
+  return { down, closing, fee, moving, reserve, deposit, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
 }
 
 // Three named cases around the user's own inputs. Owning does better when homes and rents grow

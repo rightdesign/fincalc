@@ -7,7 +7,7 @@ const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b
 const base = () => rentOwnDefaults();
 
 test('the pure renter only grows the starting cash; equal-cash adds the invested monthly savings', () => {
-  const v = { ...base(), years: 7, investDrag: 0, capGains: 0 };
+  const v = { ...base(), years: 7, investDrag: 0, capGains: 0, deposit: 0 };
   const r = compareRentOwn(v);
   const start = v.price * (v.down / 100 + v.closing / 100);
   near(r.final.pureRent, start * (1 + v.investment / 100) ** v.years, 0.5);

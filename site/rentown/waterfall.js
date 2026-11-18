@@ -22,5 +22,5 @@ export function waterfallCard({ r, v }) {
         ${row('Rent and renter&rsquo;s insurance you would have paid', -(rec.rent + rec.renterInsurance))}
         ${w.moneyBack.homeTax > 0 ? row('Tax on the home-sale gain, already taken out of the money back above', w.moneyBack.homeTax) : ''}
       </tbody></table>
-      <p>Costs of owning are counted as positive; money back reduces the total. The mortgage payments include principal, which comes back in the loan payoff line. Moving costs and the cash reserve are not part of this comparison.</p></div>`;
+      <p>Costs of owning are counted as positive; money back reduces the total. The mortgage payments include principal, which comes back in the loan payoff line. Moving costs and the cash reserve are not part of this comparison.${w.upfront.deposit > 0 ? ' The renter&rsquo;s security deposit comes out of the same starting cash and is returned in full, so only the return it forgoes while held shows up, inside the opportunity cost.' : ''}</p></div>`;
 }

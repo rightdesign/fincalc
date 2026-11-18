@@ -7,7 +7,7 @@ const base = () => rentOwnDefaults();
 
 test('inflation defaults to 2.5% and today\'s dollars shrink the gap', () => {
   assert.equal(rentOwnDefaults().inflation, 2.5);
-  const r = compareRentOwn(base());
+  const r = compareRentOwn({ ...base(), deposit: 0 });
   near(r.final.difference, -12002, 1);
   assert.ok(Math.abs(r.finalReal.difference) < Math.abs(r.final.difference));
   near(r.finalReal.difference, r.final.difference / 1.025 ** 7);

@@ -23,7 +23,9 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
   const invest = (1 + v.investment / 100) ** (1 / 12);
   const dragRate = v.investDrag / 100 / 12;
   const capGains = v.capGains / 100;
-  let portfolio = v.price * (v.down / 100 + v.closing / 100);
+  // The renter's security deposit comes out of the starting cash and is returned untaxed when the renting ends.
+  const deposit = v.deposit ?? v.rent;
+  let portfolio = v.price * (v.down / 100 + v.closing / 100) - deposit;
   let basis = portfolio;
   let value = v.price;
   let owned = false;
@@ -38,7 +40,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
   for (let m = 1; m <= base.series.length; m += 1) {
     if (!owned && m === wait + 1) {
       // Buy: the investments are sold, so the gain is taxed, and what is left pays closing costs and the down payment.
-      const cash = Math.max(0, portfolio - Math.max(0, portfolio - basis) * capGains);
+      const cash = Math.max(0, portfolio - Math.max(0, portfolio - basis) * capGains) + deposit;
       const closing = (value * v.closing) / 100;
       const down = Math.min(value, Math.max(0, cash - closing));
       loan = value - down + Math.max(0, closing - cash);
@@ -72,7 +74,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
     if (m % 12 === 0) {
       const paper = v.view === 'unrealized';
       const saved = paper ? portfolio : portfolio - Math.max(0, portfolio - basis) * capGains;
-      let later = saved;
+      let later = saved + (owned ? 0 : deposit);
       if (owned) {
         const sale = paper ? value : value * (1 - v.selling / 100);
         const homeTax = paper ? 0 : Math.max(0, sale - homeBasis - (monthsOwned >= 24 ? v.exclusion : 0)) * capGains;
