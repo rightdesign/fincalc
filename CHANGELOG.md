@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.90.0] — 2026-11-18
+
+- FINC-097 The rent vs own calculator now models the mortgage-interest and property-tax deduction (filing status, marginal rate, standard deduction, SALT cap) with an itemize/standard-deduction choice, and shows the Year-1 tax benefit.
+
 ## [0.89.1] — 2026-11-18
 
 - FINC-147 Added a test that checks the rent vs own equal-cash and pure net worth summaries (winner, gap, break-even year and month) against the year-by-year table across many inputs, so a summary that contradicts its table is caught in CI. No user-visible change.
