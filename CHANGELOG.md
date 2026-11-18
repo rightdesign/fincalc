@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.103.0] — 2026-11-18
+
+- FINC-172 The compound calculator's explainer, cost-of-waiting comparison and "what moves the needle" table now follow the Contribute-for period, and say when contributions have stopped.
+- FINC-170 The compound interest calculator has a "Contribute for" input: contributions stop after that many years while the balance keeps compounding to the end of Years; the headline, chart, table and link follow it.
+
 ## [0.102.1] — 2026-11-18
 
 - FINC-171 The compound interest chart marks the year contributions stop, and years after it show $0 put in plus that year's interest on hover.
