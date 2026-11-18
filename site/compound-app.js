@@ -1,6 +1,6 @@
 // Page script for the compound interest calculator.
 import { faqCard } from './compound-faq.js';
-import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear } from './compound-chart.js';
+import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
 import { COMPOUND_FIELDS, choiceEffects, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
@@ -193,6 +193,7 @@ function render() {
 // Hover, tap and arrow keys show one year's balance, contributions and interest in a tooltip.
 function wireChart(wrap, years) {
   const points = JSON.parse(wrap.dataset.points);
+  const stop = stopYear(years);
   const line = wrap.querySelector('.cc-hover-line');
   const dot = wrap.querySelector('.cc-hover-dot');
   const tip = wrap.querySelector('.cc-tip');
@@ -202,7 +203,7 @@ function wireChart(wrap, years) {
   const show = (i) => {
     index = Math.max(0, Math.min(points.length - 1, i));
     const p = points[index];
-    const t = compoundTip(years[index], money);
+    const t = compoundTip(years[index], money, stop);
     line.setAttribute('x1', p.x * vw); line.setAttribute('x2', p.x * vw);
     dot.setAttribute('cx', p.x * vw); dot.setAttribute('cy', p.y * vh);
     line.classList.remove('cc-off'); dot.classList.remove('cc-off');

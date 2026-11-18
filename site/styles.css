@@ -935,6 +935,7 @@ body {
 .cc-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cc-chart { min-height: 18rem; }
 .cc-cross-dot { fill: var(--bg); stroke: currentColor; stroke-width: 3; }
+.cc-stop-dot { fill: var(--bg); stroke: currentColor; stroke-width: 3; }
 .cc-hover-dot { fill: var(--bg); stroke: currentColor; stroke-width: 2; }
 .cc-tip { position: absolute; top: 2.5rem; transform: translateX(0.75rem); padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 0.4rem; background: var(--panel); font-size: 0.85rem; font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
 .cc-tip.flip { transform: translateX(calc(-100% - 0.75rem)); }

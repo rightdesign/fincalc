@@ -271,3 +271,31 @@ test('contribute for: link round-trip, follows Years when absent, held to Years,
   assert.equal(compoundDefaults().contributeYears, compoundDefaults().years);
   assert.deepEqual(invalidCompound({ ...d, contributeYears: 2.5 }), ['Contribute for (years)']);
 });
+
+import { stopYear } from '../site/compound-chart.js';
+
+test('compound chart marks the stop year and the tooltip shows the $0 years after it', () => {
+  const v = { ...compoundDefaults(), start: 10000, monthly: 500, rate: 7, years: 30, contributeYears: 10 };
+  const years = simulateCompound(v).years;
+  const fmt = (n) => `$${Math.round(n)}`;
+  assert.equal(stopYear(years), 10);
+  assert.equal(Math.round(years[9].totalContributed), 70000);
+  assert.equal(years[10].contributions, 0);
+  assert.equal(years[29].totalContributed, years[9].totalContributed);
+  assert.ok(Math.abs(years[29].balance - 431000) < 1500);
+  const html = compoundChartHtml(years, fmt);
+  assert.match(html, /Contributions stop after year 10/);
+  assert.match(html, /cc-stop-dot/);
+  const after = compoundTip(years[10], fmt, 10);
+  assert.deepEqual(after.lines.slice(3), [['Put in this year', '$0'], ['Interest this year', fmt(years[10].interest)]]);
+  assert.equal(compoundTip(years[9], fmt, 10).lines.length, 3);
+});
+
+test('compound chart has no stop marker when contributions run to the end or never happen', () => {
+  const fmt = String;
+  for (const v of [compoundDefaults(), { ...compoundDefaults(), monthly: 0 }, { ...compoundDefaults(), contributeYears: 0 }]) {
+    const years = simulateCompound(v).years;
+    assert.equal(stopYear(years), null);
+    assert.doesNotMatch(compoundChartHtml(years, fmt), /cc-stop/);
+  }
+});

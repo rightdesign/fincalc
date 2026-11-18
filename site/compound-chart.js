@@ -12,9 +12,20 @@ export function crossoverYear(rows) {
   return hit ? hit.year : null;
 }
 
-// Tooltip lines for one year; the same figures as that year's row in the table.
-export function compoundTip(row, fmt) {
-  return { title: `Year ${row.year}`, lines: [['Balance', fmt(row.balance)], ['Put in to date', fmt(row.totalContributed)], ['Interest to date', fmt(row.totalInterest)]] };
+// The last year money is put in, when that is before the final year (contributions stop and the
+// balance keeps compounding); null when contributions run to the end or never happen.
+export function stopYear(rows) {
+  const paid = rows.filter((r) => r.contributions > 0);
+  const last = paid.length ? paid[paid.length - 1].year : null;
+  return last !== null && last < rows[rows.length - 1].year ? last : null;
+}
+
+// Tooltip lines for one year; the same figures as that year's row in the table. After the stop
+// year it also says that year's $0 contribution and the interest it earned.
+export function compoundTip(row, fmt, stop = null) {
+  const lines = [['Balance', fmt(row.balance)], ['Put in to date', fmt(row.totalContributed)], ['Interest to date', fmt(row.totalInterest)]];
+  if (stop !== null && row.year > stop) lines.push(['Put in this year', fmt(row.contributions)], ['Interest this year', fmt(row.interest)]);
+  return { title: `Year ${row.year}`, lines };
 }
 
 // Chart x position (0..1 across the plot) of each year, for snapping a pointer to the nearest year.
@@ -65,12 +76,25 @@ export function compoundChartHtml(rows, fmt) {
     svg += `<circle cx="${f(cx)}" cy="${f(cy)}" r="6" class="cc-cross-dot"/>`;
     svg += `<text x="${f(cx + (right ? 10 : -10))}" y="${PAD.t + 12}" text-anchor="${right ? 'start' : 'end'}" font-size="14" font-weight="600" class="cc-cross-label">${text}</text>`;
   }
+  const stop = stopYear(rows);
+  if (stop !== null) {
+    const sxp = sx(stop);
+    const full = `Contributions stop after year ${stop}`;
+    const leftRoom = sxp - PAD.l;
+    const rightRoom = W - PAD.r - sxp;
+    const right = leftRoom < full.length * 8 + 10 && rightRoom > leftRoom;
+    const text = (right ? rightRoom : leftRoom) >= full.length * 8 + 10 ? full : `Stop: year ${stop}`;
+    svg += `<line x1="${f(sxp)}" x2="${f(sxp)}" y1="${PAD.t}" y2="${f(sy(0))}" class="marker cc-stop"/>`;
+    svg += `<circle cx="${f(sxp)}" cy="${f(sy(rows[stop - 1].totalContributed))}" r="6" class="cc-stop-dot"/>`;
+    svg += `<text x="${f(sxp + (right ? 10 : -10))}" y="${PAD.t + 30}" text-anchor="${right ? 'start' : 'end'}" font-size="14" font-weight="600" class="cc-stop-label">${text}</text>`;
+  }
   svg += `<line class="crosshair cc-hover-line cc-off" x1="0" x2="0" y1="${PAD.t}" y2="${f(sy(0))}"/>`;
   svg += `<circle class="cc-hover-dot cc-off" r="5" cx="0" cy="0"/>`;
   svg += '</svg>';
   const xy = rows.map((r) => ({ year: r.year, x: sx(r.year) / W, y: sy(r.balance) / H }));
   const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${cross}.`;
-  const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText} The full values for every year are in the table below.`;
+  const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
+  const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText}${stopText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure"><div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
 
