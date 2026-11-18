@@ -10,7 +10,7 @@ export function compoundChartHtml(rows, fmt) {
   const last = rows[rows.length - 1];
   const xs = [0, ...rows.map((r) => r.year)];
   const put = [rows[0].totalContributed - rows[0].contributions, ...rows.map((r) => r.totalContributed)];
-  const bal = [put[0], ...rows.map((r) => r.balance)];
+  const bal = [put[0], ...rows.map((r, i) => Math.max(r.balance, put[i + 1]))];
   const yMax = Math.max(...bal, 1);
   const sx = (x) => PAD.l + (x / last.year) * (W - PAD.l - PAD.r);
   const sy = (y) => H - PAD.b - (y / yMax) * (H - PAD.t - PAD.b);

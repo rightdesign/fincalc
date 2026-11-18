@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, invalidCompound, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -43,5 +43,23 @@ test('encode keeps only changed values and round-trips; bad input falls back to 
 test('validation and presets', () => {
   assert.deepEqual(invalidCompound(compoundDefaults()), []);
   assert.deepEqual(invalidCompound({ ...compoundDefaults(), years: 2.5, rate: NaN }), ['Annual return (%)', 'Years']);
-  for (const p of COMPOUND_PRESETS) assert.deepEqual(invalidCompound(p.values), [], p.id);
+  for (const p of COMPOUND_PRESETS) assert.deepEqual(invalidCompound({ ...compoundDefaults(), ...p.values }), [], p.id);
+});
+
+test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in link", () => {
+  const v = compoundDefaults();
+  const nominal = simulateCompound(v);
+  const before = JSON.stringify(nominal);
+  const real = inTodaysDollars(nominal, 3);
+  assert.equal(JSON.stringify(nominal), before);
+  assert.ok(Math.abs(real.futureValue - nominal.futureValue / 1.03 ** 30) < 1e-6);
+  assert.ok(Math.abs(real.futureValue - 285000) < 1000);
+  assert.equal(real.contributed, 190000);
+  const zero = inTodaysDollars(nominal, 0);
+  assert.equal(zero.futureValue, nominal.futureValue);
+  assert.equal(zero.interest, nominal.interest);
+  assert.match(headline({ ...v, basis: 'today' }, real), /becomes about \$285,000 in today's dollars — about \$95,000 more than you put in\.$/);
+  const w = { ...v, basis: 'today', inflation: 2.5 };
+  assert.deepEqual(decodeCompound(encodeCompound(w)), w);
+  assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
 });

@@ -14,6 +14,12 @@ export const COMPOUND_FIELDS = [
     hint: 'How often interest is added to the balance. Monthly adds one twelfth of the annual rate each month; annually adds the full rate once a year (contributions made during the year earn simple interest until then).',
     options: [{ value: 'monthly', label: 'Monthly' }, { value: 'annually', label: 'Annually' }],
   },
+  { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%." },
+  {
+    id: 'basis', label: 'Show results in', kind: 'choice', default: 'future',
+    hint: "Future dollars are the plain amounts you will see on the statement. Today's dollars restate the balance in what it could buy at today's prices.",
+    options: [{ value: 'future', label: 'Future dollars' }, { value: 'today', label: "Today's dollars" }],
+  },
 ];
 
 export const COMPOUND_PRESETS = [
@@ -80,6 +86,18 @@ export function simulateCompound(v) {
   return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
+// The same years with each balance restated in today's dollars: divided by (1 + inflation)^year.
+// What you contributed stays in the dollars you paid; interest becomes the real balance minus that
+// (negative when inflation outruns the return).
+export function inTodaysDollars(r, inflation) {
+  const years = r.years.map((y) => {
+    const balance = y.balance / (1 + inflation / 100) ** y.year;
+    return { ...y, balance, totalInterest: balance - y.totalContributed };
+  });
+  const last = years[years.length - 1];
+  return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+}
+
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 // "About" amounts round to the nearest thousand when large, the nearest hundred otherwise.
@@ -91,6 +109,10 @@ export function roundedMoney(n) {
 export function headline(v, r) {
   const yrs = `${v.years} year${v.years === 1 ? '' : 's'}`;
   if (r.contributed === 0) return `After ${yrs}, nothing has been invested yet.`;
+  if (v.basis === 'today') {
+    const gap = r.interest >= 0 ? `about ${roundedMoney(r.interest)} more than you put in` : `about ${roundedMoney(-r.interest)} less than you put in`;
+    return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} in today's dollars — ${gap}.`;
+  }
   return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} — about ${roundedMoney(r.interest)} of it is interest.`;
 }
 

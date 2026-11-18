@@ -2,7 +2,7 @@
 import { compoundChartHtml } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, invalidCompound, parseNumber, simulateCompound } from './compound.js';
+import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, parseNumber, simulateCompound } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -101,7 +101,7 @@ for (const p of COMPOUND_PRESETS) {
   b.type = 'button';
   b.textContent = p.label;
   b.dataset.preset = p.id;
-  b.addEventListener('click', () => { writeValues(p.values); render(); persist(); });
+  b.addEventListener('click', () => { writeValues({ ...values(), ...p.values }); render(); persist(); });
   presets.append(b);
 }
 
@@ -109,7 +109,7 @@ function render() {
   const v = values();
   for (const b of presets.children) {
     const p = COMPOUND_PRESETS.find((x) => x.id === b.dataset.preset);
-    b.setAttribute('aria-pressed', String(COMPOUND_FIELDS.every((f) => p.values[f.id] === v[f.id])));
+    b.setAttribute('aria-pressed', String(Object.keys(p.values).every((id) => p.values[id] === v[id])));
   }
   const bad = invalidCompound(v);
   if (bad.length) {
@@ -118,21 +118,24 @@ function render() {
     return;
   }
   for (const f of COMPOUND_FIELDS) if (sliders[f.id]) sliders[f.id].value = v[f.id];
-  const r = simulateCompound(v);
+  const nominal = simulateCompound(v);
+  const today = v.basis === 'today';
+  const r = today ? inTodaysDollars(nominal, v.inflation) : nominal;
+  const unit = today ? " (today's dollars)" : '';
   const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${money(y.contributions)}</td><td>${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td>${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
-  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p></div>`;
+  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p></div>`;
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
   out.innerHTML = `
     <div class="m-tiles">
-      <div class="m-tile"><h3>Future value</h3><p class="m-big">${money(r.futureValue)}</p><p>After ${v.years} year${v.years === 1 ? '' : 's'}</p></div>
+      <div class="m-tile"><h3>Future value${unit}</h3><p class="m-big">${money(r.futureValue)}</p><p>After ${v.years} year${v.years === 1 ? '' : 's'}</p></div>
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month</p></div>
-      <div class="m-tile"><h3>Total interest earned</h3><p class="m-big m-better">${money(r.interest)}</p><p>${share}% of the final balance</p></div>
+      <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
     <div class="m-panelbox">${compoundChartHtml(r.years, money)}</div>
     <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)</caption>
-      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col">Interest this year</th><th scope="col">Total contributed</th><th scope="col">Total interest</th><th scope="col">Balance</th></tr></thead>
+      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col">Interest this year</th><th scope="col">Total contributed</th><th scope="col">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
 }
 
