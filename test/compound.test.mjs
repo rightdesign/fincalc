@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -145,6 +145,29 @@ test('compound chart keeps the crossover label inside the plot and hides hover m
   assert.match(html, /cc-hover-line cc-off/);
   assert.match(html, /cc-hover-dot cc-off/);
   assert.doesNotMatch(html, /<(line|circle)[^>]* hidden/);
+});
+
+test('lever table: base equals the headline and each row matches a direct rerun', () => {
+  const v = compoundDefaults();
+  const t = leverTable(v);
+  assert.equal(t.base, simulateCompound(v).futureValue);
+  const by = Object.fromEntries(t.rows.map((r) => [r.id, r]));
+  assert.equal(by.monthly.balance, simulateCompound({ ...v, monthly: 600 }).futureValue);
+  assert.equal(by.rate.balance, simulateCompound({ ...v, rate: 8 }).futureValue);
+  assert.equal(by.years.balance, simulateCompound({ ...v, years: 35 }).futureValue);
+  assert.ok(Math.abs(by.monthly.gain - 122000) < 2000);
+  assert.ok(Math.abs(by.rate.gain - 163400) < 100);
+  assert.ok(Math.abs(by.years.gain - 324400) < 100);
+  assert.equal(t.best, 'years');
+});
+
+test('lever table: today\'s dollars, and extra years stop at the maximum', () => {
+  const v = { ...compoundDefaults(), basis: 'today' };
+  const t = leverTable(v);
+  assert.equal(t.base, inTodaysDollars(simulateCompound(v), v.inflation).futureValue);
+  const long = leverTable({ ...compoundDefaults(), years: 98 });
+  assert.equal(long.rows.find((r) => r.id === 'years').label, '+2 years');
+  assert.equal(leverTable({ ...compoundDefaults(), years: 100 }).rows.some((r) => r.id === 'years'), false);
 });
 
 const explain = (over = {}) => {

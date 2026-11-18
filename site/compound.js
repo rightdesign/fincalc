@@ -122,6 +122,31 @@ export function inTodaysDollars(r, inflation) {
   return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
+// What moves the needle: the end balance with each lever raised on its own, next to the base case.
+// Figures are in the dollars the results are shown in (inflation-adjusted when basis is 'today').
+// The extra years stop at MAX_YEARS, and the row says how many were actually added.
+export const LEVER_STEPS = { monthly: 100, rate: 1, years: 5 };
+
+export function leverTable(v) {
+  const finalBalance = (x) => {
+    const r = simulateCompound(x);
+    return (x.basis === 'today' ? inTodaysDollars(r, x.inflation) : r).futureValue;
+  };
+  const base = finalBalance(v);
+  const extraYears = Math.min(LEVER_STEPS.years, MAX_YEARS - v.years);
+  const levers = [
+    { id: 'monthly', label: `+${usd.format(LEVER_STEPS.monthly)} a month`, values: { ...v, monthly: v.monthly + LEVER_STEPS.monthly } },
+    { id: 'rate', label: `+${LEVER_STEPS.rate} point of annual return`, values: { ...v, rate: v.rate + LEVER_STEPS.rate } },
+  ];
+  if (extraYears > 0) levers.push({ id: 'years', label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`, values: { ...v, years: v.years + extraYears } });
+  const rows = levers.map((l) => {
+    const balance = finalBalance(l.values);
+    return { id: l.id, label: l.label, balance, gain: balance - base };
+  });
+  const best = rows.reduce((a, b) => (b.gain > a.gain ? b : a), rows[0]);
+  return { base, rows, best: best.gain > 0 ? best.id : null };
+}
+
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 // "About" amounts round to the nearest thousand when large, the nearest hundred otherwise.
