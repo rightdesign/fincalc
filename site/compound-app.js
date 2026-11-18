@@ -101,7 +101,7 @@ for (const p of COMPOUND_PRESETS) {
   b.type = 'button';
   b.textContent = p.label;
   b.dataset.preset = p.id;
-  b.addEventListener('click', () => { writeValues({ ...values(), ...p.values }); render(); persist(); });
+  b.addEventListener('click', () => { writeValues({ ...values(), ...p.values }); render(); persist(); say(''); });
   presets.append(b);
 }
 

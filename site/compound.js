@@ -22,11 +22,11 @@ export const COMPOUND_FIELDS = [
   },
 ];
 
+// A preset sets only the inputs it names (its label spells them out) and leaves the rest as the user had them.
 export const COMPOUND_PRESETS = [
-  { id: 'retirement', label: 'Retirement saver', values: { start: 10000, monthly: 500, rate: 7, years: 30, frequency: 'monthly' } },
-  { id: 'lump', label: 'Lump sum, no contributions', values: { start: 50000, monthly: 0, rate: 6, years: 20, frequency: 'annually' } },
-  { id: 'savings', label: 'High-yield savings', values: { start: 5000, monthly: 200, rate: 4, years: 10, frequency: 'monthly' } },
-  { id: 'late', label: 'Starting late', values: { start: 0, monthly: 1000, rate: 7, years: 15, frequency: 'monthly' } },
+  { id: 'retirement', label: 'Retirement saver: $500/month, 7%, 30 years', values: { monthly: 500, rate: 7, years: 30 } },
+  { id: 'first100k', label: 'First $100K: $250/month, 7%, 15 years', values: { monthly: 250, rate: 7, years: 15 } },
+  { id: 'college', label: 'College fund: $300/month, 6%, 18 years', values: { monthly: 300, rate: 6, years: 18 } },
 ];
 
 export function compoundDefaults() {

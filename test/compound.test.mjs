@@ -46,6 +46,20 @@ test('validation and presets', () => {
   for (const p of COMPOUND_PRESETS) assert.deepEqual(invalidCompound({ ...compoundDefaults(), ...p.values }), [], p.id);
 });
 
+test('a preset names every input it sets, and sets only those', () => {
+  const fmt = { monthly: (n) => `$${n}/month`, rate: (n) => `${n}%`, years: (n) => `${n} years` };
+  for (const p of COMPOUND_PRESETS) {
+    assert.deepEqual(Object.keys(p.values).sort(), ['monthly', 'rate', 'years'], p.id);
+    for (const [id, n] of Object.entries(p.values)) assert.ok(p.label.includes(fmt[id](n)), `${p.id} label names ${id}`);
+  }
+  // Applied over a user's own balance and compounding choice, those survive and the link round-trips.
+  const mine = { ...compoundDefaults(), start: 2500, frequency: 'annually' };
+  const applied = { ...mine, ...COMPOUND_PRESETS[0].values };
+  assert.equal(applied.start, 2500);
+  assert.equal(applied.frequency, 'annually');
+  assert.deepEqual(decodeCompound(encodeCompound(applied)), applied);
+});
+
 test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in link", () => {
   const v = compoundDefaults();
   const nominal = simulateCompound(v);
