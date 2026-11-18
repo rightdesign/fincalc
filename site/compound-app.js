@@ -1,4 +1,5 @@
 // Page script for the compound interest calculator.
+import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
@@ -156,7 +157,8 @@ function render() {
     ${compare}
     <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</caption>
       <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>`;
+      <tbody>${rows}</tbody></table></div>
+    ${faqCard(v, r)}`;
   explainerBody.innerHTML = compoundingExplainer(v, r).map((p) => `<h3>${p.title}</h3><p>${p.text}</p>`).join('');
   explainer.hidden = false;
   wireChart(out.querySelector('.cc-wrap'), r.years);
