@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.99.0] — 2026-11-18
+
+- FINC-158 The compound interest calculator now has a "what moves the needle" table showing the end balance for +$100 a month, +1 point of return and +5 years, each on its own.
+
 ## [0.98.0] — 2026-11-18
 
 - FINC-157 The compound interest calculator has a cost-of-waiting comparison: the same plan started now versus 10 years later, with both end balances, contributions, the gap and two bars; it follows the today's-dollars view.
