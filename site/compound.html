@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compound interest calculator</title>
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="menu.js"></script>
+    <script type="module" src="compound-app.js"></script>
+  </head>
+  <body class="vg">
+    <header class="site-header">
+      <h1>Compound interest calculator</h1>
+    </header>
+    <main class="m-page">
+      <p class="m-intro">See how a starting balance and regular monthly contributions grow over time when the interest you earn earns interest too. Enter what you have, what you add, the return you expect and how long you will wait.</p>
+      <div class="m-layout" id="compound-layout">
+        <section id="compound-hero" class="m-hero-slot" aria-live="polite"></section>
+        <div class="m-inputs-col">
+          <form id="compound-inputs" class="m-inputs" onsubmit="return false">
+            <fieldset class="m-group"><legend>Your savings</legend>
+              <p class="m-presets-label" id="compound-presets-label">Start from an example</p>
+              <div class="m-presets" id="compound-presets" role="group" aria-labelledby="compound-presets-label"></div>
+            </fieldset>
+          </form>
+          <p class="no-print m-actions"><button type="button" id="compound-copy" class="ghost">Copy link to these inputs</button> <button type="button" id="compound-reset" class="ghost">Reset</button> <span id="compound-message" role="status"></span></p>
+        </div>
+        <div class="m-results-col" id="compound-results-col">
+          <section id="compound-results" aria-live="polite"></section>
+        </div>
+      </div>
+    </main>
+    <section class="methodology" id="methodology">
+      <details>
+        <summary>Methodology and assumptions</summary>
+        <ul>
+          <li>Contributions are made at the end of each month, so the first one starts earning in month two.</li>
+          <li><strong>Monthly compounding:</strong> each month the balance earns the annual return divided by 12, and then your contribution is added. The future value is <code>FV = S &times; (1 + r/12)<sup>n</sup> + C &times; ((1 + r/12)<sup>n</sup> &minus; 1) / (r/12)</code>, where S is the starting balance, C the monthly contribution, r the annual return and n the number of months. At a 0% return it is S + C &times; n.</li>
+          <li><strong>Annual compounding:</strong> the balance at the start of each year earns the full annual return once, at year end. Contributions made during the year earn simple interest for the months they were invested, and join the balance at year end.</li>
+          <li>Total contributed is the starting balance plus every monthly contribution. Interest earned is the future value minus total contributed.</li>
+          <li>The return is a constant yearly rate. Real returns vary, and these figures are not adjusted for inflation, taxes or fees.</li>
+        </ul>
+      </details>
+    </section>
+    <section class="methodology" id="faq">
+      <details>
+        <summary>Frequently asked questions</summary>
+        <h3>What is compound interest?</h3>
+        <p>Interest earned on both your original money and the interest it has already earned. Over many years the interest on interest becomes the larger part of the total.</p>
+        <h3>Does it matter whether interest compounds monthly or annually?</h3>
+        <p>A little: monthly compounding at the same annual rate ends slightly higher, because interest starts earning sooner. The gap grows with the rate and the time.</p>
+        <h3>What return should I use?</h3>
+        <p>Use a rate you would be comfortable planning around, and try a lower one too. Stocks have averaged about 7&ndash;10% a year before inflation over the long run; savings accounts and bonds earn less.</p>
+        <h3>Are the results in today's dollars?</h3>
+        <p>No. They are future dollars, so a given amount will buy less in 30 years than it does now.</p>
+      </details>
+    </section>
+    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real investments do not grow at a steady rate; talk to a qualified professional before making decisions.</p>
+  </body>
+</html>
