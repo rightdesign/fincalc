@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.94.0] — 2026-11-18
+
+- FINC-160 The compound interest calculator can show results in today's dollars: enter an inflation rate (default 3%) and switch "Show results in" to restate the future value, chart and table; the choice is saved in the shareable link.
+- FINC-161 The Calculators (hamburger) menu now lists Compound interest first on every page, followed by the existing calculators in their current order.
+
 ## [0.93.0] — 2026-11-18
 
 - FINC-153 The rent vs own, home-page and variable-rate mortgage calculators now share one Vanguard-style look (colours, fonts, square corners, red accents, dark mode), and the rent vs own preset chips are outlined with a clearly marked active one.
