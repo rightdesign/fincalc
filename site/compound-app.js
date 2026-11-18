@@ -160,12 +160,12 @@ function render() {
   const c = compareStartingLater(v);
   const compare = c ? `
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
-      <p>Same ${money(v.monthly)} a month and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving).</p>
+      <p>Same ${money(v.monthly)} a month and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
       ${compareChartHtml(c, money)}
       <table class="m-table"><thead><tr><th scope="col"></th><th scope="col">Start now</th><th scope="col">Start ${c.waitYears} years later</th><th scope="col">Difference</th></tr></thead>
         <tbody><tr><th scope="row">Total contributed</th><td>${money(c.now.contributed)}</td><td>${money(c.later.contributed)}</td><td>${money(c.extraContributed)}</td></tr>
         <tr><th scope="row">End balance</th><td>${money(c.now.futureValue)}</td><td>${money(c.later.futureValue)}</td><td>${money(c.gap)}</td></tr></tbody></table>
-      <p>Starting ${c.waitYears} years earlier means contributing ${money(c.extraContributed)} more and ending with ${money(c.gap)} more.</p></div>` : `
+      <p>Starting ${c.waitYears} years earlier means ${c.extraContributed > 0 ? `contributing ${money(c.extraContributed)} more` : 'contributing the same amount'} and ending with ${money(c.gap)} more.</p></div>` : `
     <p class="m-strip">Set Years above ${WAIT_YEARS} to compare starting now with starting ${WAIT_YEARS} years later.</p>`;
   out.innerHTML = `
     <div class="m-tiles">

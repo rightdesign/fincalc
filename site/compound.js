@@ -251,10 +251,11 @@ export function compoundingExplainer(v, r) {
     const firstN = v.years - lastN;
     const early = balanceAt(v, r, firstN);
     const late = last.balance - early;
+    const lateStop = contributionYears(v) <= firstN && v.monthly > 0 ? ' with no new contributions' : '';
     points.push({
       id: 'back-loaded',
       title: 'The payoff comes late',
-      text: `Your last ${plural(lastN, 'year')} add about ${roundedMoney(late)}, ${late > early ? 'more than' : 'compared with'} the ${roundedMoney(early)} your first ${plural(firstN, 'year')} built. The money you invest early does the most work, because it has the most time left to compound.`,
+      text: `Your last ${plural(lastN, 'year')} add about ${roundedMoney(late)}${lateStop}, ${late > early ? 'more than' : 'compared with'} the ${roundedMoney(early)} your first ${plural(firstN, 'year')} built. The money you invest early does the most work, because it has the most time left to compound.`,
     });
   }
   const milestones = doublingMilestones(v, r);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -270,6 +270,23 @@ test('contribute for: link round-trip, follows Years when absent, held to Years,
   assert.deepEqual(decodeCompound(encodeCompound(v)), v);
   assert.equal(compoundDefaults().contributeYears, compoundDefaults().years);
   assert.deepEqual(invalidCompound({ ...d, contributeYears: 2.5 }), ['Contribute for (years)']);
+});
+
+test('contribute for: explainer, cost of waiting and levers follow the stop year', () => {
+  const v = { ...compoundDefaults(), start: 10000, monthly: 500, years: 30, rate: 7, contributeYears: 10 };
+  const r = simulateCompound(v);
+  const text = compoundingExplainer(v, r).find((p) => p.id === 'back-loaded').text;
+  const late = r.futureValue - r.years[19].balance;
+  assert.ok(text.includes(`about ${roundedMoney(late)} with no new contributions`));
+  assert.ok(Math.abs(r.futureValue - 430687) < 1 && Math.abs(late - 216379) < 1);
+  const c = compareStartingLater(v);
+  assert.equal(c.extraContributed, 0);
+  assert.equal(c.later.contributed, simulateCompound({ ...v, years: 20 }).contributed);
+  const by = Object.fromEntries(leverTable(v).rows.map((l) => [l.id, l]));
+  assert.equal(by.monthly.balance, simulateCompound({ ...v, monthly: 600 }).futureValue);
+  assert.equal(by.years.balance, simulateCompound({ ...v, years: 35 }).futureValue);
+  const full = { ...v, contributeYears: 30 };
+  assert.ok(!compoundingExplainer(full, simulateCompound(full)).find((p) => p.id === 'back-loaded').text.includes('no new contributions'));
 });
 
 import { stopYear } from '../site/compound-chart.js';
