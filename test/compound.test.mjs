@@ -47,9 +47,9 @@ test('validation and presets', () => {
 });
 
 test('a preset names every input it sets, and sets only those', () => {
-  const fmt = { monthly: (n) => `$${n}/month`, rate: (n) => `${n}%`, years: (n) => `${n} years` };
+  const fmt = { monthly: (n) => `$${n}/month`, rate: (n) => `${n}%`, years: (n) => `${n} years`, contributeYears: (n) => `contribute ${n} years` };
   for (const p of COMPOUND_PRESETS) {
-    assert.deepEqual(Object.keys(p.values).sort(), ['monthly', 'rate', 'years'], p.id);
+    assert.deepEqual(Object.keys(p.values).sort(), p.id === 'stopearly' ? ['contributeYears', 'monthly', 'rate', 'years'] : ['monthly', 'rate', 'years'], p.id);
     for (const [id, n] of Object.entries(p.values)) assert.ok(p.label.includes(fmt[id](n)), `${p.id} label names ${id}`);
   }
   // Applied over a user's own balance and compounding choice, those survive and the link round-trips.
@@ -270,6 +270,13 @@ test('contribute for: link round-trip, follows Years when absent, held to Years,
   assert.deepEqual(decodeCompound(encodeCompound(v)), v);
   assert.equal(compoundDefaults().contributeYears, compoundDefaults().years);
   assert.deepEqual(invalidCompound({ ...d, contributeYears: 2.5 }), ['Contribute for (years)']);
+});
+
+test('the stop-contributing preset lands on about $605,000 from the default start', () => {
+  const p = COMPOUND_PRESETS.find((x) => x.id === 'stopearly');
+  const r = simulateCompound({ ...compoundDefaults(), ...p.values });
+  assert.ok(Math.abs(r.futureValue - 605000) < 5000, String(r.futureValue));
+  assert.equal(Math.round(r.contributed), 130000);
 });
 
 test('contribute for: explainer, cost of waiting and levers follow the stop year', () => {

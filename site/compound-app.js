@@ -123,7 +123,7 @@ for (const p of COMPOUND_PRESETS) {
   b.type = 'button';
   b.textContent = p.label;
   b.dataset.preset = p.id;
-  b.addEventListener('click', () => { const next = { ...values(), ...p.values }; if (follow) next.contributeYears = next.years; writeValues(next); render(); persist(); say(''); });
+  b.addEventListener('click', () => { const next = { ...values(), ...p.values }; if (follow && !('contributeYears' in p.values)) next.contributeYears = next.years; writeValues(next); render(); persist(); say(''); });
   presets.append(b);
 }
 

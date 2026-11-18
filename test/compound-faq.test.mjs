@@ -66,3 +66,13 @@ test("future-dollars mode says the results are not in today's dollars; earlier F
   for (const q of ['What is compound interest?', 'What return should I use?', "Are the results in today's dollars?"]) assert.ok(qs.includes(q), q);
   assert.match(faqItems(v, r).find((i) => i.q.startsWith('Are the results')).a, /^Not at the moment/);
 });
+
+test('the stop-contributing FAQ quotes the live numbers', () => {
+  const w = { ...v, contributeYears: 20 };
+  const a = faqItems(w, simulateCompound(w)).find((i) => i.q === 'What if I stop contributing?').a;
+  assert.match(a, /stop after 20 years/);
+  assert.match(a, /other 10 years/);
+  assert.match(a, /stopping early costs \$/);
+  const b = faqItems(v, r).find((i) => i.q === 'What if I stop contributing?').a;
+  assert.match(b, /stopped after 10 years/);
+});

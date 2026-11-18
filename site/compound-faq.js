@@ -1,4 +1,4 @@
-import { inTodaysDollars, simulateCompound as simulate } from './compound.js';
+import { contributionYears, inTodaysDollars, simulateCompound as simulate } from './compound.js';
 
 // FAQ and sources for the compound interest page. Pure (no DOM). Each answer quotes the numbers on the page right now.
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -30,8 +30,12 @@ export function faqItems(v, r) {
       a: `They are not modelled, so the ${money(r.futureValue)}${unit} is before tax and fees. Taxes on gains and fund or account fees would lower it, and a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth. To allow for them, enter a return a little lower than you expect.`,
     },
     {
+      q: 'What if I stop contributing?',
+      a: stopAnswer(v, r, unit),
+    },
+    {
       q: 'What if I increase my contribution every year?',
-      a: `This version does not model that: the contribution stays flat at ${money(v.monthly)} a month for all ${years(v.years)}. A raise each year would add to the future value, so treat the figure here as a floor for that plan, or rerun it with a higher monthly amount.`,
+      a: `This version does not model that: the contribution stays flat at ${money(v.monthly)} a month for ${years(contributionYears(v))}. A raise each year would add to the future value, so treat the figure here as a floor for that plan, or rerun it with a higher monthly amount.`,
     },
     {
       q: 'Does it matter whether interest compounds monthly or annually?',
@@ -48,6 +52,21 @@ export function faqItems(v, r) {
         : `Not at the moment: they are future dollars, so ${money(r.futureValue)} will buy less in ${years(v.years)} than it does now. Choose "Today's dollars" under "Show results in" to restate the balance using the inflation rate you enter (${v.inflation}% a year).`,
     },
   ];
+}
+
+// Quotes the page's plan against the same plan with contributions running the whole time (or, when
+// they already do, against stopping a third of the way in).
+function stopAnswer(v, r, unit) {
+  const pay = contributionYears(v);
+  const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
+  if (pay < v.years) {
+    const whole = restate(simulate({ ...v, contributeYears: v.years }));
+    return `Your contributions stop after ${years(pay)} and the balance keeps compounding for the other ${years(v.years - pay)}, ending at ${money(r.futureValue)}${unit} on ${money(r.contributed)} contributed. Contributing for all ${years(v.years)} would end at ${money(whole.futureValue)}${unit}, so stopping early costs ${money(whole.futureValue - r.futureValue)}${unit}.`;
+  }
+  const cut = Math.max(1, Math.round(v.years / 3));
+  if (v.years < 2 || v.monthly <= 0) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
+  const stopped = restate(simulate({ ...v, contributeYears: cut }));
+  return `Right now you contribute for all ${years(v.years)}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${years(cut)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
 }
 
 // Compares the chosen frequency with the other one, quoting the gap on the page's inputs.

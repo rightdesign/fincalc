@@ -33,6 +33,7 @@ export const COMPOUND_PRESETS = [
   { id: 'retirement', label: 'Retirement saver: $500/month, 7%, 30 years', values: { monthly: 500, rate: 7, years: 30 } },
   { id: 'first100k', label: 'First $100K: $250/month, 7%, 15 years', values: { monthly: 250, rate: 7, years: 15 } },
   { id: 'college', label: 'College fund: $300/month, 6%, 18 years', values: { monthly: 300, rate: 6, years: 18 } },
+  { id: 'stopearly', label: 'Contribute, then let it grow: $500/month, 7%, contribute 20 years, 30 years', values: { monthly: 500, rate: 7, contributeYears: 20, years: 30 } },
 ];
 
 export function compoundDefaults() {
