@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.102.0] — 2026-11-18
+
+- FINC-170 The compound interest calculator has a "Contribute for" input: contributions stop after that many years while the balance keeps compounding to the end of Years; the headline, chart, table and link follow it.
+
 ## [0.101.0] — 2026-11-18
 
 - FINC-159 Compound calculator: choose whether contributions are made at the beginning or end of each month, and see a table of what your timing and compounding choices are worth.
