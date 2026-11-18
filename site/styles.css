@@ -896,10 +896,10 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-return-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .ro-return-presets button { min-height: 2rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
 
-/* Variable-rate mortgage page: a restrained, Vanguard-like look (white, near-black text, one deep-red
-   accent, hairline rules, tabular figures). Scoped to body.vg so the other calculators keep their theme.
+/* Site-wide look, shared by every calculator: a restrained, Vanguard-like palette (white, near-black text,
+   one deep-red accent, hairline rules, tabular figures).
    Focus rings stay blue on purpose: a red ring would read as an error. */
-body.vg {
+body {
   --text: #1a1a1a;
   --muted: #5f6368;
   --rule: #d9dadc;
@@ -916,7 +916,7 @@ body.vg {
 }
 
 @media (prefers-color-scheme: dark) {
-  body.vg {
+  body {
     --text: #e6e9ef;
     --muted: #9aa4b2;
     --rule: #2f3744;
@@ -930,22 +930,22 @@ body.vg {
   }
 }
 
-body.vg .site-header h1 { font-size: 1.75rem; font-weight: 600; }
-body.vg .m-group, body.vg .m-optional, body.vg .m-panelbox, body.vg .m-hero, body.vg .m-tile, body.vg .m-card { border-radius: 0.125rem; }
-body.vg .m-hero { background: var(--panel); }
-body.vg .m-group legend, body.vg .m-group-title { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; }
-body.vg .m-hero-figure { font-size: 1.875rem; font-weight: 600; }
-body.vg .m-tile .m-big, body.vg .m-card .m-big { font-weight: 600; }
-body.vg .m-tile .m-worse, body.vg .m-arrow { color: var(--accent); }
-body.vg .m-tile .m-better { color: var(--muted); }
-body.vg .m-range-bar { background: linear-gradient(to right, var(--series-3), var(--accent)); }
-body.vg .m-alert { border-left-color: var(--accent); }
-body.vg .m-dot { background: var(--accent); }
-body.vg .m-group-summary, body.vg .m-edit { color: var(--accent); }
-body.vg .m-tabs button[aria-selected="true"] { color: var(--text); border-bottom: 3px solid var(--accent); }
-body.vg .m-presets button, body.vg .m-inputs .field > input:not([type="range"]), body.vg .m-inputs .field > select, body.vg button.ghost { border-radius: 0.125rem; }
-body.vg .m-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-body.vg .m-chart .chart { font-size: 0.75rem; }
+.site-header h1 { font-size: 1.75rem; font-weight: 600; }
+.m-group, .m-optional, .m-panelbox, .m-hero, .m-tile, .m-card { border-radius: 0.125rem; }
+.m-hero { background: var(--panel); }
+.m-group legend, .m-group-title { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; }
+.m-hero-figure { font-size: 1.875rem; font-weight: 600; }
+.m-tile .m-big, .m-card .m-big { font-weight: 600; }
+.m-tile .m-worse, .m-arrow { color: var(--accent); }
+.m-tile .m-better { color: var(--muted); }
+.m-range-bar { background: linear-gradient(to right, var(--series-3), var(--accent)); }
+.m-alert { border-left-color: var(--accent); }
+.m-dot { background: var(--accent); }
+.m-group-summary, .m-edit { color: var(--accent); }
+.m-tabs button[aria-selected="true"] { color: var(--text); border-bottom: 3px solid var(--accent); }
+.m-presets button, .m-inputs .field > input:not([type="range"]), .m-inputs .field > select, button.ghost { border-radius: 0.125rem; }
+.m-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.m-chart .chart { font-size: 0.75rem; }
 .m-inputs .field > .ro-pair { grid-column: 2; grid-row: 1; display: flex; gap: 0.4rem; align-items: center; justify-content: flex-end; min-width: 0; }
 .ro-pair > input, .ro-pair > select { box-sizing: border-box; min-height: 2rem; padding: 0.2rem 0.6rem; font-weight: 600; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; }
 .ro-pair > input { width: 7rem; min-width: 0; text-align: right; }
@@ -957,3 +957,17 @@ body.vg .m-chart .chart { font-size: 0.75rem; }
 .ro-tornado-bar { display: inline-block; height: 0.6rem; min-width: 2px; background: var(--accent, #2a6fdb); border-radius: 2px; vertical-align: middle; }
 .ro-location { font-size: 0.9rem; margin: 0.5rem 0; }
 .ro-location input { width: 8em; }
+
+/* The same look for the shared components used by the home-page and rent vs own calculators. */
+fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-presets button, .ro-tornado-bar { border-radius: 0.125rem; }
+.group > h3 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.group-meta { color: var(--accent); }
+.group-dot { background: var(--accent); }
+.kpi strong { font-weight: 600; }
+.tab[aria-selected="true"] { border-bottom: 3px solid var(--accent); }
+.ro-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.ro-return-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.ro-presets button { min-height: 2rem; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 0.125rem; font: inherit; cursor: pointer; }
+.ro-presets button[aria-pressed="true"] { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 600; }
+.ro-return-presets button { background: transparent; border-color: var(--border); }
+.ro-return-presets button[aria-pressed="true"] { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 600; }
