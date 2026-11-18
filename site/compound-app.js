@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, choiceEffects, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, choiceEffects, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -28,6 +28,8 @@ placeHero();
 const presetsLabel = document.getElementById('compound-presets-label');
 const sliders = {};
 const inputs = {};
+// "Contribute for" follows Years until the user sets it shorter; it never runs past Years.
+let follow = true;
 for (const f of COMPOUND_FIELDS) {
   const label = document.createElement('label');
   label.className = 'field';
@@ -55,7 +57,7 @@ for (const f of COMPOUND_FIELDS) {
     slider.step = f.slider.step;
     slider.id = `slider-${f.id}`;
     slider.setAttribute('aria-label', `${f.label} slider`);
-    slider.addEventListener('input', () => { input.value = show(Number(slider.value)); render(); persist(); });
+    slider.addEventListener('input', () => { input.value = show(Number(slider.value)); if (f.id === 'contributeYears') markFollow(); render(); persist(); });
     label.append(slider);
     sliders[f.id] = slider;
   }
@@ -84,6 +86,22 @@ for (const f of COMPOUND_FIELDS) {
   group.insertBefore(label, presetsLabel);
 }
 
+function markFollow() {
+  const n = parseNumber(inputs.contributeYears.value);
+  const y = parseNumber(inputs.years.value);
+  if (Number.isFinite(n) && Number.isFinite(y)) follow = n >= y;
+}
+inputs.contributeYears.addEventListener('input', markFollow);
+
+// Keeps the Contribute for box and slider in line with Years (following it, or held down to it).
+function syncContribute() {
+  const y = parseNumber(inputs.years.value);
+  if (!Number.isFinite(y)) return;
+  const n = parseNumber(inputs.contributeYears.value);
+  if (follow || n > y) { inputs.contributeYears.value = y; sliders.contributeYears.value = y; }
+  sliders.contributeYears.max = Math.max(1, Math.min(y, 60));
+}
+
 function values() {
   const v = {};
   for (const f of COMPOUND_FIELDS) v[f.id] = f.kind === 'choice' ? inputs[f.id].value : parseNumber(inputs[f.id].value);
@@ -96,6 +114,7 @@ function writeValues(v) {
     const s = sliders[f.id];
     if (s) s.value = v[f.id];
   }
+  follow = v.contributeYears >= v.years;
 }
 
 const presets = document.getElementById('compound-presets');
@@ -104,11 +123,12 @@ for (const p of COMPOUND_PRESETS) {
   b.type = 'button';
   b.textContent = p.label;
   b.dataset.preset = p.id;
-  b.addEventListener('click', () => { writeValues({ ...values(), ...p.values }); render(); persist(); say(''); });
+  b.addEventListener('click', () => { const next = { ...values(), ...p.values }; if (follow) next.contributeYears = next.years; writeValues(next); render(); persist(); say(''); });
   presets.append(b);
 }
 
 function render() {
+  syncContribute();
   const v = values();
   for (const b of presets.children) {
     const p = COMPOUND_PRESETS.find((x) => x.id === b.dataset.preset);
@@ -150,7 +170,7 @@ function render() {
   out.innerHTML = `
     <div class="m-tiles">
       <div class="m-tile"><h3>Future value${unit}</h3><p class="m-big">${money(r.futureValue)}</p><p>After ${v.years} year${v.years === 1 ? '' : 's'}</p></div>
-      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month</p></div>
+      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && contributionYears(v) < v.years ? ` for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
     <div class="m-table-wrap"><table class="m-table"><caption>What your choices are worth (change one at a time)</caption>

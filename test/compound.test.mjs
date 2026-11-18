@@ -184,7 +184,7 @@ test('lever table: base equals the headline and each row matches a direct rerun'
   const by = Object.fromEntries(t.rows.map((r) => [r.id, r]));
   assert.equal(by.monthly.balance, simulateCompound({ ...v, monthly: 600 }).futureValue);
   assert.equal(by.rate.balance, simulateCompound({ ...v, rate: 8 }).futureValue);
-  assert.equal(by.years.balance, simulateCompound({ ...v, years: 35 }).futureValue);
+  assert.equal(by.years.balance, simulateCompound({ ...v, years: 35, contributeYears: 35 }).futureValue);
   assert.ok(Math.abs(by.monthly.gain - 122000) < 2000);
   assert.ok(Math.abs(by.rate.gain - 163400) < 100);
   assert.ok(Math.abs(by.years.gain - 324400) < 100);
@@ -229,4 +229,45 @@ test('explainer leaves out points that do not apply', () => {
   assert.equal(zero['back-loaded'], undefined);
   assert.match(zero['interest-on-interest'], /0% return/);
   assert.equal(explain({ years: 2 })['back-loaded'], undefined);
+});
+
+test('contribute for: contributions stop, compounding continues (worked example)', () => {
+  const v = { ...compoundDefaults(), contributeYears: 10 };
+  const r = simulateCompound(v);
+  assert.equal(r.contributed, 70000);
+  assert.ok(Math.abs(r.futureValue - 431000) < 1000);
+  assert.ok(Math.abs(r.interest - 361000) < 1000);
+  assert.equal(r.years.length, 30);
+  assert.equal(r.years[10].contributions, 0);
+  assert.match(headline(v, r), /^After 30 years, your \$70,000 becomes about \$431,000 — you contributed for the first 10 years, then let it grow\.$/);
+  assert.ok(Math.abs(simulateCompound(compoundDefaults()).futureValue - 691000) < 1000);
+});
+
+test('contribute for: equal to Years matches today, longer is clamped, zero means none, $0/month says nothing', () => {
+  const d = compoundDefaults();
+  for (const timing of ['end', 'start']) for (const frequency of ['monthly', 'annually']) {
+    const base = simulateCompound({ ...d, timing, frequency });
+    assert.equal(simulateCompound({ ...d, timing, frequency, contributeYears: 30 }).futureValue, base.futureValue);
+    assert.equal(simulateCompound({ ...d, timing, frequency, contributeYears: 99 }).futureValue, base.futureValue);
+    assert.equal(simulateCompound({ ...d, timing, frequency, contributeYears: undefined }).futureValue, base.futureValue);
+  }
+  const none = simulateCompound({ ...d, contributeYears: 0 });
+  assert.equal(none.contributed, 10000);
+  assert.ok(Math.abs(none.futureValue - 10000 * (1 + 0.07 / 12) ** 360) < 0.01);
+  const lump = { ...d, monthly: 0, contributeYears: 5 };
+  assert.doesNotMatch(headline(lump, simulateCompound(lump)), /contributed for/);
+});
+
+test('contribute for: link round-trip, follows Years when absent, held to Years, Reset restores it', () => {
+  const d = compoundDefaults();
+  assert.equal(encodeCompound({ ...d, contributeYears: 10 }), 'contributeYears=10');
+  assert.equal(decodeCompound('#contributeYears=10').contributeYears, 10);
+  assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'years=20');
+  assert.equal(decodeCompound('#years=20').contributeYears, 20);
+  assert.equal(decodeCompound('#years=20&contributeYears=40').contributeYears, 20);
+  assert.equal(decodeCompound('#years=20&contributeYears=abc').contributeYears, 20);
+  const v = { ...d, years: 20, contributeYears: 0 };
+  assert.deepEqual(decodeCompound(encodeCompound(v)), v);
+  assert.equal(compoundDefaults().contributeYears, compoundDefaults().years);
+  assert.deepEqual(invalidCompound({ ...d, contributeYears: 2.5 }), ['Contribute for (years)']);
 });

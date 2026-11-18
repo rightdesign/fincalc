@@ -7,6 +7,7 @@ export const MAX_YEARS = 100;
 export const COMPOUND_FIELDS = [
   { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 500000, step: 1000 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
+  { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
@@ -54,9 +55,13 @@ export function invalidCompound(v) {
     if (f.kind === 'choice') { if (!f.options.some((o) => o.value === x)) bad.push(f.label); continue; }
     if (!Number.isFinite(x) || x < 0) bad.push(f.label);
     else if (f.id === 'years' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
+    else if (f.id === 'contributeYears' && !Number.isInteger(x)) bad.push(f.label);
   }
   return bad;
 }
+
+// How many years the monthly contribution runs: never more than Years, and all of them when unset.
+export const contributionYears = (v) => Math.min(v.contributeYears ?? v.years, v.years);
 
 // Year-by-year growth. Contributions are made at the end of each month, or the beginning when
 // timing is 'start'. Monthly compounding adds rate/12 of the balance every month (a
@@ -68,6 +73,7 @@ export function simulateCompound(v) {
   const r = v.rate / 100;
   const monthlyMode = v.frequency === 'monthly';
   const early = v.timing === 'start';
+  const payYears = contributionYears(v);
   let balance = v.start;
   let contributed = v.start;
   const years = [];
@@ -75,17 +81,18 @@ export function simulateCompound(v) {
     const open = balance;
     let interest = 0;
     let added = 0;
+    const monthly = y <= payYears ? v.monthly : 0;
     if (monthlyMode) {
       for (let m = 1; m <= 12; m++) {
-        if (early) balance += v.monthly;
+        if (early) balance += monthly;
         const i = balance * (r / 12);
-        balance += i + (early ? 0 : v.monthly);
+        balance += i + (early ? 0 : monthly);
         interest += i;
-        added += v.monthly;
+        added += monthly;
       }
     } else {
       interest = open * r;
-      for (let m = 1; m <= 12; m++) { interest += v.monthly * r * ((12 - m + (early ? 1 : 0)) / 12); added += v.monthly; }
+      for (let m = 1; m <= 12; m++) { interest += monthly * r * ((12 - m + (early ? 1 : 0)) / 12); added += monthly; }
       balance = open + added + interest;
     }
     contributed += added;
@@ -161,7 +168,7 @@ export function leverTable(v) {
     { id: 'monthly', label: `+${usd.format(LEVER_STEPS.monthly)} a month`, values: { ...v, monthly: v.monthly + LEVER_STEPS.monthly } },
     { id: 'rate', label: `+${LEVER_STEPS.rate} point of annual return`, values: { ...v, rate: v.rate + LEVER_STEPS.rate } },
   ];
-  if (extraYears > 0) levers.push({ id: 'years', label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`, values: { ...v, years: v.years + extraYears } });
+  if (extraYears > 0) levers.push({ id: 'years', label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`, values: { ...v, years: v.years + extraYears, ...(contributionYears(v) === v.years && { contributeYears: v.years + extraYears }) } });
   const rows = levers.map((l) => {
     const balance = finalBalance(l.values);
     return { id: l.id, label: l.label, balance, gain: balance - base };
@@ -178,14 +185,21 @@ export function roundedMoney(n) {
   return usd.format(Math.round(n / step) * step);
 }
 
+// Names the shape when contributions stop before the end; empty when they run throughout or there is nothing to stop.
+function stopNote(v) {
+  const pay = contributionYears(v);
+  if (!(v.monthly > 0) || pay >= v.years) return '';
+  return pay === 0 ? 'you made no monthly contributions, so only your starting balance grew' : `you contributed for the first ${pay === 1 ? 'year' : `${pay} years`}, then let it grow`;
+}
+
 export function headline(v, r) {
   const yrs = `${v.years} year${v.years === 1 ? '' : 's'}`;
   if (r.contributed === 0) return `After ${yrs}, nothing has been invested yet.`;
   if (v.basis === 'today') {
     const gap = r.interest >= 0 ? `about ${roundedMoney(r.interest)} more than you put in` : `about ${roundedMoney(-r.interest)} less than you put in`;
-    return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} in today's dollars — ${gap}.`;
+    return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} in today's dollars — ${stopNote(v) || gap}.`;
   }
-  return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} — about ${roundedMoney(r.interest)} of it is interest.`;
+  return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} — ${stopNote(v) || `about ${roundedMoney(r.interest)} of it is interest`}.`;
 }
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -260,7 +274,11 @@ export function compoundingExplainer(v, r) {
 export function encodeCompound(v) {
   const d = compoundDefaults();
   const p = new URLSearchParams();
-  for (const f of COMPOUND_FIELDS) if (v[f.id] !== d[f.id] && v[f.id] != null && !Number.isNaN(v[f.id])) p.set(f.id, String(v[f.id]));
+  for (const f of COMPOUND_FIELDS) {
+    if (v[f.id] == null || Number.isNaN(v[f.id])) continue;
+    if (f.id === 'contributeYears') { if (v.years >= 0 && v[f.id] < v.years) p.set(f.id, String(v[f.id])); continue; }
+    if (v[f.id] !== d[f.id]) p.set(f.id, String(v[f.id]));
+  }
   return p.toString();
 }
 
@@ -270,11 +288,14 @@ export function decodeCompound(text) {
   let p;
   try { p = new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')); } catch { return v; }
   for (const f of COMPOUND_FIELDS) {
-    if (!p.has(f.id)) continue;
+    if (!p.has(f.id) || f.id === 'contributeYears') continue;
     const raw = p.get(f.id);
     if (f.kind === 'choice') { if (f.options.some((o) => o.value === raw)) v[f.id] = raw; continue; }
     const n = parseNumber(raw);
     if (Number.isFinite(n) && n >= 0) v[f.id] = n;
   }
+  // Absent means "as long as Years"; a value past Years is held to it.
+  const given = parseNumber(p.get('contributeYears'));
+  v.contributeYears = Number.isInteger(given) && given >= 0 ? Math.min(given, v.years) : v.years;
   return v;
 }
