@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, choiceEffects, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -131,6 +131,9 @@ function render() {
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
   hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p></div>`;
+  const fx = choiceEffects(v, r, today ? v.inflation : null);
+  const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
+  const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}${l.id === levers.best ? ' <strong>(biggest lever)</strong>' : ''}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td></tr>`).join('');
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
@@ -150,12 +153,15 @@ function render() {
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
+    <div class="m-table-wrap"><table class="m-table"><caption>What your choices are worth (change one at a time)</caption>
+      <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
+      <tbody>${effectRow('Compounding', v.frequency === 'monthly' ? 'Monthly' : 'Annually', fx.frequency.alt === 'monthly' ? 'Monthly' : 'Annually', fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
     <div class="m-panelbox">${compoundChartHtml(r.years, money)}</div>
     <div class="m-table-wrap"><table class="m-table" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
     ${compare}
-    <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</caption>
+    <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the ${v.timing === 'start' ? 'beginning' : 'end'} of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</caption>
       <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     ${faqCard(v, r)}`;

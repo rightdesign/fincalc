@@ -6,13 +6,18 @@ export const MAX_YEARS = 100;
 // kind: 'money' ($), 'percent' (%), 'years', 'choice'. slider adds a range input beside the box.
 export const COMPOUND_FIELDS = [
   { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 500000, step: 1000 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
-  { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add at the end of every month. Enter 0 for a one-time lump sum.' },
+  { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
     id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
     hint: 'How often interest is added to the balance. Monthly adds one twelfth of the annual rate each month; annually adds the full rate once a year (contributions made during the year earn simple interest until then).',
     options: [{ value: 'monthly', label: 'Monthly' }, { value: 'annually', label: 'Annually' }],
+  },
+  {
+    id: 'timing', label: 'Contributions made', kind: 'choice', default: 'end',
+    hint: 'End of month: each contribution lands after that month\'s interest, so it starts earning the next month. Beginning of month: it lands first and earns interest for the whole month, worth about one extra month of growth per contribution.',
+    options: [{ value: 'end', label: 'End of month' }, { value: 'start', label: 'Beginning of month' }],
   },
   { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%." },
   {
@@ -53,13 +58,16 @@ export function invalidCompound(v) {
   return bad;
 }
 
-// Year-by-year growth. Contributions are made at the end of each month. Monthly compounding
-// adds rate/12 of the balance every month; annual compounding adds the full rate to the balance
-// at the start of the year once a year, while the year's contributions earn simple interest
-// (rate x months remaining / 12) that joins the balance at year end.
+// Year-by-year growth. Contributions are made at the end of each month, or the beginning when
+// timing is 'start'. Monthly compounding adds rate/12 of the balance every month (a
+// beginning-of-month contribution is added first, so it earns that month too); annual compounding
+// adds the full rate to the balance at the start of the year once a year, while the year's
+// contributions earn simple interest (rate x months remaining / 12, one more month each when made
+// at the beginning of the month) that joins the balance at year end.
 export function simulateCompound(v) {
   const r = v.rate / 100;
   const monthlyMode = v.frequency === 'monthly';
+  const early = v.timing === 'start';
   let balance = v.start;
   let contributed = v.start;
   const years = [];
@@ -69,14 +77,15 @@ export function simulateCompound(v) {
     let added = 0;
     if (monthlyMode) {
       for (let m = 1; m <= 12; m++) {
+        if (early) balance += v.monthly;
         const i = balance * (r / 12);
-        balance += i + v.monthly;
+        balance += i + (early ? 0 : v.monthly);
         interest += i;
         added += v.monthly;
       }
     } else {
       interest = open * r;
-      for (let m = 1; m <= 12; m++) { interest += v.monthly * r * ((12 - m) / 12); added += v.monthly; }
+      for (let m = 1; m <= 12; m++) { interest += v.monthly * r * ((12 - m + (early ? 1 : 0)) / 12); added += v.monthly; }
       balance = open + added + interest;
     }
     contributed += added;
@@ -120,6 +129,20 @@ export function inTodaysDollars(r, inflation) {
   });
   const last = years[years.length - 1];
   return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+}
+
+// What each choice is worth: the same plan with the other compounding frequency, and with the other
+// contribution timing. gap is the plan as entered minus the alternative, in the same dollars as r.
+export function choiceEffects(v, r, inflation) {
+  const flip = (change) => {
+    const alt = simulateCompound({ ...v, ...change });
+    const f = (inflation == null ? alt : inTodaysDollars(alt, inflation)).futureValue;
+    return { futureValue: f, gap: r.futureValue - f };
+  };
+  return {
+    frequency: { ...flip({ frequency: v.frequency === 'monthly' ? 'annually' : 'monthly' }), alt: v.frequency === 'monthly' ? 'annually' : 'monthly' },
+    timing: { ...flip({ timing: v.timing === 'end' ? 'start' : 'end' }), alt: v.timing === 'end' ? 'start' : 'end' },
+  };
 }
 
 // What moves the needle: the end balance with each lever raised on its own, next to the base case.

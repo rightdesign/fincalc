@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -76,6 +76,36 @@ test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in
   const w = { ...v, basis: 'today', inflation: 2.5 };
   assert.deepEqual(decodeCompound(encodeCompound(w)), w);
   assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
+});
+
+test('beginning-of-month contributions match the closed form and beat end-of-month', () => {
+  const v = { ...compoundDefaults(), timing: 'start' };
+  const i = 0.07 / 12;
+  const closed = 10000 * (1 + i) ** 360 + 500 * (1 + i) * (((1 + i) ** 360 - 1) / i);
+  const early = simulateCompound(v);
+  const late = simulateCompound(compoundDefaults());
+  assert.ok(Math.abs(early.futureValue - closed) < 0.01);
+  assert.ok(Math.abs(early.futureValue - 695000) < 1500);
+  assert.ok(Math.abs(early.futureValue - late.futureValue - 3500) < 500);
+  assert.equal(early.contributed, late.contributed);
+});
+
+test('beginning-of-month with annual compounding earns one more month of simple interest', () => {
+  const r = simulateCompound({ start: 0, monthly: 100, rate: 12, years: 1, frequency: 'annually', timing: 'start' });
+  assert.ok(Math.abs(r.futureValue - (1200 + 100 * 0.12 * (78 / 12))) < 1e-9);
+});
+
+test('annual compounding lowers the result; timing round-trips through the link', () => {
+  const d = compoundDefaults();
+  const r = simulateCompound(d);
+  const fx = choiceEffects(d, r, null);
+  assert.equal(fx.frequency.alt, 'annually');
+  assert.ok(fx.frequency.futureValue < r.futureValue && fx.frequency.gap > 0);
+  assert.equal(fx.timing.alt, 'start');
+  assert.ok(fx.timing.futureValue > r.futureValue && fx.timing.gap < 0);
+  assert.equal(encodeCompound(d), '');
+  assert.deepEqual(decodeCompound(encodeCompound({ ...d, timing: 'start' })), { ...d, timing: 'start' });
+  assert.equal(decodeCompound('#timing=never').timing, 'end');
 });
 
 test('start-early comparison: $500/month at 7% for 40 years versus 30', () => {
