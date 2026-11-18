@@ -9,8 +9,8 @@ import { CALCULATORS } from '../site/menu.js';
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
 const base = () => rentOwnDefaults();
 
-test('the menu lists rent vs own second and the page exists', () => {
-  assert.equal(CALCULATORS[1].href, 'rent-vs-own.html');
+test('the menu lists rent vs own third and the page exists', () => {
+  assert.equal(CALCULATORS[2].href, 'rent-vs-own.html');
   const html = readFileSync(new URL('../site/rent-vs-own.html', import.meta.url), 'utf8');
   assert.ok(html.includes('menu.js'));
 });

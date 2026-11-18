@@ -1,9 +1,9 @@
 // Hamburger menu listing every calculator. Shared by all pages.
 export const CALCULATORS = [
+  { href: 'compound.html', label: 'Compound interest' },
   { href: 'index.html', label: 'Rent vs Buy: keep your home or sell and rent' },
   { href: 'rent-vs-own.html', label: 'Rent vs own: should you buy a home?' },
   { href: 'mortgage.html', label: 'Variable-rate mortgage' },
-  { href: 'compound.html', label: 'Compound interest' },
 ];
 
 export function menuHtml(currentHref, calculators = CALCULATORS) {

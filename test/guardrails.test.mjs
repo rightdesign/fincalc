@@ -52,8 +52,8 @@ test('Copy link, Print and Reset exist on both pages', () => {
   }
 });
 
-test('the calculators stay linked from the menu', () => {
-  assert.deepEqual(CALCULATORS.slice(0, 2).map((c) => c.href), ['index.html', 'rent-vs-own.html']);
+test('the calculators stay linked from the menu, compound interest first', () => {
+  assert.deepEqual(CALCULATORS.map((c) => c.href), ['compound.html', 'index.html', 'rent-vs-own.html', 'mortgage.html']);
 });
 
 test('the "Not modelled" list does not claim what is modelled', () => {
