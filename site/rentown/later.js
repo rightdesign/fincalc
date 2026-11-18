@@ -17,11 +17,11 @@ export function laterCard({ v, r, later, today, final, label }) {
     ? 'Buying now is never the worst of the three.'
     : `Buying now stops being the worst of the three in year ${later.stopsBeingWorst}.`;
   const table = rows.map((y) => `<tr><td>${y.year}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${money(y.later)}</td><td>${y.later >= Math.max(y.own, y.rent) ? 'Rent, then buy' : y.own >= y.rent ? 'Buy now' : 'Rent forever'}</td></tr>`).join('');
-  return `<div class="m-card ro-later"><h2>Rent ${span}, then buy</h2>
+  return `<div class="card ro-later"><h2>Rent ${span}, then buy</h2>
       <p>After ${word(v.years, 'year')}, ${label}: buy now ${money(final.own)}, rent forever ${money(final.rent)}, rent for ${span} then buy ${money(l.later)} (${signed(l.later - final.own)} vs buying now).</p>
       <p>${buy}</p>
       <p>${worst}</p>
-      <details><summary>Net worth of the three paths by year</summary><div class="ro-table-wrap"><table class="m-table"><caption>Net worth at the end of each year, ${label}</caption>
+      <details><summary>Net worth of the three paths by year</summary><div class="ro-table-wrap"><table class="data-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr><th scope="col">Year</th><th scope="col">Buy now</th><th scope="col">Rent forever</th><th scope="col">Rent ${span}, then buy</th><th scope="col">Best</th></tr></thead>
         <tbody>${table}</tbody></table></div></details>
     </div>`;

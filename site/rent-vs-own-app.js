@@ -74,10 +74,11 @@ function applyUnit(f) {
 }
 
 for (const g of RENTOWN_GROUPS) {
-  const set = document.createElement('fieldset');
-  set.className = 'ro-group';
-  set.innerHTML = `<legend>${g.label}</legend><div class="m-inputs"></div>`;
-  const grid = set.querySelector('.m-inputs');
+  const set = document.createElement('details');
+  set.className = 'collapse ro-group';
+  set.open = true;
+  set.innerHTML = `<summary><span class="group-title">${g.label}</span></summary><div class="input-list"></div>`;
+  const grid = set.querySelector('.input-list');
   for (const f of RENTOWN_FIELDS.filter((x) => x.group === g.id)) {
     const label = document.createElement('label');
     label.className = 'field';
@@ -280,8 +281,30 @@ function render() {
   save(v, basis, view);
   const ctx = buildContext(v, basis, view);
   tableCsvText = tableCsv({ columns: TABLE_COLUMNS, rows: tableRows(ctx.r, ctx.today) });
-  out.innerHTML = renderCards(ctx);
+  out.innerHTML = renderCards(ctx, tab);
 }
+
+// The results tab on show survives a re-render, since every input change redraws the results.
+let tab = 'networth';
+const tabIds = () => [...out.querySelectorAll('[role="tab"]')].map((t) => t.id.replace('ro-tab-', ''));
+function selectTab(id, focus = false) {
+  tab = id;
+  for (const t of out.querySelectorAll('[role="tab"]')) {
+    const on = t.id === `ro-tab-${id}`;
+    t.setAttribute('aria-selected', String(on));
+    t.tabIndex = on ? 0 : -1;
+    if (on && focus) t.focus();
+  }
+  for (const p of out.querySelectorAll('[role="tabpanel"]')) p.hidden = p.id !== `ro-panel-${id}`;
+}
+out.addEventListener('keydown', (e) => {
+  if (!e.target.matches('[role="tab"]') || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const ids = tabIds();
+  const i = ids.indexOf(tab);
+  const next = e.key === 'Home' ? 0 : e.key === 'End' ? ids.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + ids.length) % ids.length;
+  e.preventDefault();
+  selectTab(ids[next], true);
+});
 
 // The CSV of the table last drawn, so the download always matches what is on screen.
 let tableCsvText = '';
@@ -326,6 +349,8 @@ basisSelect.addEventListener('change', () => { message.textContent = ''; render(
 viewSelect.addEventListener('change', () => { message.textContent = ''; render(); });
 // The solved price or rent goes back into its field, so the page reproduces the break-even it quoted.
 out.addEventListener('click', (e) => {
+  const t = e.target.closest('[role="tab"]');
+  if (t) { selectTab(t.id.replace('ro-tab-', '')); return; }
   if (e.target.closest('#rentown-csv')) { downloadCsv(); return; }
   const button = e.target.closest('button[data-solve]');
   if (!button) return;

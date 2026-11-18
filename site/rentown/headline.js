@@ -38,5 +38,5 @@ export function headlineCard({ v, r, today, view, final, label }) {
     : r.breakEven == null
     ? `Owning does not catch up within your stay: ${costs} and the cost of owning outweigh the gains.`
     : `Break-even: owning pulls ahead in ${monthPoint(r.breakEvenMonth)} (year ${r.breakEven} on a yearly basis).${r.breakEven > 1 ? ` Renting is ahead before that, mostly because of ${costs}.` : ''}`;
-  return `<div class="m-card ro-headline"><h2 class="m-big">${headline}</h2><p>${stayLine}${rentLine}</p><p>${otherLine}</p><p>${detail}</p><p>Headline view: equal-cash (below), ${view === 'unrealized' ? 'unrealized (on paper: no selling costs or sale tax)' : 'realized (after selling costs and sale tax)'}.${close ? ' See what drives the verdict below for the values at which the winner flips.' : ''}</p></div>`;
+  return `<div class="hero ro-headline"><p class="hero-label">Your answer</p><h2 class="hero-figure">${headline}</h2><p>${stayLine}${rentLine}</p><p>${otherLine}</p><p>${detail}</p><p>Headline view: equal-cash (below), ${view === 'unrealized' ? 'unrealized (on paper: no selling costs or sale tax)' : 'realized (after selling costs and sale tax)'}.${close ? ' See what drives the verdict below for the values at which the winner flips.' : ''}</p></div>`;
 }

@@ -80,5 +80,5 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
 
 export function rentOwnChartHtml(years, breakEven, fmt, stay, breakEvenMonth, unrealized = false) {
   const { svg, description } = rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth);
-  return `<figure class="m-chart"><figcaption>Net worth by year: own (home equity${unrealized ? ' on paper' : ' after selling costs'}) vs rent (investments, equal-cash dashed and pure dotted)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
+  return `<figure class="chart-box"><figcaption>Net worth by year: own (home equity${unrealized ? ' on paper' : ' after selling costs'}) vs rent (investments, equal-cash dashed and pure dotted)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }

@@ -63,5 +63,5 @@ export const FAQ_SOURCES = [
 export function faqCard(ctx) {
   const items = faqItems(ctx).map((i) => `<details><summary>${i.q}</summary><p>${i.a}</p></details>`).join('');
   const sources = FAQ_SOURCES.map((s) => `<li><a href="${s.url}" rel="noopener">${s.name}</a>, as of ${s.asOf}</li>`).join('');
-  return `<section class="m-card ro-faq"><h2>Frequently asked questions</h2>${items}<h3>Sources</h3><ul>${sources}</ul></section>`;
+  return `<section class="card ro-faq"><h2>Frequently asked questions</h2>${items}<h3>Sources</h3><ul>${sources}</ul></section>`;
 }

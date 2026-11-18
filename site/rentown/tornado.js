@@ -49,7 +49,7 @@ export function tornadoCard({ v }) {
         <td>${at(r, r.low)}: ${year(r.low)}</td><td>${at(r, r.base)}: ${year(r.base)}</td><td>${at(r, r.high)}: ${year(r.high)}</td>
         <td class="ro-tornado-bar-cell"><span class="ro-tornado-bar" style="width:${width.toFixed(1)}%" aria-hidden="true"></span> ${money(lo)} to ${money(hi)}</td></tr>`;
   }).join('');
-  return `<section class="m-card ro-tornado"><h2>Which input moves the answer most</h2>
+  return `<section class="card ro-tornado"><h2>Which input moves the answer most</h2>
       <p>Each input is moved down and up on its own, holding the rest as entered. The break-even year is when owning first pulls ahead if you sold then (${year(base)} at your inputs). The bar is the range of how far owning is ahead after ${word(v.years, 'year')}, in future dollars; a negative amount means renting is ahead.</p>
-      <div class="m-table-wrap"><table class="m-table"><thead><tr><th scope="col">Input</th><th scope="col">Lower</th><th scope="col">Entered</th><th scope="col">Higher</th><th scope="col">Owning ahead after your stay</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+      <div class="scroll-wrap"><table class="data-table"><thead><tr><th scope="col">Input</th><th scope="col">Lower</th><th scope="col">Entered</th><th scope="col">Higher</th><th scope="col">Owning ahead after your stay</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
 }

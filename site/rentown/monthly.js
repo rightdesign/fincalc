@@ -9,7 +9,7 @@ const shownTotals = (m) => {
 
 const breakdown = (src, label, insurance) => {
   const m = { ...src, ...shownTotals(src) };
-  return `<table class="m-table"><caption>${label}</caption><tbody>
+  return `<table class="data-table"><caption>${label}</caption><tbody>
         <tr><th scope="row">Mortgage interest</th><td>${money(m.interest)}</td></tr>
         <tr><th scope="row">Mortgage principal (goes to equity, not lost)</th><td>${money(m.principal)}</td></tr>
         <tr><th scope="row">Property tax</th><td>${money(m.tax)}</td></tr>
@@ -31,7 +31,7 @@ const yearLabel = (m) => `First month of year ${m.year}`;
 
 export function monthlyCard({ r }) {
   const lastMonthly = r.monthly[r.monthly.length - 1];
-  return `<div class="m-card ro-monthly"><h3>Where the monthly cost goes</h3>
+  return `<div class="card ro-monthly"><h3>Where the monthly cost goes</h3>
       ${breakdown(r.monthly[0], yearLabel(r.monthly[0]), r.program.insuranceName)}
       ${lastMonthly.year > 1 ? breakdown(lastMonthly, yearLabel(lastMonthly), r.program.insuranceName) : ''}</div>`;
 }

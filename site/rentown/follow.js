@@ -12,5 +12,5 @@ export function followCard({ r }) {
     : (ft.direction === 'ownCostsMore'
       ? `<p>Owning costs <strong>${perMonth} a month more</strong> than renting in year 1. Make sure your budget holds that, and your 3 to 6 month cushion, before you buy.</p>`
       : `<p>Owning costs ${ft.direction === 'same' ? 'about the same as' : `${perMonth} a month less than`} renting in year 1. Keep a 3 to 6 month cushion for repairs and surprises.</p>`);
-  return `<div class="m-card ro-follow"><h3>${ft.winner === 'rent' ? 'If you rent: invest the difference' : 'If you buy: check the monthly budget'}</h3>${followHtml}</div>`;
+  return `<div class="card ro-follow"><h3>${ft.winner === 'rent' ? 'If you rent: invest the difference' : 'If you buy: check the monthly budget'}</h3>${followHtml}</div>`;
 }

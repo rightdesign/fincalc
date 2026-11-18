@@ -15,13 +15,19 @@
     </header>
     <main class="m-page">
       <p>Compare buying a home with renting a similar one and investing the difference. Enter the home price and today's rent; the calculator shows which leaves you with more money after the years you plan to stay.</p>
-      <div class="no-print ro-presets" role="group" aria-label="Starting points"><span>Starting point:</span> <span id="rentown-presets"></span> <span class="ro-preset-name" id="rentown-preset-name" role="status"></span></div>
-      <p class="no-print ro-location"><label>ZIP code (optional) <input id="rentown-zip" inputmode="numeric" autocomplete="postal-code" maxlength="10" placeholder="e.g. 94103" aria-describedby="rentown-zip-note"></label> <button type="button" id="rentown-zip-clear">Clear</button> <span id="rentown-zip-note" role="status"></span></p>
-      <form id="rentown-inputs" class="m-inputs ro-inputs"></form>
-      <p class="ro-rate-source" id="rentown-rate-source" hidden></p>
-      <p class="ro-basis"><label>Show results in <select id="rentown-basis" form="rentown-inputs"><option value="future">Future dollars</option><option value="today">Today's dollars</option></select></label> <label>Net worth <select id="rentown-view" form="rentown-inputs"><option value="realized">Realized (after selling costs and tax)</option><option value="unrealized">Unrealized (on paper)</option></select></label></p>
-      <p class="no-print ro-actions"><button type="button" id="rentown-copy">Copy link to these inputs</button> <button type="button" id="rentown-print">Print&hellip;</button> <button type="button" id="rentown-reset">Reset to defaults</button> <span class="share-message" id="rentown-message" role="status"></span></p>
-      <section id="rentown-results" aria-live="polite"></section>
+      <div class="layout ro-layout">
+        <div class="inputs-col">
+        <div class="no-print ro-presets" role="group" aria-label="Starting points"><span>Starting point:</span> <span id="rentown-presets"></span> <span class="ro-preset-name" id="rentown-preset-name" role="status"></span></div>
+        <p class="no-print ro-location"><label>ZIP code (optional) <input id="rentown-zip" inputmode="numeric" autocomplete="postal-code" maxlength="10" placeholder="e.g. 94103" aria-describedby="rentown-zip-note"></label> <button type="button" id="rentown-zip-clear">Clear</button> <span id="rentown-zip-note" role="status"></span></p>
+        <form id="rentown-inputs" class="input-list ro-inputs"></form>
+        <p class="ro-rate-source" id="rentown-rate-source" hidden></p>
+        <p class="ro-basis"><label>Show results in <select id="rentown-basis" form="rentown-inputs"><option value="future">Future dollars</option><option value="today">Today's dollars</option></select></label> <label>Net worth <select id="rentown-view" form="rentown-inputs"><option value="realized">Realized (after selling costs and tax)</option><option value="unrealized">Unrealized (on paper)</option></select></label></p>
+        <p class="no-print ro-actions"><button type="button" id="rentown-copy">Copy link to these inputs</button> <button type="button" id="rentown-print">Print&hellip;</button> <button type="button" id="rentown-reset">Reset to defaults</button> <span class="share-message" id="rentown-message" role="status"></span></p>
+        </div>
+        <div class="results-col">
+          <section id="rentown-results" aria-live="polite"></section>
+        </div>
+      </div>
     </main>
     <section class="methodology" id="methodology">
       <details>

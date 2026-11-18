@@ -69,5 +69,5 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
 
 export function monthlyChartHtml(curve, cross, fmt, stay, inflation, minYears) {
   const { svg, description } = monthlyChart(curve, cross, fmt, stay, inflation, minYears);
-  return `<figure class="m-chart"><figcaption>Monthly cost by year: own (mortgage, tax, insurance, maintenance, HOA and mortgage insurance) vs rent (rent and renter&rsquo;s insurance)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
+  return `<figure class="chart-box"><figcaption>Monthly cost by year: own (mortgage, tax, insurance, maintenance, HOA and mortgage insurance) vs rent (rent and renter&rsquo;s insurance)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }

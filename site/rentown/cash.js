@@ -3,8 +3,8 @@ import { money, word } from './format.js';
 export function cashCard({ v, r }) {
   const cash = r.cash;
   const short = cash.shortfall > 0;
-  return `<div class="m-card ro-cash"><h3>Cash needed to buy</h3>
-      <table class="m-table"><tbody>
+  return `<div class="card ro-cash"><h3>Cash needed to buy</h3>
+      <table class="data-table"><tbody>
         <tr><th scope="row">Down payment</th><td>${money(cash.down)}</td></tr>
         <tr><th scope="row">Closing costs</th><td>${money(cash.closing)}</td></tr>
         ${cash.fee > 0 ? `<tr><th scope="row">${r.program.feeName} (paid in cash)</th><td>${money(cash.fee)}</td></tr>` : ''}
