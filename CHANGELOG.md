@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.97.0] — 2026-11-18
+
+- FINC-163 The compound interest calculator's year-by-year table now emphasizes the interest columns and highlights the crossover year, where interest to date first passes contributions to date.
+- FINC-166 The home-page calculator now has the same Vanguard-style layout as the mortgage page: inputs rail with collapsible groups, a hero showing the highest net worth at the end of the horizon, summary tiles and underline tabs.
+- FINC-167 Charts share one Vanguard-style treatment across all calculators: red primary line, near-black dashed comparison, grey for the rest, labels on the lines instead of a legend, hairline gridlines and 12px text.
+
 ## [0.96.0] — 2026-11-18
 
 - FINC-156 The compound interest calculator has a "Why compounding is so powerful" section below the results that uses your own numbers: interest earning interest, the Rule of 72, how much the last years add versus the first, and when your balance passes each doubling milestone.
