@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.96.0] — 2026-11-18
+
+- FINC-156 The compound interest calculator has a "Why compounding is so powerful" section below the results that uses your own numbers: interest earning interest, the Rule of 72, how much the last years add versus the first, and when your balance passes each doubling milestone.
+
 ## [0.95.1] — 2026-11-18
 
 - FINC-162 Compound calculator presets now state what they set
