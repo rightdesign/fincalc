@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.89.0] — 2026-11-18
+
+- FINC-125 The rent vs own calculator now models the renter's security deposit (default one month's rent, editable, $0 allowed): it is returned at the end of the stay and the return it forgoes while held counts against renting.
+
 ## [0.88.0] — 2026-11-18
 
 - FINC-103 The rent vs own headline is now the break-even point ("Buying wins if you stay at least X years Y months", or "Renting wins at every stay up to 30 years on these numbers"), found over at least 30 years whatever the length of stay, with an equivalent-rent line: the rent below which renting is better for your stay.
