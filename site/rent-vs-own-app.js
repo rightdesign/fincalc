@@ -7,6 +7,7 @@ import { buildContext } from './rentown/context.js';
 import { TABLE_COLUMNS, tableRows } from './rentown/chart.js';
 import { tableCsv } from './export.js';
 import { usd } from './rentown/format.js';
+import { locationDefaults, parseStateTax, parseZip } from './rentown/location.js';
 
 
 // A range input snaps to its step, so a typed value between steps (7.32 on a 0.125 grid) would
@@ -39,6 +40,12 @@ if (live) {
   note.hidden = false;
 }
 const defaults = rentOwnDefaults();
+// Optional ZIP: pre-fills the property tax rate from a small state table. Failure leaves the national default.
+let stateTax = null;
+try {
+  const res = await fetch('data/state-property-tax.json', { cache: 'no-cache' });
+  if (res.ok) stateTax = parseStateTax(await res.json());
+} catch { /* offline or file missing */ }
 const basisSelect = document.getElementById('rentown-basis');
 const viewSelect = document.getElementById('rentown-view');
 const show = (f, n) => (n == null ? '' : f.money ? usd.format(n) : n);
@@ -328,6 +335,26 @@ out.addEventListener('click', (e) => {
   render();
 });
 form.addEventListener('submit', (e) => e.preventDefault());
+
+// The ZIP only ever sets the fields locationDefaults names (property tax); blank, unknown or cleared puts them back.
+const zipInput = document.getElementById('rentown-zip');
+const zipNote = document.getElementById('rentown-zip-note');
+function applyZip() {
+  const text = zipInput.value.trim();
+  const zip = parseZip(text);
+  if (text !== '' && !zip && /^\d{0,4}$/.test(text)) return;
+  const found = zip && stateTax ? locationDefaults(zip, stateTax) : null;
+  const next = { ...rentOwnDefaultsFrom(values()), ...(found ? found.values : { tax: defaults.tax }) };
+  setValues(next);
+  if (found) zipNote.textContent = `${found.state}: property tax ${found.values.tax}%. ${found.source}.`;
+  else zipNote.textContent = text === '' ? '' : stateTax ? 'ZIP code not recognised; using the national default property tax.' : 'State rates did not load; using the national default property tax.';
+  message.textContent = '';
+  render();
+}
+zipInput.addEventListener('input', applyZip);
+document.getElementById('rentown-zip-clear').addEventListener('click', () => { zipInput.value = ''; applyZip(); });
+// Typing a property tax by hand replaces what the ZIP filled in, so the source line no longer applies.
+form.addEventListener('input', (e) => { if (e.target.name === 'tax') zipNote.textContent = ''; });
 document.getElementById('rentown-reset').addEventListener('click', () => {
   units = defaultUnits();
   lastPct = { down: defaults.down, maintenance: defaults.maintenance };
@@ -335,6 +362,8 @@ document.getElementById('rentown-reset').addEventListener('click', () => {
   setValues(defaults);
   basisSelect.value = 'future';
   viewSelect.value = 'realized';
+  zipInput.value = '';
+  zipNote.textContent = '';
   render();
   message.textContent = 'Inputs reset to defaults.';
 });
