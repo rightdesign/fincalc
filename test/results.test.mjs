@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildResults, cardHtml, cardText, chartDescription, chartHtml, costSummaryHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
@@ -411,4 +412,25 @@ test('with downsizeUnavailable, no-mortgage and unchecked proceeds, no summary o
   for (const t of texts) {
     assert.doesNotMatch(t, /Downsize net (worth|proceeds)|outside funds|No mortgage payment|stays invested after the purchase/i);
   }
+});
+
+test('chart series use the red / near-black / grey palette and only the second line is dashed', () => {
+  const css = readFileSync(new URL('../site/styles.css', import.meta.url), 'utf8');
+  const body = css.slice(css.indexOf('Site-wide look'));
+  assert.match(body, /--series-1: #96151d/);
+  assert.match(body, /--series-2: #2b2b2b/);
+  assert.match(body, /--series-3: #8a8d91/);
+  const mk = (label, y) => ({ label, points: [{ x: 0, y: 0 }, { x: 10, y }] });
+  const svg = lineChartSvg({ title: 't', markerX: null, series: [mk('A', 100), mk('B', 99), mk('C', 98)] });
+  assert.equal((svg.match(/stroke-dasharray="6 4"/g) || []).length, 1);
+  assert.match(svg, /stroke:var\(--series-1\)/);
+  assert.match(svg, /stroke:var\(--series-3\)/);
+});
+
+test('line-end labels stay at least 14px apart when the lines end close together', () => {
+  const mk = (label, y) => ({ label, points: [{ x: 0, y: 0 }, { x: 10, y }] });
+  const svg = lineChartSvg({ title: 't', markerX: null, series: [mk('A', 100), mk('B', 99), mk('C', 98)] });
+  const ys = [...svg.matchAll(/<text x="[\d.]+" y="([\d.]+)" text-anchor="end" font-size="12" style="fill:var\(--series-\d\)"/g)].map((m) => Number(m[1])).sort((a, b) => a - b);
+  assert.equal(ys.length, 3);
+  assert.ok(ys[1] - ys[0] >= 13.9 && ys[2] - ys[1] >= 13.9, ys.join(','));
 });

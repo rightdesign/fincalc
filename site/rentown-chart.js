@@ -32,16 +32,16 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     svg += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(fmt(y))}</text>`;
+    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="12">${escape(fmt(y))}</text>`;
   }
-  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${xMin}</text>`;
-  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="12">Year ${xMin}</text>`;
+  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="12">Year ${xMax}</text>`;
   const repair = years.find((y) => y.repair);
   if (repair) {
     const x = sx(repair.year);
     const anchor = repair.year > (xMin + xMax) / 2 ? 'end' : 'start';
     svg += `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="grid" stroke-dasharray="2 3"/>`;
-    svg += `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8}" text-anchor="${anchor}" font-size="10">Major repair: year ${repair.year}</text>`;
+    svg += `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8}" text-anchor="${anchor}" font-size="12">Major repair: year ${repair.year}</text>`;
   }
   svg += `<path d="${line('own')}" fill="none" style="stroke:var(--series-1)" stroke-width="2.5"/>`;
   svg += `<path d="${line('rent')}" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4"/>`;
@@ -49,15 +49,15 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   if (hasLater) svg += `<path d="${line('later')}" fill="none" style="stroke:var(--series-3)" stroke-width="2.5" stroke-dasharray="10 3 2 3"/>`;
   const last = years[years.length - 1];
   const above = last.own >= last.rent;
-  svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-1)">Own</text>`;
-  svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent${hasPure ? ' (equal-cash)' : ''}</text>`;
-  if (hasLater) svg += `<text x="${W - PAD.r}" y="${f(sy(last.later) + (last.later >= Math.max(last.own, last.rent) ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-3)">Rent, then buy</text>`;
-  if (hasPure) svg += `<text x="${W - PAD.r}" y="${f(sy(last.pureRent) + (last.pureRent <= last.rent ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent (pure)</text>`;
+  svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="12" style="fill:var(--series-1)">Own</text>`;
+  svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="12" style="fill:var(--series-2)">Rent${hasPure ? ' (equal-cash)' : ''}</text>`;
+  if (hasLater) svg += `<text x="${W - PAD.r}" y="${f(sy(last.later) + (last.later >= Math.max(last.own, last.rent) ? -6 : 14))}" text-anchor="end" font-size="12" style="fill:var(--series-3)">Rent, then buy</text>`;
+  if (hasPure) svg += `<text x="${W - PAD.r}" y="${f(sy(last.pureRent) + (last.pureRent <= last.rent ? 14 : -6))}" text-anchor="end" font-size="12" style="fill:var(--series-2)">Rent (pure)</text>`;
   const mark = (year, label, cls, dash, row) => {
     const x = sx(year);
     const anchor = year > (xMin + xMax) / 2 ? 'end' : 'start';
     return `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="${cls}" stroke-dasharray="${dash}"/>`
-      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 12}" text-anchor="${anchor}" font-size="10">${escape(label)}</text>`;
+      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 14}" text-anchor="${anchor}" font-size="12">${escape(label)}</text>`;
   };
   if (stay != null && stay >= xMin && stay <= xMax) svg += mark(stay, `Your stay: year ${stay}`, 'stay', '2 3', 0);
   const crossing = breakEvenMonth == null ? `year ${breakEven}` : monthPoint(breakEvenMonth);

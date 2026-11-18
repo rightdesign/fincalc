@@ -382,32 +382,8 @@ function buildAll(values, du = false) {
 const COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
 const W = 480;
 const PAD = { l: 64, r: 12, t: 12, b: 28 };
-// The legend sits on its own rows below the year labels, so the chart grows
-// by one row per line of legend rather than overlapping the axis.
 const PLOT_H = 260;
-const LEGEND_ROW = 16;
-const CHAR_W = 6;
-const SWATCH_GAP = 14;
-const ITEM_GAP = 18;
-
-// Legend item positions, wrapped to the chart width: [{ x, row }] per series.
-function legendLayout(series) {
-  const maxX = W - PAD.r;
-  let x = PAD.l;
-  let row = 0;
-  return series.map((s) => {
-    const width = SWATCH_GAP + s.label.length * CHAR_W;
-    if (x > PAD.l && x + width > maxX) { x = PAD.l; row++; }
-    const item = { x, row };
-    x += width + ITEM_GAP;
-    return item;
-  });
-}
-
-function chartHeight(series) {
-  const rows = Math.max(...legendLayout(series).map((l) => l.row), 0) + 1;
-  return PLOT_H + 6 + rows * LEGEND_ROW;
-}
+const LABEL_GAP = 14;
 
 // Chart geometry shared by the SVG and the hover model, so a ring always
 // lands on its line.
@@ -436,35 +412,45 @@ export function lineChartSvg(section) {
   const { xMin, xMax, yMin, yMax, sx, sy } = chartScale(section);
   const f = (n) => n.toFixed(1);
 
-  const H = chartHeight(section.series);
-  const legend = legendLayout(section.series);
+  const H = PLOT_H;
   let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escape(section.title)} chart" class="chart">`;
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     out += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    out += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(formatMoney(y))}</text>`;
+    out += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="12">${escape(formatMoney(y))}</text>`;
   }
-  out += `<text x="${PAD.l}" y="${PLOT_H - 8}" font-size="10">Year ${xMin}</text>`;
-  out += `<text x="${W - PAD.r}" y="${PLOT_H - 8}" text-anchor="end" font-size="10">Year ${xMax}</text>`;
+  out += `<text x="${PAD.l}" y="${PLOT_H - 8}" font-size="12">Year ${xMin}</text>`;
+  out += `<text x="${W - PAD.r}" y="${PLOT_H - 8}" text-anchor="end" font-size="12">Year ${xMax}</text>`;
   if (section.markerX != null) {
     out += `<line class="marker" x1="${f(sx(section.markerX))}" x2="${f(sx(section.markerX))}" y1="${PAD.t}" y2="${PLOT_H - PAD.b}"/>`;
     const note = section.markerTerminal ? ' (only from the end-of-horizon sale)' : '';
-    out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="10">Breakeven: year ${section.markerX}${note}</text>`;
+    out += `<text x="${f(sx(section.markerX) + 4)}" y="${PAD.t + 10}" font-size="12">Breakeven: year ${section.markerX}${note}</text>`;
   }
   section.series.forEach((s, i) => {
     const path = (pts) => pts.map((p, j) => `${j ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p.y))}`).join('');
     const dashed = section.terminalX != null && s.points.length > 1;
     const solid = dashed ? s.points.slice(0, -1) : s.points;
-    out += `<path d="${path(solid)}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
+    const dash = i === 1 ? ' stroke-dasharray="6 4"' : '';
+    out += `<path d="${path(solid)}" fill="none" style="stroke:${COLORS[i]}" stroke-width="2.5"${dash}/>`;
     if (dashed) out += `<path class="terminal-segment" d="${path(s.points.slice(-2))}" fill="none" stroke-dasharray="4 4" style="stroke:${COLORS[i]}" stroke-width="2.5"/>`;
   });
   if (section.terminalX != null) {
-    out += `<text class="terminal-label" x="${W - PAD.r}" y="${PAD.t + 22}" text-anchor="end" font-size="10">${escape(TERMINAL_LABEL)}</text>`;
+    out += `<text class="terminal-label" x="${W - PAD.r}" y="${PAD.t + 22}" text-anchor="end" font-size="12">${escape(TERMINAL_LABEL)}</text>`;
+  }
+  // Direct labels at the line ends instead of a legend; the label sits above its
+  // line when that line ends higher than the others and below it otherwise.
+  const ends = section.series.map((s) => s.points[s.points.length - 1]?.y ?? 0);
+  const top = Math.max(...ends);
+  const labelY = section.series.map((s, i) => sy(ends[i]) + (ends[i] >= top ? -6 : 14));
+  // Nudge labels apart so lines that end close together do not stack their text.
+  const order = labelY.map((y, i) => i).sort((a, b) => labelY[a] - labelY[b]);
+  for (let k = 1; k < order.length; k++) {
+    const gap = labelY[order[k]] - labelY[order[k - 1]];
+    if (gap < LABEL_GAP) labelY[order[k]] += LABEL_GAP - gap;
   }
   section.series.forEach((s, i) => {
-    const top = PLOT_H + 2 + legend[i].row * LEGEND_ROW;
-    out += `<rect x="${legend[i].x}" y="${top}" width="10" height="10" style="fill:${COLORS[i]}"/>`;
-    out += `<text x="${legend[i].x + SWATCH_GAP}" y="${top + 9}" font-size="10">${escape(s.label)}</text>`;
+    if (!s.points.length) return;
+    out += `<text x="${W - PAD.r}" y="${f(labelY[i])}" text-anchor="end" font-size="12" style="fill:${COLORS[i]}">${escape(s.label)}</text>`;
   });
   out += `<g class="hover" style="display:none"><line class="crosshair" y1="${PAD.t}" y2="${PLOT_H - PAD.b}"/>`;
   section.series.forEach((s, i) => {

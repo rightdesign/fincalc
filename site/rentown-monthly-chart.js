@@ -33,21 +33,21 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
   for (let i = 0; i <= 4; i++) {
     const y = yMin + ((yMax - yMin) * i) / 4;
     svg += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="10">${escape(fmt(y))}</text>`;
+    svg += `<text x="${PAD.l - 6}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="12">${escape(fmt(y))}</text>`;
   }
-  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="10">Year ${Math.ceil(xMin)}</text>`;
-  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="10">Year ${Math.ceil(xMax)}</text>`;
+  svg += `<text x="${PAD.l}" y="${H - 8}" font-size="12">Year ${Math.ceil(xMin)}</text>`;
+  svg += `<text x="${W - PAD.r}" y="${H - 8}" text-anchor="end" font-size="12">Year ${Math.ceil(xMax)}</text>`;
   svg += `<path d="${line('own')}" fill="none" style="stroke:var(--series-1)" stroke-width="2.5"/>`;
   svg += `<path d="${line('rent')}" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4"/>`;
   const last = pts[pts.length - 1];
   const above = last.own >= last.rent;
-  svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="10" style="fill:var(--series-1)">Own</text>`;
-  svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="10" style="fill:var(--series-2)">Rent</text>`;
+  svg += `<text x="${W - PAD.r}" y="${f(sy(last.own) + (above ? -6 : 14))}" text-anchor="end" font-size="12" style="fill:var(--series-1)">Own</text>`;
+  svg += `<text x="${W - PAD.r}" y="${f(sy(last.rent) + (above ? 14 : -6))}" text-anchor="end" font-size="12" style="fill:var(--series-2)">Rent</text>`;
   const mark = (x0, label, cls, dash, row) => {
     const x = sx(x0);
     const anchor = x0 > (xMin + xMax) / 2 ? 'end' : 'start';
     return `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="${cls}" stroke-dasharray="${dash}"/>`
-      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 12}" text-anchor="${anchor}" font-size="10">${escape(label)}</text>`;
+      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 14}" text-anchor="${anchor}" font-size="12">${escape(label)}</text>`;
   };
   const showCross = cross != null && cross > 1 && cross <= months;
   const stayX = stay == null ? null : stay;
