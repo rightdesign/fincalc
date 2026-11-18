@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { compareRentOwn, compareScenarios, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { compareRentOwn, compareScenarios, durationText, equivalentRent, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { headlineCard } from '../site/rentown/headline.js';
+import { buildContext } from '../site/rentown/context.js';
 import { CALCULATORS } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -61,4 +63,39 @@ test('monthly break-even is the same rule as the yearly one, evaluated month by 
   assert.equal(compareRentOwn({ ...base(), years: r.breakEven }).breakEvenMonth, r.breakEvenMonth);
   assert.equal(compareRentOwn({ ...base(), years: 1, growth: 0 }).breakEvenMonth, null);
   assert.ok(r.pureBreakEvenMonth == null || Math.ceil(r.pureBreakEvenMonth / 12) === r.pureBreakEven);
+});
+
+test('durationText writes months as years and months', () => {
+  assert.equal(durationText(71), '5 years 11 months');
+  assert.equal(durationText(12), '1 year');
+  assert.equal(durationText(13), '1 year 1 month');
+  assert.equal(durationText(5), '5 months');
+});
+
+// Full inputs are stated; every other field is the default (6.5%, 30 years, 1.1% tax, 3% growth, 5% investment).
+const breakEvenCases = [
+  ['T0 ($450,000, 20% down, $2,300 rent, 7-year stay)', { price: 450000, down: 20, rent: 2300, years: 7 }, 104, 2415],
+  ['T-NW ($400,000, 10% down, 7.5%, $2,300 rent, 4-year stay)', { price: 400000, down: 10, rate: 7.5, rent: 2300, years: 4 }, 136, 3020],
+  ['T-Z ($300,000, 5% down, $1,800 rent, 7-year stay)', { price: 300000, down: 5, rent: 1800 }, 81, 1780],
+];
+for (const [name, inputs, months, equivalent] of breakEvenCases) {
+  test(`break-even ${name} is pinned and does not move with the stay`, () => {
+    const v = { ...rentOwnDefaults(), ...inputs };
+    assert.equal(compareRentOwn(v).chartBreakEvenMonth, months);
+    assert.equal(compareRentOwn({ ...v, years: 30 }).chartBreakEvenMonth, months);
+    assert.equal(Math.round(equivalentRent(v)), equivalent);
+    assert.match(headlineCard(buildContext(v, 'future')), new RegExp(`Buying wins if you stay at least ${durationText(months)}\\.`));
+  });
+}
+
+test('the headline says renting wins at every stay when owning never catches up', () => {
+  const v = { ...rentOwnDefaults(), rent: 1 };
+  assert.equal(compareRentOwn(v).chartBreakEvenMonth, null);
+  assert.match(headlineCard(buildContext(v, 'future')), /Renting wins at every stay up to 30 years on these numbers\./);
+  assert.match(headlineCard(buildContext({ ...v, years: 30 }, 'future')), /Renting wins at every stay up to 30 years/);
+});
+
+test('equivalentRent leaves renting and owning level at the stay', () => {
+  const v = rentOwnDefaults();
+  assert.ok(Math.abs(compareRentOwn({ ...v, rent: equivalentRent(v) }).final.difference) < 1);
 });

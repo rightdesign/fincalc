@@ -368,6 +368,28 @@ export function compareRentOwn(v) {
   };
 }
 
+// 71 months as "5 years 11 months".
+export function durationText(months) {
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const part = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'}`;
+  return [y && part(y, 'year'), m && part(m, 'month')].filter(Boolean).join(' ');
+}
+
+// The monthly rent (first year) at which renting and owning leave you equally
+// well off after the stay; any cheaper similar home makes renting the better deal.
+export function equivalentRent(v) {
+  const gap = (rent) => compareRentOwn({ ...v, rent }).final.difference;
+  let lo = 0;
+  let hi = Math.max(v.rent, 1) * 2;
+  for (let i = 0; i < 40 && gap(hi) < 0; i += 1) { lo = hi; hi *= 2; }
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (gap(mid) < 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
 // Where the gap at the end of the stay comes from. Renting ahead = upfront cash
 // + recurring (owning costs beyond renting) + opportunity cost (growth the
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
