@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.95.1] — 2026-11-18
+
+- FINC-162 Compound calculator presets now state what they set
+
 ## [0.95.0] — 2026-11-18
 
 - FINC-155 The compound interest calculator's chart is now a large stacked area of contributions and interest, with the crossover year marked and a hover tooltip that matches the year-by-year table.
