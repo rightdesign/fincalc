@@ -1,5 +1,5 @@
 // Page script for the compound interest calculator.
-import { compoundChartHtml, compoundTip } from './compound-chart.js';
+import { compoundChartHtml, compoundTip, crossoverYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
 import { COMPOUND_FIELDS, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, headline, inTodaysDollars, invalidCompound, parseNumber, simulateCompound } from './compound.js';
@@ -125,7 +125,8 @@ function render() {
   const today = v.basis === 'today';
   const r = today ? inTodaysDollars(nominal, v.inflation) : nominal;
   const unit = today ? " (today's dollars)" : '';
-  const rows = r.years.map((y) => `<tr><td>${y.year}</td><td>${money(y.contributions)}</td><td>${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td>${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
+  const cross = crossoverYear(r.years);
+  const rows = r.years.map((y) => `<tr${y.year === cross ? ' class="m-cross" aria-label="Year ' + y.year + ', the year interest to date passes contributions to date"' : ''}><td>${y.year}</td><td>${money(y.contributions)}</td><td class="m-int">${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td class="m-int m-int-total">${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
   hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p></div>`;
@@ -137,8 +138,8 @@ function render() {
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
     <div class="m-panelbox">${compoundChartHtml(r.years, money)}</div>
-    <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)</caption>
-      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col">Interest this year</th><th scope="col">Total contributed</th><th scope="col">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
+    <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the end of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</caption>
+      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
   explainerBody.innerHTML = compoundingExplainer(v, r).map((p) => `<h3>${p.title}</h3><p>${p.text}</p>`).join('');
   explainer.hidden = false;

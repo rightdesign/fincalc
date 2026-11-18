@@ -829,6 +829,9 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .m-table, .data-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .m-table th, .m-table td, .data-table th, .data-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--rule); }
 .m-table caption, .data-table caption { text-align: left; color: var(--muted); padding-bottom: 0.25rem; }
+.m-table .m-int { color: var(--series-3); }
+.m-table .m-int-total { font-weight: bold; background: color-mix(in srgb, var(--series-3) 10%, transparent); }
+.m-table tr.m-cross td { font-weight: bold; background: color-mix(in srgb, var(--series-3) 22%, transparent); border-top: 2px solid var(--series-3); border-bottom: 2px solid var(--series-3); }
 .m-breakdown { max-width: 28rem; margin: var(--gap) 0; }
 .m-breakdown th { text-align: left; font-weight: normal; }
 .m-breakdown td { text-align: right; }
