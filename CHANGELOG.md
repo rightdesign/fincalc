@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.95.0] — 2026-11-18
+
+- FINC-155 The compound interest calculator's chart is now a large stacked area of contributions and interest, with the crossover year marked and a hover tooltip that matches the year-by-year table.
+- FINC-165 The rent vs own calculator has a new layout: inputs in a left rail with collapsible groups, the answer in a hero card with three headline figures, and the results in tabs (Net worth, Monthly cost, Where the difference comes from, What moves it, Table); on narrow screens the inputs stack above the results.
+
 ## [0.94.0] — 2026-11-18
 
 - FINC-160 The compound interest calculator can show results in today's dollars: enter an inflation rate (default 3%) and switch "Show results in" to restate the future value, chart and table; the choice is saved in the shareable link.
