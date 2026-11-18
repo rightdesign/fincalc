@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.92.0] — 2026-11-18
+
+- FINC-154 There is a new compound interest calculator (compound.html): enter a starting balance, monthly contribution, annual return, years and compounding frequency to see the future value, total contributed and interest earned, with a chart, year-by-year table and shareable link.
+
 ## [0.91.0] — 2026-11-18
 
 - FINC-112 The rent vs own calculator has an optional ZIP code field that pre-fills the property tax rate from your state's average (Tax Foundation, 2024), with its source shown; clear it to return to the national default.
