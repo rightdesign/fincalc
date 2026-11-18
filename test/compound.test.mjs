@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, simulateCompound } from '../site/compound.js';
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -76,6 +76,29 @@ test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in
   const w = { ...v, basis: 'today', inflation: 2.5 };
   assert.deepEqual(decodeCompound(encodeCompound(w)), w);
   assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
+});
+
+test('start-early comparison: $500/month at 7% for 40 years versus 30', () => {
+  const v = { start: 0, monthly: 500, rate: 7, years: 40, frequency: 'monthly' };
+  const c = compareStartingLater(v);
+  assert.equal(c.now.contributed, 240000);
+  assert.equal(c.later.contributed, 180000);
+  assert.equal(c.extraContributed, 60000);
+  assert.ok(Math.abs(c.now.futureValue - 1312000) < 1000);
+  assert.ok(Math.abs(c.later.futureValue - 610000) < 1000);
+  assert.ok(Math.abs(c.gap - 702000) < 1000);
+  assert.equal(c.now.futureValue, simulateCompound(v).futureValue);
+  assert.ok(compareStartingLater({ ...v, monthly: 1000 }).gap > c.gap);
+  assert.equal(compareStartingLater({ ...v, years: 10 }), null);
+  const real = compareStartingLater({ ...v, basis: 'today', inflation: 3 });
+  const d = 1.03 ** 40;
+  assert.ok(real.todaysDollars);
+  assert.ok(Math.abs(real.now.futureValue - c.now.futureValue / d) < 0.01);
+  assert.ok(Math.abs(real.later.futureValue - c.later.futureValue / d) < 0.01);
+  assert.ok(Math.abs(real.gap - (c.now.futureValue - c.later.futureValue) / d) < 0.01);
+  assert.equal(real.now.contributed, 240000);
+  assert.equal(real.extraContributed, 60000);
+  assert.equal(compareStartingLater({ ...v, basis: 'today', inflation: 0 }).gap, c.gap);
 });
 
 import { compoundChartHtml, compoundTip, crossoverYear } from '../site/compound-chart.js';

@@ -954,6 +954,12 @@ fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-p
 .ro-return-presets button { background: transparent; border-color: var(--border); }
 .ro-return-presets button[aria-pressed="true"] { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 600; }
 
+.m-cmp-bars { margin: 0.5rem 0 0.75rem; }
+.m-cmp-row { margin: 0 0 0.5rem; }
+.m-cmp-label, .m-cmp-value { margin: 0; font-size: 0.9rem; }
+.m-cmp-track { height: 1rem; margin: 0.15rem 0; border-radius: 0.25rem; overflow: hidden; position: relative; }
+.m-cmp-track span { display: block; height: 100%; }
+
 /* Home page: the shared page skeleton (rail, hero, tiles, underline tabs) around the accordion groups. */
 .calculator.m-page { display: block; }
 .calculator .m-hero-slot:empty { display: none; }

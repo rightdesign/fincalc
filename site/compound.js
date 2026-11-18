@@ -86,6 +86,30 @@ export function simulateCompound(v) {
   return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
+export const WAIT_YEARS = 10;
+
+// The same plan run twice for the same end date: starting now, and starting WAIT_YEARS later (so
+// WAIT_YEARS fewer years of the same contribution, return and compounding). Null when the horizon
+// is not longer than the wait, because there is nothing left to compare. In today's-dollars mode
+// both balances (which land on the same date) are divided by (1 + inflation)^years and the gap is
+// recomputed from them; what was contributed stays in the dollars paid.
+export function compareStartingLater(v) {
+  if (!(v.years > WAIT_YEARS)) return null;
+  const now = simulateCompound(v);
+  const later = simulateCompound({ ...v, years: v.years - WAIT_YEARS });
+  const deflate = v.basis === 'today' ? (1 + v.inflation / 100) ** v.years : 1;
+  const nowBalance = now.futureValue / deflate;
+  const laterBalance = later.futureValue / deflate;
+  return {
+    waitYears: WAIT_YEARS,
+    todaysDollars: v.basis === 'today',
+    now: { futureValue: nowBalance, contributed: now.contributed },
+    later: { futureValue: laterBalance, contributed: later.contributed },
+    gap: nowBalance - laterBalance,
+    extraContributed: now.contributed - later.contributed,
+  };
+}
+
 // The same years with each balance restated in today's dollars: divided by (1 + inflation)^year.
 // What you contributed stays in the dollars you paid; interest becomes the real balance minus that
 // (negative when inflation outruns the return).

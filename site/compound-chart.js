@@ -73,3 +73,15 @@ export function compoundChartHtml(rows, fmt) {
   const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure"><div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
+
+// Two horizontal bars for the start-early comparison: each end balance, with the part that was
+// contributed drawn darker. c is the result of compareStartingLater.
+export function compareChartHtml(c, fmt) {
+  const max = Math.max(c.now.futureValue, c.later.futureValue, 1);
+  const bar = (label, side, series) => {
+    const total = (side.futureValue / max) * 100;
+    const put = (side.contributed / max) * 100;
+    return `<div class="m-cmp-row"><p class="m-cmp-label">${escape(label)}</p><div class="m-cmp-track" style="width:${total.toFixed(1)}%;background:var(${series});opacity:0.45"><span style="width:${((put / total) * 100 || 0).toFixed(1)}%;background:var(${series})"></span></div><p class="m-cmp-value">${escape(fmt(side.futureValue))} <small>(${escape(fmt(side.contributed))} contributed)</small></p></div>`;
+  };
+  return `<div class="m-cmp-bars" role="img" aria-label="${escape(`Start now ends with ${fmt(c.now.futureValue)}; starting ${c.waitYears} years later ends with ${fmt(c.later.futureValue)}.`)}">${bar('Start now', c.now, '--series-1')}${bar(`Start ${c.waitYears} years later`, c.later, '--series-2')}</div>`;
+}
