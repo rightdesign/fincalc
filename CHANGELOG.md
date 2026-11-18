@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.93.0] — 2026-11-18
+
+- FINC-153 The rent vs own, home-page and variable-rate mortgage calculators now share one Vanguard-style look (colours, fonts, square corners, red accents, dark mode), and the rent vs own preset chips are outlined with a clearly marked active one.
+
 ## [0.92.0] — 2026-11-18
 
 - FINC-154 There is a new compound interest calculator (compound.html): enter a starting balance, monthly contribution, annual return, years and compounding frequency to see the future value, total contributed and interest earned, with a chart, year-by-year table and shareable link.
