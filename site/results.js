@@ -546,8 +546,16 @@ export function headlineHtml(h) {
   const year = (y, terminal) => (y == null ? 'Not within horizon' : `Year ${y}${terminal ? ' (end-of-horizon sale only)' : ''}`);
   const unavailable = h.downsizeUnavailable;
   const money = (n) => (n === undefined ? 'n/a' : formatMoney(n));
-  const card = (label, value) => `<div class="kpi"><span class="kpi-label">${escape(label)}</span><strong>${escape(value)}</strong></div>`;
-  return `<div class="headline">${card('Sell pulls ahead', year(h.breakevenYear, h.breakevenTerminal))}${card('Downsize pulls ahead', unavailable ? 'Unavailable' : year(h.downsizeBreakevenYear, h.downsizeBreakevenTerminal))}${card(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(money).join(' / '))}${card(`Net worth, equal cash contributions, year ${h.year} (stay / sell / downsize)`, [h.stay, h.equalSell, h.equalDownsize].map(money).join(' / '))}</div>`;
+  const tile = (label, value) => `<div class="m-tile"><h3>${escape(label)}</h3><p class="m-big">${escape(value)}</p></div>`;
+  return `<div class="headline m-tiles">${tile('Sell pulls ahead', year(h.breakevenYear, h.breakevenTerminal))}${tile('Downsize pulls ahead', unavailable ? 'Unavailable' : year(h.downsizeBreakevenYear, h.downsizeBreakevenTerminal))}${tile(`Net worth, year ${h.year} (stay / sell / downsize)`, [h.stay, h.sell, h.downsize].map(money).join(' / '))}${tile(`Net worth, equal cash contributions, year ${h.year} (stay / sell / downsize)`, [h.stay, h.equalSell, h.equalDownsize].map(money).join(' / '))}</div>`;
+}
+
+// The hero: the path with the highest net worth at the end of the horizon, and the other paths beneath it.
+export function heroHtml(h) {
+  const paths = [['Stay', h.stay], ['Sell and rent', h.sell], ['Downsize', h.downsize]].filter(([, n]) => Number.isFinite(n));
+  if (!paths.length) return '';
+  const [best, top] = paths.reduce((a, b) => (b[1] > a[1] ? b : a));
+  return `<div class="m-hero"><p class="m-hero-label">Highest net worth at year ${h.year}</p><p class="m-hero-figure"><span>${escape(best)}: ${escape(formatMoney(top))}</span></p><p class="m-hero-sub">${paths.map(([l, n]) => `${escape(l)} ${escape(formatMoney(n))}`).join(' &middot; ')}</p></div>`;
 }
 
 // The inputs that differ from their defaults, as [label, formatted value]

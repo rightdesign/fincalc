@@ -287,7 +287,6 @@ legend {
 }
 
 .group-toggle:focus-visible,
-.tab:focus-visible,
 .chip:focus-visible,
 .tab-panel:focus-visible {
   outline: 2px solid var(--focus);
@@ -415,23 +414,6 @@ legend {
   margin-bottom: 1rem;
 }
 
-.kpi {
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--panel);
-}
-
-.kpi-label {
-  display: block;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-.kpi strong {
-  font-size: 1.0625rem;
-}
-
 .tabs-bar {
   position: relative;
   margin-bottom: 1rem;
@@ -445,7 +427,6 @@ legend {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  box-shadow: inset 0 -2px 0 var(--rule);
 }
 
 .tabs::-webkit-scrollbar {
@@ -488,23 +469,6 @@ legend {
 .tabs-more-end {
   right: 0;
   background: linear-gradient(to left, var(--bg) 60%, transparent);
-}
-
-.tab {
-  flex: none;
-  padding: 0.5rem 0.75rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.tab[aria-selected="true"] {
-  border-bottom-color: var(--focus);
-  color: var(--text);
-  font-weight: 600;
 }
 
 .print-summary {
@@ -982,14 +946,30 @@ fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-p
 .group > h3 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .group-meta { color: var(--accent); }
 .group-dot { background: var(--accent); }
-.kpi strong { font-weight: 600; }
-.tab[aria-selected="true"] { border-bottom: 3px solid var(--accent); }
 .ro-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .ro-return-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .ro-presets button { min-height: 2rem; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 0.125rem; font: inherit; cursor: pointer; }
 .ro-presets button[aria-pressed="true"] { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 600; }
 .ro-return-presets button { background: transparent; border-color: var(--border); }
 .ro-return-presets button[aria-pressed="true"] { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 600; }
+
+/* Home page: the shared page skeleton (rail, hero, tiles, underline tabs) around the accordion groups. */
+.calculator.m-page { display: block; }
+.calculator .m-hero-slot:empty { display: none; }
+.group.m-optional { padding: 0; margin: 0 0 0.5rem; }
+.group.m-optional .group-count { float: none; font-weight: 400; color: var(--muted); }
+.group-toggle { text-transform: none; }
+.group-toggle .group-name { text-transform: uppercase; }
+.tabs.m-tabs { gap: 1.25rem; }
+.tabs.m-tabs button { flex: none; }
+@media (min-width: 50.01rem) {
+  .tabs.m-tabs { flex-wrap: wrap; overflow: visible; column-gap: 1.25rem; }
+}
+.headline.m-tiles { margin-top: 0; }
+.m-tile .m-big { font-size: 1.1rem; }
+@media (max-width: 899px) {
+  .rail { position: static; max-height: none; overflow: visible; }
+}
 
 /* Rent vs own layout: inputs rail beside the results, stacked below 50rem. */
 .layout { display: flex; flex-direction: column; gap: 1.5rem; }

@@ -8,7 +8,7 @@ import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from 
 import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
 import { csvFilename, tableCsv } from './export.js';
 import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
-import { buildResults, changedInputs, headlineHtml, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
+import { buildResults, changedInputs, headlineHtml, heroHtml, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -160,7 +160,7 @@ const DEFAULT_GROUP = 'Home';
 // Only one group is open at a time; the open one is remembered.
 function makeGroup(title, count) {
   const group = document.createElement('div');
-  group.className = 'group';
+  group.className = 'group m-optional';
   group.dataset.group = title;
   const id = `group-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const head = document.createElement('h3');
@@ -169,7 +169,7 @@ function makeGroup(title, count) {
   toggle.className = 'group-toggle';
   toggle.id = `${id}-toggle`;
   toggle.setAttribute('aria-controls', id);
-  toggle.innerHTML = `<span class="group-name">${esc(title)}</span><span class="group-meta"><span class="group-dot" role="img" aria-label="Needs attention" hidden></span><span class="group-count">${count} ${count === 1 ? 'input' : 'inputs'}</span></span>`;
+  toggle.innerHTML = `<span class="group-name m-group-title">${esc(title)}</span><span class="group-meta"><span class="group-dot m-dot" role="img" aria-label="Needs attention" hidden></span><span class="group-count m-group-summary">${count} ${count === 1 ? 'input' : 'inputs'}</span></span>`;
   head.append(toggle);
   const body = document.createElement('div');
   body.className = 'group-body';
@@ -464,7 +464,7 @@ function updateTabIndicators(bar) {
   bar.querySelector('.tabs-more-end').hidden = strip.scrollLeft > max - 1;
 }
 
-function renderResults(container, form, scenarios) {
+function renderResults(container, form, scenarios, hero) {
   const values = readInputs(form);
   const inDownsize = (f) => (GROUP_TITLES[f.group] ?? f.group) === 'If you downsize';
   const missing = FIELDS.filter((f) => values[f.id] == null && !inDownsize(f)).map((f) => f.label);
@@ -488,6 +488,7 @@ function renderResults(container, form, scenarios) {
   if (missing.length) {
     showShortfall(form, '');
     showShortfall(form, '', 'no-mortgage-notice');
+    hero.replaceChildren();
     container.innerHTML = `<p class="placeholder">Enter a valid value for: ${missing.join(', ')}.</p>`;
     shown = [];
     return;
@@ -512,12 +513,13 @@ function renderResults(container, form, scenarios) {
     compare: compareHtml(scenarios.state.list),
     tables: sections.map((s) => `<section class="result"><h2>${s.title}</h2>${tableHtml(s)}<p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`).join(''),
   };
-  const tabs = TABS.map(([id, label]) => `<button type="button" role="tab" class="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`).join('');
+  const tabs = TABS.map(([id, label]) => `<button type="button" role="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`).join('');
   const body = TABS.map(([id]) => `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`).join('');
   const stripLeft = container.querySelector('.tabs')?.scrollLeft ?? 0;
   const more = (side, label, glyph) => `<button type="button" class="tabs-more tabs-more-${side}" data-scroll="${side === 'start' ? -1 : 1}" aria-label="${label}" tabindex="-1" hidden>${glyph}</button>`;
   const unavailableNote = downsizeUnavailable ? `<p class="placeholder downsize-unavailable" role="status">Downsize results are unavailable. Enter a valid value for: ${esc(downsizeBad.join(', '))}.</p>` : '';
-  container.innerHTML = `${unavailableNote}${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
+  hero.innerHTML = heroHtml(headline);
+  container.innerHTML = `${unavailableNote}${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs m-tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
   const bar = container.querySelector('.tabs-bar');
   const strip = bar.querySelector('.tabs');
   strip.scrollLeft = stripLeft;
@@ -680,16 +682,19 @@ function mountSharing(form, update) {
 
 if (root) {
   const rail = document.createElement('aside');
-  rail.className = 'rail';
+  rail.className = 'rail m-inputs-col';
   rail.setAttribute('aria-label', 'Inputs and scenarios');
   const main = document.createElement('div');
-  main.className = 'results-area';
+  main.className = 'results-area m-results-col';
   const form = renderForm(document.createDocumentFragment());
   const results = document.createElement('div');
   results.id = 'results';
   results.setAttribute('aria-live', 'polite');
   let scenarios;
-  const update = () => renderResults(results, form, scenarios);
+  const hero = document.createElement('section');
+  hero.className = 'm-hero-slot';
+  hero.setAttribute('aria-live', 'polite');
+  const update = () => renderResults(results, form, scenarios, hero);
   scenarios = mountScenarios(form, () => { update(); sharing.save(); });
   results.addEventListener('click', (e) => {
     const more = e.target.closest('.tabs-more');
@@ -725,7 +730,17 @@ if (root) {
   rail.append(scenarios);
   rail.append(form);
   main.append(head, results);
-  root.replaceChildren(rail, main);
+  // On wide screens the headline result sits above the results so it stays in view; on narrow
+  // screens it comes first on the page, ahead of the inputs.
+  const layout = document.createElement('div');
+  layout.className = 'm-layout';
+  layout.append(rail, main);
+  root.classList.add('m-page');
+  root.replaceChildren(layout);
+  const wide = window.matchMedia('(min-width: 900px)');
+  const placeHero = () => (wide.matches ? main : layout).prepend(hero);
+  wide.addEventListener('change', placeHero);
+  placeHero();
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();
