@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { LOCATION_FIELDS, locationDefaults, parseStateTax, parseZip, stateForZip } from '../site/rentown/location.js';
+import { LOCATION_FIELDS, locationDefaults, parseStateRentGrowth, parseStateTax, parseZip, stateForZip } from '../site/rentown/location.js';
 import { rentOwnDefaults } from '../site/rentown.js';
 
 const table = parseStateTax(JSON.parse(readFileSync(new URL('../site/data/state-property-tax.json', import.meta.url), 'utf8')));
+
+const growth = parseStateRentGrowth(JSON.parse(readFileSync(new URL('../site/data/state-rent-growth.json', import.meta.url), 'utf8')));
 
 test('the shipped table is usable and covers 50 states and DC', () => {
   assert.ok(table);
@@ -37,13 +39,28 @@ test('military, territory and unassigned prefixes have no state', () => {
   for (const zip of ['09001', '00601', '96201', '34001', '96401', '00001']) assert.equal(stateForZip(zip), null, zip);
 });
 
-test('a ZIP sets only the property tax, as a percent, and names its source', () => {
-  const d = locationDefaults('94103', table);
+test('the shipped rent growth table is usable, covers 50 states and DC, and every mapped state has a value', () => {
+  assert.ok(growth);
+  assert.equal(Object.keys(growth.rentGrowth).length, 51);
+  for (const bad of [null, {}, { rentGrowth: {} }, { rentGrowth: { Texas: '1' } }, { rentGrowth: { Texas: 0.5 } }]) assert.equal(parseStateRentGrowth(bad), null);
+  for (const state of Object.keys(table.taxRate)) assert.ok(typeof growth.rentGrowth[state] === 'number', state);
+});
+
+test('a ZIP sets the property tax and rent growth, as percents, and names its sources', () => {
+  const d = locationDefaults('94103', table, growth);
   assert.deepEqual(Object.keys(d.values), LOCATION_FIELDS);
-  assert.deepEqual(LOCATION_FIELDS, ['tax']);
+  assert.deepEqual(LOCATION_FIELDS, ['tax', 'rentGrowth']);
   assert.equal(d.values.tax, 0.7);
+  assert.equal(d.values.rentGrowth, 6.48);
   assert.equal(d.state, 'California');
-  assert.match(d.source, /Tax Foundation, 2024/);
+  assert.match(d.sources[0], /Tax Foundation, 2024/);
+  assert.match(d.sources[1], /not a forecast/);
+});
+
+test('a table that failed to load leaves only its field out', () => {
+  assert.deepEqual(Object.keys(locationDefaults('94103', table, null).values), ['tax']);
+  assert.deepEqual(Object.keys(locationDefaults('94103', null, growth).values), ['rentGrowth']);
+  assert.equal(locationDefaults('94103', null, null), null);
 });
 
 test('an unknown or invalid ZIP gives nothing, so the national defaults stay', () => {

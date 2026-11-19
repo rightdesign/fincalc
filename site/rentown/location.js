@@ -1,8 +1,8 @@
-// Optional location defaults: a ZIP code sets the property tax rate from a small published table of
-// state effective rates (site/data/state-property-tax.json). Pure helpers, no DOM, so node can test them.
+// Optional location defaults: a ZIP code sets the property tax rate and the rent growth from small published tables of
+// state figures (site/data/state-property-tax.json, site/data/state-rent-growth.json). Pure helpers, no DOM, so node can test them.
 // Only the fields in LOCATION_FIELDS are ever filled; everything else stays as the user has it.
 
-export const LOCATION_FIELDS = ['tax'];
+export const LOCATION_FIELDS = ['tax', 'rentGrowth'];
 
 // First three digits of a ZIP code to a state, as [first, last, state] ranges. A prefix in no range
 // (military mail, territories, unassigned prefixes) has no state. Exceptions are checked first.
@@ -46,10 +46,30 @@ export function parseStateTax(data) {
   return { source: String(data.source || 'Tax Foundation'), asOf: String(data.asOf || ''), taxRate: data.taxRate };
 }
 
-// What a ZIP fills in: { values: { tax: <percent> }, state, source } for a known state, null otherwise.
-export function locationDefaults(zip, table) {
+// The rent growth table's content when it is usable, else null: a source, a year and an annual rate between -20% and 30% per state.
+export function parseStateRentGrowth(data) {
+  if (!data || typeof data !== 'object' || !data.rentGrowth || typeof data.rentGrowth !== 'object') return null;
+  const rates = Object.entries(data.rentGrowth);
+  if (!rates.length || rates.some(([, r]) => typeof r !== 'number' || !Number.isFinite(r) || r < -0.2 || r > 0.3)) return null;
+  return { source: String(data.source || 'U.S. Census Bureau'), asOf: String(data.asOf || ''), rentGrowth: data.rentGrowth };
+}
+
+// What a ZIP fills in: { values: { tax: <percent>, rentGrowth: <percent> }, state, sources } for a known state, null otherwise.
+// Either table may be missing (it failed to load); that field is then left out and keeps its default.
+export function locationDefaults(zip, taxTable, rentTable = null) {
   const state = stateForZip(zip);
-  const rate = state && table?.taxRate[state];
-  if (typeof rate !== 'number') return null;
-  return { values: { tax: Math.round(rate * 1e4) / 100 }, state, source: `Property tax: Tax Foundation, ${table.asOf} (Census ACS 5-yr)` };
+  if (!state) return null;
+  const values = {};
+  const sources = [];
+  const tax = taxTable?.taxRate[state];
+  if (typeof tax === 'number') {
+    values.tax = Math.round(tax * 1e4) / 100;
+    sources.push(`Property tax: Tax Foundation, ${taxTable.asOf} (Census ACS 5-yr)`);
+  }
+  const growth = rentTable?.rentGrowth[state];
+  if (typeof growth === 'number') {
+    values.rentGrowth = Math.round(growth * 1e4) / 100;
+    sources.push(`Rent growth: Census ACS 5-yr median gross rent, 2014-2018 to 2019-${rentTable.asOf}, a past change and not a forecast, not adjusted for inflation`);
+  }
+  return Object.keys(values).length ? { values, state, sources } : null;
 }
