@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.105.0] — 2026-11-19
+
+- FINC-175 The compound interest calculator's Compounding input now offers semiannual, quarterly, daily and continuous compounding alongside monthly and annual.
+
 ## [0.104.0] — 2026-11-18
 
 - FINC-173 The compound interest calculator has a "contribute 20 years, then let it grow" example, a "What if I stop contributing?" FAQ answer that quotes your numbers, and a methodology note on the two-phase formula.
