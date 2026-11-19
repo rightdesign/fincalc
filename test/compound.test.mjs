@@ -324,6 +324,24 @@ test('compound chart has no stop marker when contributions run to the end or nev
   }
 });
 
+test('stepUp raises the monthly contribution each year and defaults to flat', () => {
+  const base = { ...compoundDefaults(), start: 0, monthly: 100, years: 3, contributeYears: 3, rate: 0 };
+  assert.equal(compoundDefaults().stepUp, 0);
+  const flat = simulateCompound(base);
+  assert.deepEqual(flat.years.map((y) => y.contributions), [1200, 1200, 1200]);
+  const up = simulateCompound({ ...base, stepUp: 10 });
+  assert.deepEqual(up.years.map((y) => Math.round(y.contributions * 100) / 100), [1200, 1320, 1452]);
+  assert.ok(Math.abs(up.contributed - 3972) < 1e-9);
+});
+
+test('stepUp stops with the contribution period and round-trips in a link', () => {
+  const v = { ...compoundDefaults(), start: 0, monthly: 100, years: 4, contributeYears: 2, rate: 0, stepUp: 5 };
+  assert.deepEqual(simulateCompound(v).years.map((y) => Math.round(y.contributions)), [1200, 1260, 0, 0]);
+  assert.equal(decodeCompound(encodeCompound(v)).stepUp, 5);
+  assert.ok(!encodeCompound({ ...v, stepUp: 0 }).includes('stepUp'));
+  assert.deepEqual(invalidCompound({ ...v, stepUp: -1 }), ['Increase contribution each year (%)']);
+});
+
 test('tax on interest: 0% changes nothing; monthly closed form uses r/12 x (1 - t)', () => {
   const v = compoundDefaults();
   assert.equal(simulateCompound({ ...v, taxRate: 0 }).futureValue, simulateCompound(v).futureValue);

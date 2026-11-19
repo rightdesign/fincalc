@@ -8,6 +8,7 @@ export const COMPOUND_FIELDS = [
   { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 500000, step: 1000 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
+  { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   { id: 'variance', label: 'Return variance (± %)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. How far above and below the annual return the real result could land. Set to 2 with a 7% return and the chart shades the range between a 5% and a 9% return, and the results state the balance range. 0 shows a single line.' },
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
@@ -75,7 +76,8 @@ export const frequencyLabel = (f) => COMPOUND_FIELDS.find((x) => x.id === 'frequ
 // The frequency the "other choice" comparison uses: annually against monthly, everything else against monthly.
 export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
 
-// Year-by-year growth. Interest is taxed at taxRate as it is earned (each month's interest when compounding
+// Year-by-year growth. The monthly contribution rises by stepUp percent each year after the first.
+// Interest is taxed at taxRate as it is earned (each month's interest when compounding
 // monthly or more often; each period's interest otherwise), so only the after-tax part joins the balance
 // and compounds; interest, totalInterest and the balances are all after tax. Contributions are made at the end of each month, or the beginning when
 // timing is 'start'. Compounding every month or more often grows the balance by a monthly factor
@@ -103,7 +105,7 @@ export function simulateCompound(v) {
     const open = balance;
     let interest = 0;
     let added = 0;
-    const monthly = y <= payYears ? v.monthly : 0;
+    const monthly = y <= payYears ? v.monthly * (1 + (v.stepUp ?? 0) / 100) ** (y - 1) : 0;
     if (k >= 12) {
       for (let m = 1; m <= 12; m++) {
         if (early) balance += monthly;

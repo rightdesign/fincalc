@@ -36,7 +36,7 @@ export function faqItems(v, r) {
     },
     {
       q: 'What if I increase my contribution every year?',
-      a: `This version does not model that: the contribution stays flat at ${money(v.monthly)} a month for ${years(contributionYears(v))}. A raise each year would add to the future value, so treat the figure here as a floor for that plan, or rerun it with a higher monthly amount.`,
+      a: increaseAnswer(v, r, unit),
     },
     {
       q: 'Does it matter how often interest compounds?',
@@ -68,6 +68,20 @@ function stopAnswer(v, r, unit) {
   if (v.years < 2 || v.monthly <= 0) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
   const stopped = restate(simulate({ ...v, contributeYears: cut }));
   return `Right now you contribute for all ${years(v.years)}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${years(cut)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
+}
+
+// Quotes the page's plan against the same plan with a flat contribution (or, when the plan is flat, a 3% yearly increase).
+function increaseAnswer(v, r, unit) {
+  const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
+  if (!(v.monthly > 0) || contributionYears(v) < 1) return 'With no monthly contribution there is nothing to increase. Enter a monthly amount, then use "Increase contribution each year (%)" to raise it every year.';
+  const step = v.stepUp ?? 0;
+  if (step > 0) {
+    const flat = restate(simulate({ ...v, stepUp: 0 }));
+    const last = v.monthly * (1 + step / 100) ** (contributionYears(v) - 1);
+    return `Your contribution rises ${step}% a year, from ${money(v.monthly)} a month in year 1 to ${money(last)} a month in year ${contributionYears(v)}, so you put in ${money(r.contributed)} and end at ${money(r.futureValue)}${unit}. Kept flat at ${money(v.monthly)} a month it would end at ${money(flat.futureValue)}${unit}, so the increases add ${money(r.futureValue - flat.futureValue)}${unit}. Set the increase to 0 to keep it flat.`;
+  }
+  const raised = restate(simulate({ ...v, stepUp: 3 }));
+  return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} a month for ${years(contributionYears(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
 }
 
 // The same plan with no tax, in the dollars the page shows.
