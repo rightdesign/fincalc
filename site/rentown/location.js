@@ -1,8 +1,8 @@
-// Optional location defaults: a ZIP code sets the property tax rate and the rent growth from small published tables of
-// state figures (site/data/state-property-tax.json, site/data/state-rent-growth.json). Pure helpers, no DOM, so node can test them.
+// Optional location defaults: a ZIP code sets the property tax rate, rent growth and home insurance from small published tables of
+// state figures (site/data/state-property-tax.json, state-rent-growth.json, state-insurance.json). Pure helpers, no DOM, so node can test them.
 // Only the fields in LOCATION_FIELDS are ever filled; everything else stays as the user has it.
 
-export const LOCATION_FIELDS = ['tax', 'rentGrowth'];
+export const LOCATION_FIELDS = ['tax', 'rentGrowth', 'insurance'];
 
 // First three digits of a ZIP code to a state, as [first, last, state] ranges. A prefix in no range
 // (military mail, territories, unassigned prefixes) has no state. Exceptions are checked first.
@@ -54,9 +54,17 @@ export function parseStateRentGrowth(data) {
   return { source: String(data.source || 'U.S. Census Bureau'), asOf: String(data.asOf || ''), rentGrowth: data.rentGrowth };
 }
 
-// What a ZIP fills in: { values: { tax: <percent>, rentGrowth: <percent> }, state, sources } for a known state, null otherwise.
-// Either table may be missing (it failed to load); that field is then left out and keeps its default.
-export function locationDefaults(zip, taxTable, rentTable = null) {
+// The insurance table's content when it is usable, else null: a source, a year and a yearly premium between 0 and 5% of home value per state.
+export function parseStateInsurance(data) {
+  if (!data || typeof data !== 'object' || !data.insurance || typeof data.insurance !== 'object') return null;
+  const rates = Object.entries(data.insurance);
+  if (!rates.length || rates.some(([, r]) => typeof r !== 'number' || !Number.isFinite(r) || r < 0 || r > 0.05)) return null;
+  return { source: String(data.source || 'U.S. Census Bureau'), asOf: String(data.asOf || ''), insurance: data.insurance };
+}
+
+// What a ZIP fills in: { values: { tax: <percent>, rentGrowth: <percent>, insurance: <percent> }, state, sources } for a known state, null otherwise.
+// Any table may be missing (it failed to load); that field is then left out and keeps its default.
+export function locationDefaults(zip, taxTable, rentTable = null, insuranceTable = null) {
   const state = stateForZip(zip);
   if (!state) return null;
   const values = {};
@@ -70,6 +78,11 @@ export function locationDefaults(zip, taxTable, rentTable = null) {
   if (typeof growth === 'number') {
     values.rentGrowth = Math.round(growth * 1e4) / 100;
     sources.push(`Rent growth: Census ACS 5-yr median gross rent, 2014-2018 to 2019-${rentTable.asOf}, a past change and not a forecast, not adjusted for inflation`);
+  }
+  const ins = insuranceTable?.insurance[state];
+  if (typeof ins === 'number') {
+    values.insurance = Math.round(ins * 1e4) / 100;
+    sources.push(`Home insurance: Census ACS 5-yr (${insuranceTable.asOf}) median yearly premium for owners with a mortgage as a share of median home value; premiums vary widely within a state`);
   }
   return Object.keys(values).length ? { values, state, sources } : null;
 }
