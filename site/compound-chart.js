@@ -34,12 +34,16 @@ export function compoundPlot(rows) {
   return { left: PAD.l / W, right: (W - PAD.r) / W, last };
 }
 
-export function compoundChartHtml(rows, fmt) {
+// band, when set, is { low, high } rows for the worst and best return; it is shaded around the balance line.
+export function compoundChartHtml(rows, fmt, band = null) {
   const last = rows[rows.length - 1];
   const xs = [0, ...rows.map((r) => r.year)];
   const put = [rows[0].totalContributed - rows[0].contributions, ...rows.map((r) => r.totalContributed)];
   const bal = [put[0], ...rows.map((r, i) => Math.max(r.balance, put[i + 1]))];
-  const yMax = Math.max(...bal, 1);
+  const edge = (b) => [put[0], ...b.map((r, i) => Math.max(r.balance, put[i + 1]))];
+  const lowBal = band ? edge(band.low) : null;
+  const highBal = band ? edge(band.high) : null;
+  const yMax = Math.max(...bal, ...(highBal ?? []), 1);
   const sx = (x) => PAD.l + (x / last.year) * (W - PAD.l - PAD.r);
   const sy = (y) => H - PAD.b - (y / yMax) * (H - PAD.t - PAD.b);
   const f = (n) => n.toFixed(1);
@@ -58,6 +62,10 @@ export function compoundChartHtml(rows, fmt) {
   svg += `<text x="${W - PAD.r}" y="${H - 12}" text-anchor="end" font-size="13" class="cc-edge">${last.year % step === 0 ? '' : `Year ${last.year}`}</text>`;
   svg += `<path d="${line(bal)}${base}" style="fill:var(--series-2);fill-opacity:0.45;stroke:var(--series-2)" stroke-width="2"/>`;
   svg += `<path d="${line(put)}${base}" style="fill:var(--series-1);fill-opacity:0.6;stroke:var(--series-1)" stroke-width="2"/>`;
+  if (band) {
+    const back = highBal.map((v, i) => `L${f(sx(xs[i]))},${f(sy(v))}`).reverse().join('');
+    svg += `<path d="${line(lowBal)}${back}Z" class="cc-band" style="fill:var(--series-2);fill-opacity:0.25;stroke:var(--series-2)" stroke-width="1" stroke-dasharray="4 3"/>`;
+  }
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(bal[bal.length - 1]) + 20)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-2)">Interest earned</text>`;
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(put[put.length - 1]) - 8)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-1)">What you put in</text>`;
   const cross = crossoverYear(rows);
@@ -94,7 +102,8 @@ export function compoundChartHtml(rows, fmt) {
   const xy = rows.map((r) => ({ year: r.year, x: sx(r.year) / W, y: sy(r.balance) / H }));
   const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${cross}.`;
   const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
-  const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText}${stopText} The full values for every year are in the table below.`;
+  const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${last.year}.` : '';
+  const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText}${stopText}${bandText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure"><div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
 

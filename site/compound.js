@@ -9,6 +9,7 @@ export const COMPOUND_FIELDS = [
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
+  { id: 'variance', label: 'Return variance (± %)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. How far above and below the annual return the real result could land. Set to 2 with a 7% return and the chart shades the range between a 5% and a 9% return, and the results state the balance range. 0 shows a single line.' },
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
     id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
@@ -120,6 +121,19 @@ export function simulateCompound(v) {
   }
   const last = years[years.length - 1];
   return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+}
+
+// Best and worst case: the same plan at the return minus and plus the variance (never below 0%),
+// in the dollars the results are shown in. Null when no variance is set.
+export function returnRange(v) {
+  if (!(v.variance > 0)) return null;
+  const run = (rate) => {
+    const r = simulateCompound({ ...v, rate });
+    return v.basis === 'today' ? inTodaysDollars(r, v.inflation) : r;
+  };
+  const lowRate = Math.max(0, v.rate - v.variance);
+  const highRate = v.rate + v.variance;
+  return { lowRate, highRate, low: run(lowRate), high: run(highRate) };
 }
 
 export const WAIT_YEARS = 10;

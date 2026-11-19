@@ -346,3 +346,30 @@ test('every compounding frequency is accepted and handles contributions and zero
     assert.deepEqual(invalidCompound({ ...compoundDefaults(), frequency }), []);
   }
 });
+
+import { returnRange, decodeCompound as _dec, encodeCompound as _enc, compoundDefaults as _def, simulateCompound as _sim } from '../site/compound.js';
+import { compoundChartHtml as _chart } from '../site/compound-chart.js';
+
+test('returnRange is null without variance and brackets the base case with it', () => {
+  const v = _def();
+  assert.equal(returnRange(v), null);
+  const r = returnRange({ ...v, variance: 2 });
+  assert.equal(r.lowRate, 5);
+  assert.equal(r.highRate, 9);
+  const base = _sim(v).futureValue;
+  assert.ok(r.low.futureValue < base && base < r.high.futureValue);
+  assert.equal(returnRange({ ...v, rate: 1, variance: 2 }).lowRate, 0);
+});
+
+test('variance round-trips through the link and is omitted at 0', () => {
+  assert.equal(_enc(_def()), '');
+  assert.equal(_dec(_enc({ ..._def(), variance: 1.5 })).variance, 1.5);
+});
+
+test('chart draws the band only when given one', () => {
+  const v = _def();
+  const rows = _sim(v).years;
+  assert.ok(!_chart(rows, String).includes('cc-band'));
+  const rg = returnRange({ ...v, variance: 2 });
+  assert.ok(_chart(rows, String, { low: rg.low.years, high: rg.high.years }).includes('cc-band'));
+});
