@@ -36,7 +36,7 @@ test('encode keeps only changed values and round-trips; bad input falls back to 
   assert.equal(encodeCompound(d), '');
   const v = { ...d, monthly: 250, frequency: 'annually' };
   assert.deepEqual(decodeCompound(encodeCompound(v)), v);
-  assert.deepEqual(decodeCompound('#years=abc&frequency=daily&rate=-3'), d);
+  assert.deepEqual(decodeCompound('#years=abc&frequency=weekly&rate=-3'), d);
   assert.deepEqual(decodeCompound(''), d);
 });
 
@@ -321,5 +321,28 @@ test('compound chart has no stop marker when contributions run to the end or nev
     const years = simulateCompound(v).years;
     assert.equal(stopYear(years), null);
     assert.doesNotMatch(compoundChartHtml(years, fmt), /cc-stop/);
+  }
+});
+
+test('every compounding frequency: more frequent ends higher, and each matches its closed form', () => {
+  const base = { start: 1000, monthly: 0, rate: 8, years: 5, timing: 'end' };
+  const fv = (frequency) => simulateCompound({ ...base, frequency }).futureValue;
+  const order = ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous'].map(fv);
+  for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1]);
+  assert.ok(Math.abs(fv('annually') - 1000 * 1.08 ** 5) < 1e-6);
+  assert.ok(Math.abs(fv('semiannually') - 1000 * 1.04 ** 10) < 1e-6);
+  assert.ok(Math.abs(fv('quarterly') - 1000 * 1.02 ** 20) < 1e-6);
+  assert.ok(Math.abs(fv('monthly') - 1000 * (1 + 0.08 / 12) ** 60) < 1e-6);
+  assert.ok(Math.abs(fv('daily') - 1000 * (1 + 0.08 / 365) ** 1825) < 1e-6);
+  assert.ok(Math.abs(fv('continuous') - 1000 * Math.exp(0.4)) < 1e-6);
+});
+
+test('every compounding frequency is accepted and handles contributions and zero return', () => {
+  for (const frequency of ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous']) {
+    for (const timing of ['end', 'start']) {
+      assert.equal(simulateCompound({ start: 1000, monthly: 100, rate: 0, years: 2, frequency, timing }).futureValue, 3400);
+      assert.ok(simulateCompound({ start: 0, monthly: 100, rate: 6, years: 3, frequency, timing }).futureValue > 3600);
+    }
+    assert.deepEqual(invalidCompound({ ...compoundDefaults(), frequency }), []);
   }
 });

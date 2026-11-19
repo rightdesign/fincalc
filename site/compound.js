@@ -12,8 +12,8 @@ export const COMPOUND_FIELDS = [
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
     id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
-    hint: 'How often interest is added to the balance. Monthly adds one twelfth of the annual rate each month; annually adds the full rate once a year (contributions made during the year earn simple interest until then).',
-    options: [{ value: 'monthly', label: 'Monthly' }, { value: 'annually', label: 'Annually' }],
+    hint: 'How often interest is added to the balance. Monthly adds one twelfth of the annual rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
+    options: [{ value: 'annually', label: 'Annually' }, { value: 'semiannually', label: 'Semiannually' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'monthly', label: 'Monthly' }, { value: 'daily', label: 'Daily' }, { value: 'continuous', label: 'Continuously' }],
   },
   {
     id: 'timing', label: 'Contributions made', kind: 'choice', default: 'end',
@@ -64,17 +64,30 @@ export function invalidCompound(v) {
 // How many years the monthly contribution runs: never more than Years, and all of them when unset.
 export const contributionYears = (v) => Math.min(v.contributeYears ?? v.years, v.years);
 
+// Compounding periods per year for each frequency choice.
+export const PERIODS_PER_YEAR = { annually: 1, semiannually: 2, quarterly: 4, monthly: 12, daily: 365, continuous: Infinity };
+
+export const frequencyLabel = (f) => COMPOUND_FIELDS.find((x) => x.id === 'frequency').options.find((o) => o.value === f).label;
+
+// The frequency the "other choice" comparison uses: annually against monthly, everything else against monthly.
+export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
+
 // Year-by-year growth. Contributions are made at the end of each month, or the beginning when
-// timing is 'start'. Monthly compounding adds rate/12 of the balance every month (a
-// beginning-of-month contribution is added first, so it earns that month too); annual compounding
-// adds the full rate to the balance at the start of the year once a year, while the year's
-// contributions earn simple interest (rate x months remaining / 12, one more month each when made
-// at the beginning of the month) that joins the balance at year end.
+// timing is 'start'. Compounding every month or more often grows the balance by a monthly factor
+// (monthly adds rate/12 of the balance each month; daily and continuous use their equivalent
+// monthly factor); a beginning-of-month contribution is added first, so it earns that month too.
+// Annual, semiannual and quarterly compounding add rate/periods to the balance at the start of the
+// period once per period, while the period's contributions earn simple interest (rate/periods x
+// months remaining / months in the period, one more month each when made at the beginning of the
+// month) that joins the balance when the period ends.
 export function simulateCompound(v) {
   const r = v.rate / 100;
-  const monthlyMode = v.frequency === 'monthly';
+  const k = PERIODS_PER_YEAR[v.frequency];
   const early = v.timing === 'start';
   const payYears = contributionYears(v);
+  // Interest rate earned over one month when compounding at least monthly.
+  const monthRate = k === 12 ? r / 12 : k === Infinity ? Math.expm1(r / 12) : (1 + r / k) ** (k / 12) - 1;
+  const span = 12 / k;
   let balance = v.start;
   let contributed = v.start;
   const years = [];
@@ -83,18 +96,24 @@ export function simulateCompound(v) {
     let interest = 0;
     let added = 0;
     const monthly = y <= payYears ? v.monthly : 0;
-    if (monthlyMode) {
+    if (k >= 12) {
       for (let m = 1; m <= 12; m++) {
         if (early) balance += monthly;
-        const i = balance * (r / 12);
+        const i = balance * monthRate;
         balance += i + (early ? 0 : monthly);
         interest += i;
         added += monthly;
       }
     } else {
-      interest = open * r;
-      for (let m = 1; m <= 12; m++) { interest += monthly * r * ((12 - m + (early ? 1 : 0)) / 12); added += monthly; }
-      balance = open + added + interest;
+      for (let p = 0; p < k; p++) {
+        const periodOpen = balance;
+        let periodInterest = periodOpen * (r / k);
+        let periodAdded = 0;
+        for (let j = 1; j <= span; j++) { periodInterest += monthly * (r / k) * ((span - j + (early ? 1 : 0)) / span); periodAdded += monthly; }
+        balance = periodOpen + periodAdded + periodInterest;
+        interest += periodInterest;
+        added += periodAdded;
+      }
     }
     contributed += added;
     years.push({ year: y, contributions: added, interest, balance, totalContributed: contributed, totalInterest: balance - contributed });
@@ -148,7 +167,7 @@ export function choiceEffects(v, r, inflation) {
     return { futureValue: f, gap: r.futureValue - f };
   };
   return {
-    frequency: { ...flip({ frequency: v.frequency === 'monthly' ? 'annually' : 'monthly' }), alt: v.frequency === 'monthly' ? 'annually' : 'monthly' },
+    frequency: { ...flip({ frequency: altFrequency(v.frequency) }), alt: altFrequency(v.frequency) },
     timing: { ...flip({ timing: v.timing === 'end' ? 'start' : 'end' }), alt: v.timing === 'end' ? 'start' : 'end' },
   };
 }

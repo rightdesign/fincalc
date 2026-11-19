@@ -1,4 +1,4 @@
-import { contributionYears, inTodaysDollars, simulateCompound as simulate } from './compound.js';
+import { altFrequency, contributionYears, frequencyLabel, inTodaysDollars, simulateCompound as simulate } from './compound.js';
 
 // FAQ and sources for the compound interest page. Pure (no DOM). Each answer quotes the numbers on the page right now.
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -7,7 +7,6 @@ const years = (n) => `${n} year${n === 1 ? '' : 's'}`;
 
 export function faqItems(v, r) {
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
-  const monthly = v.frequency === 'monthly';
   const today = v.basis === 'today';
   const gap = simulateGap(v);
   const unit = today ? " in today's dollars" : '';
@@ -38,8 +37,8 @@ export function faqItems(v, r) {
       a: `This version does not model that: the contribution stays flat at ${money(v.monthly)} a month for ${years(contributionYears(v))}. A raise each year would add to the future value, so treat the figure here as a floor for that plan, or rerun it with a higher monthly amount.`,
     },
     {
-      q: 'Does it matter whether interest compounds monthly or annually?',
-      a: `A little. You have ${monthly ? 'monthly' : 'annual'} compounding, ending at ${money(r.futureValue)}${unit}; ${gap}`,
+      q: 'Does it matter how often interest compounds?',
+      a: `A little. You have ${frequencyLabel(v.frequency).toLowerCase()} compounding, ending at ${money(r.futureValue)}${unit}; ${gap}`,
     },
     {
       q: 'What return should I use?',
@@ -74,10 +73,9 @@ function simulateGap(v) {
   const today = v.basis === 'today';
   const restate = (x) => (today ? inTodaysDollars(x, v.inflation) : x);
   const mine = restate(simulate(v));
-  const other = restate(simulate({ ...v, frequency: v.frequency === 'monthly' ? 'annually' : 'monthly' }));
+  const other = restate(simulate({ ...v, frequency: altFrequency(v.frequency) }));
   const diff = Math.abs(mine.futureValue - other.futureValue);
-  const name = v.frequency === 'monthly' ? 'annual' : 'monthly';
-  return `${name} compounding would end at ${money(other.futureValue)}, a difference of ${money(diff)}. The gap grows with the rate and the time.`;
+  return `${frequencyLabel(altFrequency(v.frequency)).toLowerCase()} compounding would end at ${money(other.futureValue)}, a difference of ${money(diff)}. The gap grows with the rate and the time.`;
 }
 
 // References behind the rules the model uses. Dates say when the figures were last checked against them.

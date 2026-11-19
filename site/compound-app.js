@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, choiceEffects, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, simulateCompound, WAIT_YEARS } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -175,7 +175,7 @@ function render() {
     </div>
     <div class="m-table-wrap"><table class="m-table"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
-      <tbody>${effectRow('Compounding', v.frequency === 'monthly' ? 'Monthly' : 'Annually', fx.frequency.alt === 'monthly' ? 'Monthly' : 'Annually', fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
+      <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
     <div class="m-panelbox">${compoundChartHtml(r.years, money)}</div>
     <div class="m-table-wrap"><table class="m-table" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th></tr></thead>
