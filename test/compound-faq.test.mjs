@@ -28,9 +28,12 @@ test('answers quote the numbers on the page and follow the inputs', () => {
   assert.ok(t2.includes('4% a year') && t2.includes('$250 a month'));
 });
 
-test('taxes and fees are not modelled; contribution is flat', () => {
+test('taxes: described by the tax input; fees not modelled; contribution is flat', () => {
   const items = faqItems(v, r);
-  assert.match(items.find((i) => i.q.startsWith('What about taxes')).a, /not modelled/);
+  assert.match(items.find((i) => i.q.startsWith('What about taxes')).a, /before tax.*Tax on interest.*Fees are not modelled/);
+  const w = { ...v, taxRate: 25 };
+  const a = faqItems(w, simulateCompound(w)).find((i) => i.q.startsWith('What about taxes')).a;
+  assert.match(a, /25% tax rate.*after tax/);
   assert.match(items.find((i) => i.q.startsWith('What if I increase')).a, /does not model that/);
 });
 

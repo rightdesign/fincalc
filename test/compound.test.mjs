@@ -324,6 +324,33 @@ test('compound chart has no stop marker when contributions run to the end or nev
   }
 });
 
+test('tax on interest: 0% changes nothing; monthly closed form uses r/12 x (1 - t)', () => {
+  const v = compoundDefaults();
+  assert.equal(simulateCompound({ ...v, taxRate: 0 }).futureValue, simulateCompound(v).futureValue);
+  const t = simulateCompound({ ...v, taxRate: 25 });
+  const g = 1 + (0.07 / 12) * 0.75;
+  const closed = 10000 * g ** 360 + 500 * ((g ** 360 - 1) / (g - 1));
+  assert.ok(Math.abs(t.futureValue - closed) < 0.01);
+  assert.equal(t.contributed, 190000);
+  assert.ok(Math.abs(t.interest - (t.futureValue - 190000)) < 1e-6);
+  assert.ok(t.futureValue < simulateCompound(v).futureValue);
+});
+
+test('tax on interest: annual compounding taxes the year\'s interest; 100% leaves only contributions', () => {
+  const a = { start: 1000, monthly: 0, rate: 10, years: 1, frequency: 'annually', timing: 'end', taxRate: 20 };
+  assert.ok(Math.abs(simulateCompound(a).futureValue - 1080) < 1e-9);
+  const all = simulateCompound({ ...compoundDefaults(), taxRate: 100 });
+  assert.ok(Math.abs(all.futureValue - 190000) < 1e-6);
+});
+
+test('tax rate is validated 0-100 and survives encode/decode', () => {
+  const v = { ...compoundDefaults(), taxRate: 24 };
+  assert.deepEqual(invalidCompound(v), []);
+  assert.deepEqual(invalidCompound({ ...v, taxRate: 101 }), ['Tax on interest (%)']);
+  assert.equal(decodeCompound(encodeCompound(v)).taxRate, 24);
+  assert.ok(!encodeCompound(compoundDefaults()).includes('taxRate'));
+});
+
 test('every compounding frequency: more frequent ends higher, and each matches its closed form', () => {
   const base = { start: 1000, monthly: 0, rate: 8, years: 5, timing: 'end' };
   const fv = (frequency) => simulateCompound({ ...base, frequency }).futureValue;
@@ -344,6 +371,19 @@ test('every compounding frequency is accepted and handles contributions and zero
       assert.ok(simulateCompound({ start: 0, monthly: 100, rate: 6, years: 3, frequency, timing }).futureValue > 3600);
     }
     assert.deepEqual(invalidCompound({ ...compoundDefaults(), frequency }), []);
+  }
+});
+
+test('tax on interest applies to every compounding frequency', () => {
+  const base = { start: 1000, monthly: 0, rate: 8, years: 5, timing: 'end', taxRate: 25 };
+  const fv = (frequency, extra = {}) => simulateCompound({ ...base, frequency, ...extra }).futureValue;
+  assert.ok(Math.abs(fv('quarterly') - 1000 * (1 + 0.08 * 0.75 / 4) ** 20) < 1e-6);
+  assert.ok(Math.abs(fv('semiannually') - 1000 * (1 + 0.08 * 0.75 / 2) ** 10) < 1e-6);
+  assert.ok(Math.abs(fv('daily') - 1000 * (1 + 0.08 * 0.75 / 365) ** 1825) < 1e-6);
+  assert.ok(Math.abs(fv('continuous') - 1000 * Math.exp(0.08 * 0.75 * 5)) < 1e-6);
+  for (const f of ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous']) {
+    assert.ok(fv(f) < fv(f, { taxRate: 0 }));
+    assert.ok(Math.abs(fv(f, { taxRate: 100 }) - 1000) < 1e-6);
   }
 });
 

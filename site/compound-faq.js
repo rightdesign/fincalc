@@ -26,7 +26,9 @@ export function faqItems(v, r) {
     },
     {
       q: 'What about taxes and fees?',
-      a: `They are not modelled, so the ${money(r.futureValue)}${unit} is before tax and fees. Taxes on gains and fund or account fees would lower it, and a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth. To allow for them, enter a return a little lower than you expect.`,
+      a: v.taxRate > 0
+        ? `Tax on interest is modelled: with a ${v.taxRate}% tax rate each period's interest is reduced by ${v.taxRate}% before it compounds, so the ${money(r.futureValue)}${unit} is after tax. Taxed this way, it is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). Fund or account fees are not modelled, and a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth; to allow for fees, enter a return a little lower than you expect.`
+        : `Tax is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. For a taxable account, enter your marginal tax rate under "Tax on interest" and each period's interest is taxed before it compounds; leave it at 0 for a 401(k), IRA or other tax-advantaged account. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth, so to allow for them, enter a return a little lower than you expect.`,
     },
     {
       q: 'What if I stop contributing?',
@@ -68,6 +70,12 @@ function stopAnswer(v, r, unit) {
   return `Right now you contribute for all ${years(v.years)}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${years(cut)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
 }
 
+// The same plan with no tax, in the dollars the page shows.
+function untaxed(v) {
+  const x = simulate({ ...v, taxRate: 0 });
+  return v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x;
+}
+
 // Compares the chosen frequency with the other one, quoting the gap on the page's inputs.
 function simulateGap(v) {
   const today = v.basis === 'today';
@@ -82,7 +90,7 @@ function simulateGap(v) {
 export const FAQ_SOURCES = [
   { name: 'S&P Dow Jones Indices, S&P 500 (long-run average return, about 10% nominal)', url: 'https://www.spglobal.com/spdji/en/indices/equity/sp-500/', asOf: 'November 2026' },
   { name: 'Investor.gov (SEC), Compound Interest Calculator (the compounding formula)', url: 'https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator', asOf: 'November 2026' },
-  { name: 'IRS Topic No. 409, Capital Gains and Losses (taxes on investment gains, not modelled)', url: 'https://www.irs.gov/taxtopics/tc409', asOf: 'November 2026' },
+  { name: 'IRS Topic No. 409, Capital Gains and Losses (taxes on investment gains and income)', url: 'https://www.irs.gov/taxtopics/tc409', asOf: 'November 2026' },
 ];
 
 export function faqCard(v, r) {

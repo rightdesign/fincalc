@@ -21,6 +21,7 @@ export const COMPOUND_FIELDS = [
     hint: 'End of month: each contribution lands after that month\'s interest, so it starts earning the next month. Beginning of month: it lands first and earns interest for the whole month, worth about one extra month of growth per contribution.',
     options: [{ value: 'end', label: 'End of month' }, { value: 'start', label: 'Beginning of month' }],
   },
+  { id: 'taxRate', label: 'Tax on interest (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your marginal tax rate on the interest and dividends a taxable account pays out. Each period\'s interest is reduced by this rate before it compounds forward, so the results are after tax. Leave at 0 for a tax-free or tax-deferred account, or to ignore tax. 0–100%.' },
   { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%." },
   {
     id: 'basis', label: 'Show results in', kind: 'choice', default: 'future',
@@ -56,6 +57,7 @@ export function invalidCompound(v) {
     const x = v[f.id];
     if (f.kind === 'choice') { if (!f.options.some((o) => o.value === x)) bad.push(f.label); continue; }
     if (!Number.isFinite(x) || x < 0) bad.push(f.label);
+    else if (f.id === 'taxRate' && x > 100) bad.push(f.label);
     else if (f.id === 'years' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
     else if (f.id === 'contributeYears' && !Number.isInteger(x)) bad.push(f.label);
   }
@@ -73,7 +75,9 @@ export const frequencyLabel = (f) => COMPOUND_FIELDS.find((x) => x.id === 'frequ
 // The frequency the "other choice" comparison uses: annually against monthly, everything else against monthly.
 export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
 
-// Year-by-year growth. Contributions are made at the end of each month, or the beginning when
+// Year-by-year growth. Interest is taxed at taxRate as it is earned (each month's interest when compounding
+// monthly or more often; each period's interest otherwise), so only the after-tax part joins the balance
+// and compounds; interest, totalInterest and the balances are all after tax. Contributions are made at the end of each month, or the beginning when
 // timing is 'start'. Compounding every month or more often grows the balance by a monthly factor
 // (monthly adds rate/12 of the balance each month; daily and continuous use their equivalent
 // monthly factor); a beginning-of-month contribution is added first, so it earns that month too.
@@ -84,10 +88,13 @@ export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
 export function simulateCompound(v) {
   const r = v.rate / 100;
   const k = PERIODS_PER_YEAR[v.frequency];
+  const keep = 1 - (v.taxRate ?? 0) / 100;
   const early = v.timing === 'start';
   const payYears = contributionYears(v);
   // Interest rate earned over one month when compounding at least monthly.
-  const monthRate = k === 12 ? r / 12 : k === Infinity ? Math.expm1(r / 12) : (1 + r / k) ** (k / 12) - 1;
+  // The tax comes off each period's interest, so for k >= 12 it scales the rate itself.
+  const rm = r * keep;
+  const monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
   const span = 12 / k;
   let balance = v.start;
   let contributed = v.start;
@@ -111,6 +118,7 @@ export function simulateCompound(v) {
         let periodInterest = periodOpen * (r / k);
         let periodAdded = 0;
         for (let j = 1; j <= span; j++) { periodInterest += monthly * (r / k) * ((span - j + (early ? 1 : 0)) / span); periodAdded += monthly; }
+        periodInterest *= keep;
         balance = periodOpen + periodAdded + periodInterest;
         interest += periodInterest;
         added += periodAdded;
