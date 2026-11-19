@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.107.1] — 2026-11-19
+
+- FINC-179 The compound interest calculator's text, selects and result tables now stay inside the margins on narrow screens: selects stack under their labels and result tables restack as cards.
+
 ## [0.107.0] — 2026-11-19
 
 - FINC-176 The compound interest calculator has an optional marginal tax rate on interest that gives after-tax balances, chart and table.
