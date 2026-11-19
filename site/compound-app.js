@@ -164,9 +164,9 @@ function render() {
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
       <p>Same ${money(v.monthly)} a month and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
       ${compareChartHtml(c, money)}
-      <table class="m-table"><thead><tr><th scope="col"></th><th scope="col">Start now</th><th scope="col">Start ${c.waitYears} years later</th><th scope="col">Difference</th></tr></thead>
+      <div class="m-table-wrap"><table class="m-table m-stack"><thead><tr><th scope="col"></th><th scope="col">Start now</th><th scope="col">Start ${c.waitYears} years later</th><th scope="col">Difference</th></tr></thead>
         <tbody><tr><th scope="row">Total contributed</th><td>${money(c.now.contributed)}</td><td>${money(c.later.contributed)}</td><td>${money(c.extraContributed)}</td></tr>
-        <tr><th scope="row">End balance</th><td>${money(c.now.futureValue)}</td><td>${money(c.later.futureValue)}</td><td>${money(c.gap)}</td></tr></tbody></table>
+        <tr><th scope="row">End balance</th><td>${money(c.now.futureValue)}</td><td>${money(c.later.futureValue)}</td><td>${money(c.gap)}</td></tr></tbody></table></div>
       <p>Starting ${c.waitYears} years earlier means ${c.extraContributed > 0 ? `contributing ${money(c.extraContributed)} more` : 'contributing the same amount'} and ending with ${money(c.gap)} more.</p></div>` : `
     <p class="m-strip">Set Years above ${WAIT_YEARS} to compare starting now with starting ${WAIT_YEARS} years later.</p>`;
   out.innerHTML = `
@@ -175,19 +175,24 @@ function render() {
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && contributionYears(v) < v.years ? ` for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
-    <div class="m-table-wrap"><table class="m-table"><caption>What your choices are worth (change one at a time)</caption>
+    <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
       <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
     ${rangeNote}
     <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years })}</div>
-    <div class="m-table-wrap"><table class="m-table" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}</caption>
+    <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
     ${compare}
-    <div class="m-table-wrap"><table class="m-table"><caption>Year by year (contributions at the ${v.timing === 'start' ? 'beginning' : 'end'} of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</caption>
+    <p class="m-table-caption" id="compound-years-caption">Year by year (contributions at the ${v.timing === 'start' ? 'beginning' : 'end'} of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</p>
+    <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption">
       <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     ${faqCard(v, r)}`;
+  for (const t of out.querySelectorAll('.m-stack')) {
+    const heads = [...t.querySelectorAll('thead th')].map((h) => h.textContent);
+    for (const tr of t.querySelectorAll('tbody tr')) [...tr.querySelectorAll('td')].forEach((td, i) => td.setAttribute('data-label', heads[i + 1] ?? ''));
+  }
   explainerBody.innerHTML = compoundingExplainer(v, r).map((p) => `<h3>${p.title}</h3><p>${p.text}</p>`).join('');
   explainer.hidden = false;
   wireChart(out.querySelector('.cc-wrap'), r.years);

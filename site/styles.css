@@ -737,8 +737,8 @@ legend {
 .m-group-caps { display: grid; grid-template-columns: 1fr 1fr; column-gap: 1rem; }
 .m-group-caps > legend, .m-group-caps > .field-note { grid-column: 1 / -1; }
 .m-presets-label { margin: 0.75rem 0 0.35rem; }
-.m-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
-.m-presets button { min-height: 2.25rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
+.m-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(7.5rem, 100%), 1fr)); gap: 0.5rem; }
+.m-presets button { min-width: 0; padding: 0.3rem 0.5rem; overflow-wrap: anywhere; min-height: 2.25rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
 .m-presets button[aria-pressed="true"] { border-color: var(--focus); color: var(--focus); font-weight: 600; }
 .m-partway, .m-optional, .collapse { margin-top: 0.75rem; }
 .m-partway > summary { cursor: pointer; list-style: none; }
@@ -996,4 +996,27 @@ fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-p
   .layout, .results-col { display: block; }
   .inputs-col { display: none !important; }
   .results-panel[hidden] { display: block; }
+}
+
+/* Long result text wraps inside its box instead of widening the page. */
+:is(.m-results-col, .m-inputs-col, .m-explainer) :is(p, h2, h3, li, label, span, summary) { overflow-wrap: anywhere; }
+.m-inputs .field > span { overflow-wrap: break-word; }
+.m-inputs .field > select, .input-list .field > select { min-width: 0; }
+
+.m-table-caption { margin: 0 0 0.25rem; color: var(--muted); overflow-wrap: break-word; }
+.m-years td:first-child { position: sticky; left: 0; background: var(--panel); text-align: left; }
+
+/* Narrow screens: the label sits above a full-width select, and result tables restack as label/value cards. */
+@media (max-width: 30rem) {
+  .m-inputs .field > select, .input-list .field > select { grid-column: 1 / -1; grid-row: 2; width: 100%; max-width: none; text-align: left; }
+}
+@media (max-width: 32rem) {
+  .m-stack, .m-stack tbody, .m-stack tr, .m-stack th, .m-stack td { display: block; }
+  .m-stack caption { display: block; text-align: left; }
+  .m-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .m-stack tr { padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }
+  .m-stack th, .m-stack td { border-bottom: 0; }
+  .m-stack tbody th { text-align: left; font-weight: 600; overflow-wrap: break-word; }
+  .m-stack td { display: flex; justify-content: space-between; gap: 0.75rem; }
+  .m-stack td::before { content: attr(data-label); text-align: left; color: var(--muted); overflow-wrap: break-word; min-width: 0; }
 }
