@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.106.0] — 2026-11-19
+
+- FINC-177 The compound interest calculator has an optional "Return variance" input that shades a best-case/worst-case band on the chart and states the balance range.
+
 ## [0.105.0] — 2026-11-19
 
 - FINC-175 The compound interest calculator's Compounding input now offers semiannual, quarterly, daily and continuous compounding alongside monthly and annual.
