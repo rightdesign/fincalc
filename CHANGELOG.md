@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.109.0] — 2026-11-19
+
+- FINC-169 The rent vs own calculator's ZIP code field now also pre-fills rent growth from your state's annualised change in Census ACS median gross rent (2014-2018 to 2019-2023), noted as a past, non-inflation-adjusted change and not a forecast.
+
 ## [0.108.0] — 2026-11-19
 
 - FINC-178 The compound interest calculator has an optional "Increase contribution each year (%)" input that raises the monthly contribution every year while you are still contributing.
