@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.114.0] — 2026-11-22
+
+- FINC-180 The rent vs own calculator now checks your first-year housing cost (principal, interest, property tax, insurance, PMI and HOA dues) against Dave Ramsey's 25% of take-home pay guideline, using your optional after-tax salary divided by 12, flags it when over, and notes his assumptions (15-year fixed, 20% down, other debt paid off, 3-6 month emergency fund).
+
 ## [0.113.0] — 2026-11-22
 
 - FINC-182 The rent vs own calculator now has an optional 28/36 affordability check (Ramit Sethi's rule of thumb): enter your gross yearly income and other monthly debt payments to see housing and total debt as a share of gross monthly income, each flagged when over its 28% or 36% cap.
