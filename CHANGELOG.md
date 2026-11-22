@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.113.0] — 2026-11-22
+
+- FINC-182 The rent vs own calculator now has an optional 28/36 affordability check (Ramit Sethi's rule of thumb): enter your gross yearly income and other monthly debt payments to see housing and total debt as a share of gross monthly income, each flagged when over its 28% or 36% cap.
+
 ## [0.112.0] — 2026-11-22
 
 - FINC-183 The rent vs own calculator has a new 5% Rule card on the Monthly cost tab, from Ben Felix's PWL Capital research: unrecoverable ownership costs of 5% of the home's value a year (1% property tax, 1% maintenance, 3% cost of capital) as a monthly figure next to your rent, offered as a quick rule of thumb alongside the detailed breakdown.
