@@ -53,6 +53,8 @@ export const RENTOWN_FIELDS = [
   { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
   { id: 'repairYear', group: 'buying', label: 'Major repair in year (0 = none)', value: 0, min: 0, max: 50, integer: true },
   { id: 'repairCost', group: 'buying', label: 'Major repair cost ($, one time)', value: 0, min: 0, money: true },
+  { id: 'income', group: 'both', label: 'Gross income, optional ($ per year, before tax; for the 28/36 check)', value: null, min: 1, money: true, optional: true },
+  { id: 'otherDebt', group: 'both', label: 'Other debt payments, optional ($ per month: car, student loans, cards; for the 28/36 check)', value: 0, min: 0, money: true },
   { id: 'hoa', group: 'buying', label: 'HOA dues ($ per month)', value: 0, min: 0, money: true },
   { id: 'hoaGrowth', group: 'buying', label: 'HOA dues growth (% per year)', value: 3, min: -20, max: 30 },
   { id: 'utilities', group: 'buying', label: 'Extra utilities vs. renting ($ per month; renters usually pay some too)', value: 0, min: 0, money: true },
@@ -491,6 +493,22 @@ export function affordability(v, r) {
 export function followThrough(r) {
   const gap = r.firstOwnMonthly - r.firstRentMonthly;
   return { winner: r.final.difference >= 0 ? 'own' : 'rent', monthly: Math.abs(gap), direction: gap > 0.5 ? 'ownCostsMore' : gap < -0.5 ? 'rentCostsMore' : 'same' };
+}
+
+// The 28/36 rule of thumb: housing costs at most 28% of gross monthly income, and all debt payments
+// (housing included) at most 36%. Housing is the first month's mortgage interest and principal, property tax,
+// insurance, mortgage insurance and HOA dues; maintenance and extra utilities are left out. Null without an income.
+export const HOUSING_CAP = 28;
+export const DEBT_CAP = 36;
+export function rule2836(v, r) {
+  if (v.income == null) return null;
+  const m = r.monthly[0];
+  const housing = m.interest + m.principal + m.tax + m.insurance + m.pmi + m.hoa;
+  const gross = v.income / 12;
+  const debt = housing + v.otherDebt;
+  const housingRatio = (housing / gross) * 100;
+  const debtRatio = (debt / gross) * 100;
+  return { gross, housing, debt, housingRatio, debtRatio, housingOver: housingRatio > HOUSING_CAP, debtOver: debtRatio > DEBT_CAP };
 }
 
 // Things the calculator does not weigh; shown as a short list of questions.
