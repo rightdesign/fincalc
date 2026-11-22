@@ -44,6 +44,8 @@ export const RENTOWN_FIELDS = [
   { id: 'moving', group: 'buying', label: 'Moving costs ($)', value: 0, min: 0, money: true },
   { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60 },
   { id: 'saved', group: 'buying', label: 'Cash you have saved, optional ($)', value: null, min: 0, money: true, optional: true },
+  { id: 'takeHome', group: 'buying', label: 'Your after-tax salary, optional ($ per year; for the 33% rule and job-loss check)', value: null, min: 1, money: true, optional: true },
+  { id: 'emergency', group: 'buying', label: 'Emergency savings you would keep after buying, optional ($)', value: null, min: 0, money: true, optional: true },
   { id: 'tax', group: 'buying', label: 'Property tax (% of value, per year)', value: 1.1, min: 0, max: 10 },
   { id: 'assessed', group: 'buying', label: 'Assessed value growth for property tax (% per year; blank = same as home value growth)', value: null, min: -20, max: 30, optional: true },
   { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
@@ -464,6 +466,22 @@ function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, b
 function monthlyCosts(m, year) {
   const ownTotal = m.interest + m.principal + m.tax + m.insurance + m.pmi + m.maintenance + m.hoa + m.utilities;
   return { year, ...m, ownTotal, ownCost: ownTotal - m.principal, rentTotal: m.rent + m.renterInsurance };
+}
+
+// Kevin O'Leary's rule of thumb: keep housing costs under a third of after-tax pay. Housing here is
+// the first month's mortgage payment (interest and principal) plus property tax, home insurance and
+// mortgage insurance. With emergency savings entered, also how many months of that payment they cover
+// if income stops (six months is the usual test).
+export const OLEARY_SHARE = 33;
+export const JOB_LOSS_MONTHS = 6;
+export function affordability(v, r) {
+  if (v.takeHome == null) return null;
+  const m = r.monthly[0];
+  const monthly = m.interest + m.principal + m.tax + m.insurance + m.pmi;
+  const income = v.takeHome / 12;
+  const share = (monthly / income) * 100;
+  const months = v.emergency == null ? null : monthly > 0 ? v.emergency / monthly : Infinity;
+  return { monthly, income, share, over: share > OLEARY_SHARE, maxMonthly: income * OLEARY_SHARE / 100, months, covered: months == null ? null : months >= JOB_LOSS_MONTHS };
 }
 
 // What to do once the verdict is in. Renting ahead: the renter must put the Year-1 monthly gap

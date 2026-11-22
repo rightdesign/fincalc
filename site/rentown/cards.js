@@ -5,6 +5,7 @@ import { driversCard } from './drivers.js';
 import { tornadoCard } from './tornado.js';
 import { solveCard } from './solve-card.js';
 import { cashCard } from './cash.js';
+import { affordCard } from './afford.js';
 import { lensesCard, lensesDisagreeCard } from './lenses.js';
 import { monthlyCard } from './monthly.js';
 import { followCard } from './follow.js';
@@ -28,7 +29,7 @@ export const TABS = [
 
 // The answer, the three tiles and the quick screen sit above the tabs; the cash, follow-through, checklist and FAQ below.
 export const ABOVE = [headlineCard, tilesCard, ratioCard];
-export const BELOW = [cashCard, followCard, checklistCard, inputsCard, faqCard];
+export const BELOW = [cashCard, affordCard, followCard, checklistCard, inputsCard, faqCard];
 
 const join = (cards, ctx) => cards.map((card) => card(ctx)).join('\n    ');
 
