@@ -8,6 +8,7 @@ import { cashCard } from './cash.js';
 import { affordCard } from './afford.js';
 import { lensesCard, lensesDisagreeCard } from './lenses.js';
 import { monthlyCard } from './monthly.js';
+import { pwlCard } from './pwl.js';
 import { followCard } from './follow.js';
 import { checklistCard } from './checklist.js';
 import { waterfallCard } from './waterfall.js';
@@ -21,7 +22,7 @@ import { faqCard } from './faq.js';
 // The results tabs, in order; each lists the cards it holds. Hidden panels stay in the page so printing shows them all.
 export const TABS = [
   { id: 'networth', label: 'Net worth', cards: [(c) => netWorthChart(c), lensesCard, lensesDisagreeCard, laterCard] },
-  { id: 'monthly', label: 'Monthly cost', cards: [(c) => monthlyChart(c), monthlyCard] },
+  { id: 'monthly', label: 'Monthly cost', cards: [(c) => monthlyChart(c), monthlyCard, pwlCard] },
   { id: 'difference', label: 'Where the difference comes from', cards: [waterfallCard] },
   { id: 'moves', label: 'What moves it', cards: [driversCard, tornadoCard, solveCard, scenariosCard] },
   { id: 'table', label: 'Table', cards: [tablePanel] },
