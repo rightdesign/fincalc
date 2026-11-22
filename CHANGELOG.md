@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.111.0] — 2026-11-22
+
+- FINC-181 The rent vs own calculator now has optional after-tax salary and emergency savings inputs that show your housing cost as a share of after-tax pay against Kevin O'Leary's 33% rule, and how many months of payments your savings would cover if you lost your job (flagged under six months).
+
 ## [0.110.0] — 2026-11-19
 
 - FINC-168 The rent vs own calculator's ZIP code field now also pre-fills home insurance from your state's Census ACS median yearly premium for owners with a mortgage (2019-2023, table B25141) as a share of median home value, with a note that premiums vary widely within a state.
