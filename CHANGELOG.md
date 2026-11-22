@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.112.0] — 2026-11-22
+
+- FINC-183 The rent vs own calculator has a new 5% Rule card on the Monthly cost tab, from Ben Felix's PWL Capital research: unrecoverable ownership costs of 5% of the home's value a year (1% property tax, 1% maintenance, 3% cost of capital) as a monthly figure next to your rent, offered as a quick rule of thumb alongside the detailed breakdown.
+
 ## [0.111.0] — 2026-11-22
 
 - FINC-181 The rent vs own calculator now has optional after-tax salary and emergency savings inputs that show your housing cost as a share of after-tax pay against Kevin O'Leary's 33% rule, and how many months of payments your savings would cover if you lost your job (flagged under six months).
