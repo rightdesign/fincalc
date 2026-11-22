@@ -22,6 +22,7 @@
   --grid: #eee;
   --guide: #555;
   --ring-fill: #fff;
+  --warn: #b00020;
 }
 
 /* Night theme: follows the device's own light/dark setting. */
@@ -45,6 +46,7 @@
     --grid: #2a303b;
     --guide: #9aa4b2;
     --ring-fill: #1b2029;
+    --warn: #ff8a95;
   }
 }
 
@@ -846,6 +848,7 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-faq h3 { margin: 1rem 0 0.5rem; }
 .ro-cash h3, .ro-follow h3, .ro-checklist h3 { margin: 0 0 0.5rem; }
 .ro-cash th[scope="row"] { text-align: left; font-weight: normal; }
+.ro-afford .ro-warn { color: var(--warn); }
 .print-only { display: none; }
 @media print {
   .ro-inputs { display: none !important; }

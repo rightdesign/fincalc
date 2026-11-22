@@ -1,6 +1,7 @@
 // The results cards in the order the page shows them. A new card is a new module and one new line here.
 import { headlineCard } from './headline.js';
 import { ratioCard } from './ratio.js';
+import { affordabilityCard } from './affordability.js';
 import { driversCard } from './drivers.js';
 import { tornadoCard } from './tornado.js';
 import { solveCard } from './solve-card.js';
@@ -31,7 +32,7 @@ export const TABS = [
 
 // The answer, the three tiles and the quick screen sit above the tabs; the cash, follow-through, checklist and FAQ below.
 export const ABOVE = [headlineCard, tilesCard, ratioCard];
-export const BELOW = [cashCard, affordCard, rule2836Card, followCard, checklistCard, inputsCard, faqCard];
+export const BELOW = [cashCard, affordabilityCard, affordCard, rule2836Card, followCard, checklistCard, inputsCard, faqCard];
 
 const join = (cards, ctx) => cards.map((card) => card(ctx)).join('\n    ');
 
