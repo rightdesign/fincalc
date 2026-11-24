@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.0] — 2026-11-24
+
+- FINC-185 The rent vs own calculator's preset buttons no longer overlap, filing status is now a Single / Married filing jointly button pair that also sets the home-sale exclusion, and a new Your mortgage card tabulates each year's mortgage payments, principal, interest and remaining balance.
+
 ## [0.114.0] — 2026-11-22
 
 - FINC-180 The rent vs own calculator now checks your first-year housing cost (principal, interest, property tax, insurance, PMI and HOA dues) against Dave Ramsey's 25% of take-home pay guideline, using your optional after-tax salary divided by 12, flags it when over, and notes his assumptions (15-year fixed, 20% down, other debt paid off, 3-6 month emergency fund).
