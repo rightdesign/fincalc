@@ -1,5 +1,5 @@
 // Page script for the rent vs own calculator.
-import { RENTOWN_FIELDS, RENTOWN_UNITS, applyLiveRate, decodeUnits, defaultUnits, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, decodeView, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
+import { EXCLUSION_BY_FILING, RENTOWN_FIELDS, RENTOWN_UNITS, applyLiveRate, decodeUnits, defaultUnits, longDate, parseLiveRate, RENTOWN_GROUPS, RENTOWN_PRESETS, RENTOWN_TAX_CAPS, RETURN_PRESETS, decodeBasis, decodeRentOwn, decodeView, encodeRentOwn, invalidRentOwn, matchRentOwnPreset, parseAmount, rentOwnDefaults } from './rentown.js';
 import { groupAmount } from './mortgage.js';
 import { groupWhileTyping } from './grouping.js';
 import { renderCards } from './rentown/cards.js';
@@ -175,7 +175,7 @@ for (const g of RENTOWN_GROUPS) {
       }
     }
     if (f.id === 'investment') {
-      const row = document.createElement('span');
+      const row = document.createElement('div');
       row.className = 'no-print ro-return-presets';
       row.setAttribute('role', 'group');
       row.setAttribute('aria-label', 'Investment return presets');
@@ -195,6 +195,35 @@ for (const g of RENTOWN_GROUPS) {
       const note = document.createElement('small');
       note.textContent = 'Long-run nominal averages, not forecasts. A preset also sets the tax drag below.';
       label.append(row, note);
+    }
+    if (f.id === 'filing') {
+      // The select stays as the stored value (shared links, setValues); two buttons are what people use.
+      input.hidden = true;
+      const seg = document.createElement('div');
+      seg.className = 'ro-seg';
+      seg.setAttribute('role', 'group');
+      seg.setAttribute('aria-labelledby', text.id);
+      for (const [value, name] of f.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = name;
+        button.dataset.filing = value;
+        button.addEventListener('click', () => {
+          input.value = value;
+          form.elements.exclusion.value = shown(RENTOWN_FIELDS.find((x) => x.id === 'exclusion'), EXCLUSION_BY_FILING[value]);
+          message.textContent = '';
+          render();
+        });
+        seg.append(button);
+      }
+      const note = document.createElement('small');
+      note.id = 'rentown-filing-note';
+      label.append(seg, note);
+    }
+    if (f.id === 'exclusion') {
+      const note = document.createElement('small');
+      note.id = 'rentown-exclusion-note';
+      label.append(note);
     }
     grid.append(label);
     if (f.id === 'assessed') {
@@ -271,10 +300,18 @@ function showLoan(v) {
   loan.textContent = Number.isFinite(amount) && v.down >= 0 && v.down <= 100 ? `Down payment ${usd.format(v.price - amount)} (${plain(v.down)}%); loan amount ${usd.format(amount)}` : '';
 }
 
+function showFiling(v) {
+  for (const b of document.querySelectorAll('[data-filing]')) b.setAttribute('aria-pressed', String(Number(b.dataset.filing) === v.filing));
+  const expected = EXCLUSION_BY_FILING[v.filing];
+  document.getElementById('rentown-filing-note').textContent = expected ? `Also sets the home-sale gain exclusion (${usd.format(expected)}); the standard deduction follows it too.` : '';
+  document.getElementById('rentown-exclusion-note').textContent = Object.values(EXCLUSION_BY_FILING).includes(v.exclusion) ? 'Set by the filing status buttons; edit to override (the field then shows “custom”).' : 'custom';
+}
+
 function render() {
   const v = values();
   for (const id of Object.keys(RENTOWN_UNITS)) if (Number.isFinite(v[id])) lastPct[id] = v[id];
   showLoan(v);
+  showFiling(v);
   showPreset(v);
   showFields(v);
   const bad = invalidRentOwn(v);

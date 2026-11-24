@@ -56,3 +56,10 @@ test('dollar amounts convert to and from the percentages at the home price', asy
   assert.equal(RENTOWN_UNITS.maintenance.toUsd(1, 450000), 375);
   assert.ok(Math.abs(RENTOWN_UNITS.maintenance.toPct(375, 450000) - 1) < 1e-12);
 });
+
+test('an old link keeps its exclusion: omitted means $250,000 whatever the filing status', async () => {
+  const { decodeRentOwn } = await import('../site/rentown.js');
+  assert.equal(decodeRentOwn('filing=1').exclusion, 250000);
+  assert.equal(decodeRentOwn('price=500000').exclusion, 250000);
+  assert.equal(decodeRentOwn('exclusion=500000').exclusion, 500000);
+});

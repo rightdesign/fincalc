@@ -17,6 +17,9 @@ export const RENTOWN_GROUPS = [
 export const STANDARD_DEDUCTION = { 1: 16100, 2: 32200 };
 export const SALT_CAP = 40000;
 
+// Home-sale exclusion by filing status (v.filing: 1 single, 2 married filing jointly).
+export const EXCLUSION_BY_FILING = { 1: 250000, 2: 500000 };
+
 // 0 = a fixed-rate loan, 1 = an adjustable-rate mortgage that resets as in the variable-rate calculator.
 export const MORTGAGE_TYPES = [[0, 'Fixed rate'], [1, 'Adjustable rate (ARM)']];
 const isArm = (v) => v.arm === 1;
@@ -68,7 +71,7 @@ export const RENTOWN_FIELDS = [
   { id: 'waitYears', group: 'both', label: 'Years you rent before buying (rent-then-buy path)', value: 2, min: 0, max: 50, integer: true },
   { id: 'waitRate', group: 'both', label: 'Mortgage rate when you buy later, optional (%; blank = same as above)', value: null, min: 0, max: 30, optional: true },
   { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
-  { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($250,000 single, $500,000 married)', value: 250000, min: 0, money: true },
+  { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($)', value: 250000, min: 0, money: true },
   { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
   { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
@@ -269,6 +272,7 @@ export function compareRentOwn(v) {
   let yearBenefit = 0;
   let totalTaxBenefit = 0;
   const monthly = [];
+  const yearEndBalances = [];
   const curve = [];
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
@@ -329,6 +333,7 @@ export function compareRentOwn(v) {
     else basis += put;
     portfolio += put;
     if (m % 12 === 0) {
+      if (m <= stayMonths) yearEndBalances.push(balance);
       const benefit = taxBenefit(v, yearInterest, yearPropertyTax);
       yearInterest = 0;
       yearPropertyTax = 0;
@@ -410,6 +415,7 @@ export function compareRentOwn(v) {
     peakRate,
     totalPmi,
     program: { id: v.program, fee: fin.fee, feeName: fin.feeName, financed: fin.fee > 0 && v.feeFinanced === 1, loan, insuranceName: fin.insuranceName },
+    yearEndBalances,
     cash,
     waterfall,
     series,

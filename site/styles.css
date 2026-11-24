@@ -864,8 +864,18 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .ro-presets { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-block: 0.75rem; }
 .ro-presets button[aria-pressed="true"] { font-weight: 700; }
 .ro-preset-name { font-style: italic; }
-.ro-return-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ro-return-presets { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .ro-return-presets button { min-height: 2rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
+
+.ro-seg { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-end; }
+.ro-seg button { min-height: 2rem; padding: 0.2rem 0.6rem; background: var(--raised-bg); color: var(--text); border: 1px solid var(--raised-border); border-radius: 0.4rem; font: inherit; cursor: pointer; }
+.ro-seg button[aria-pressed="true"] { border: 2px solid var(--focus); padding: calc(0.2rem - 1px) calc(0.6rem - 1px); font-weight: 700; }
+.ro-seg + small, .ro-return-presets + small { grid-column: 1 / -1; }
+.ro-mortgage-facts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+.ro-mortgage-facts > div { flex: 1 1 8rem; border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.4rem 0.6rem; }
+.ro-mortgage-facts dt { color: var(--muted); font-size: 0.85rem; }
+.ro-mortgage-facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ro-mortgage-year th[scope="row"] { text-align: left; font-weight: normal; }
 
 /* Site-wide look, shared by every calculator: a restrained, Vanguard-like palette (white, near-black text,
    one deep-red accent, hairline rules, tabular figures).
@@ -947,7 +957,7 @@ body {
 @media print { .cc-tip, .cc-hover-line, .cc-hover-dot { display: none; } }
 
 /* The same look for the shared components used by the home-page and rent vs own calculators. */
-fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-presets button, .ro-tornado-bar { border-radius: 0.125rem; }
+fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-presets button, .ro-seg button, .ro-tornado-bar { border-radius: 0.125rem; }
 .group > h3 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .group-meta { color: var(--accent); }
 .group-dot { background: var(--accent); }

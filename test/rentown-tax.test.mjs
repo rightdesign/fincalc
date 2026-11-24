@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { compareRentOwn, rentOwnDefaults } from '../site/rentown.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
-const base = () => rentOwnDefaults();
+// Written for a single filer's $250,000 exclusion; the app default is now married filing jointly ($500,000).
+const base = () => ({ ...rentOwnDefaults(), exclusion: 250000 });
 
 test('taxing the renter\'s investments narrows the renting lead', () => {
   const lead = (extra) => -compareRentOwn({ ...base(), ...extra }).final.difference;
