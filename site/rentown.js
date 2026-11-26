@@ -231,6 +231,16 @@ function firstAheadMonth(months, field = 'difference') {
   return lastBehind === months.length - 1 ? null : months[lastBehind + 1].month;
 }
 
+// When owning's lead does not last (a sale tax or compounding investments overtake it), the first and last
+// months in which owning is ahead; null if owning is never ahead. The end month is null when the lead holds
+// through the last month, which is the ordinary crossover that firstAheadMonth reports.
+function aheadSpan(months, field = 'difference') {
+  const first = months.findIndex((y) => y[field] >= 0);
+  if (first < 0) return null;
+  const last = months.map((y) => y[field] >= 0).lastIndexOf(true);
+  return { startMonth: months[first].month, endMonth: last === months.length - 1 ? null : months[last].month };
+}
+
 export function compareRentOwn(v) {
   const fin = financing(v);
   // The unrealized view is the paper number: no selling costs and no tax on a sale, for either side.
@@ -375,6 +385,7 @@ export function compareRentOwn(v) {
   // The chart runs to the break-even year or 30 years, whichever is first, and never ends before the stay.
   const chartBreakEven = firstAheadYear(all);
   const chartBreakEvenMonth = firstAheadMonth(months);
+  const chartAheadSpan = aheadSpan(months);
   const chartYears = all.slice(0, Math.max(v.years, chartBreakEven ?? CHART_YEARS));
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
@@ -405,6 +416,7 @@ export function compareRentOwn(v) {
     monthlyCurve: curve,
     monthlyCross,
     chartBreakEvenMonth,
+    chartAheadSpan,
     afterTaxReturn,
     final,
     finalReal,

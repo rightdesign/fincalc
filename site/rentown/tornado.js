@@ -20,7 +20,7 @@ const num = (n) => Number(n.toFixed(2));
 export function tornadoRows(v) {
   const point = (id, x) => {
     const r = compareRentOwn({ ...v, [id]: x });
-    return { value: x, breakEven: r.chartBreakEven, gap: r.final.difference };
+    return { value: x, breakEven: r.chartBreakEven, span: r.chartAheadSpan, gap: r.final.difference };
   };
   const rows = TORNADO_INPUTS.map((t) => {
     const f = field(t.id);
@@ -33,7 +33,13 @@ export function tornadoRows(v) {
   return rows.map((r) => ({ ...r, top: top > 0 && r.swing === top })).sort((a, b) => b.swing - a.swing);
 }
 
-const year = (p) => (p.breakEven == null ? 'never' : `year ${p.breakEven}`);
+// Owning wins a whole-year stay only from the first year whose end month is ahead (ceil) to the last (floor), as the Table tab shows.
+const aheadYears = (span) => {
+  const from = Math.ceil(span.startMonth / 12);
+  const to = Math.floor(span.endMonth / 12);
+  return to < from ? null : from === to ? `year ${from} only` : `years ${from} to ${to} only`;
+};
+const year = (p) => (p.breakEven != null ? `year ${p.breakEven}` : (p.span && aheadYears(p.span)) || 'never');
 const at = (t, p) => `${num(p.value)}${t.unit}`;
 
 export function tornadoCard({ v }) {

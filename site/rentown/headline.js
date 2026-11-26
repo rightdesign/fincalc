@@ -8,6 +8,13 @@ export const CLOSE_DOLLARS = 5000;
 export const CLOSE_SHARE = 0.05;
 export const isCloseCall = (f) => Math.abs(f.difference) < Math.max(CLOSE_DOLLARS, CLOSE_SHARE * Math.max(Math.abs(f.own), Math.abs(f.rent)));
 
+// Owning leads only for a window of stays; what that means depends on where your stay falls against it.
+function aheadDetail(span, stayMonths, stayText, costs) {
+  const range = `${durationText(span.startMonth)} to ${durationText(span.endMonth)}`;
+  if (stayMonths < span.startMonth) return `Owning is ahead only for stays of ${range}. At your ${stayText} stay it has not yet made up ${costs}, so renting is ahead.`;
+  return `Owning is ahead for stays of ${range}, but by your ${stayText} stay ${costs} and the compounding of the renter's investments have put it behind again.`;
+}
+
 export function headlineCard({ v, r, today, view, final, label }) {
   const other = today ? r.final : r.finalReal;
   const ahead = final.difference >= 0;
@@ -23,6 +30,8 @@ export function headlineCard({ v, r, today, view, final, label }) {
   const horizon = Math.max(30, v.years);
   const headline = short
     ? `You are ${money(cash.shortfall)} short — renting while you save is the only option on these numbers.`
+    : r.chartBreakEvenMonth == null && r.chartAheadSpan
+    ? `Buying wins only for stays of ${durationText(r.chartAheadSpan.startMonth)} to ${durationText(r.chartAheadSpan.endMonth)}; renting wins beyond that.`
     : r.chartBreakEvenMonth == null
     ? `Renting wins at every stay up to ${horizon} years on these numbers.`
     : `Buying wins if you stay at least ${durationText(r.chartBreakEvenMonth)}.`;
@@ -35,6 +44,8 @@ export function headlineCard({ v, r, today, view, final, label }) {
   const otherLine = `${today ? 'In future dollars' : "In today's dollars"} that is ${phrase(other)} (at ${v.inflation}% inflation).`;
   const detail = short
     ? `You need ${money(cash.total)} in cash to buy and have ${money(cash.saved)}.${gap} Once you have it, the numbers below apply: after ${v.years} ${v.years === 1 ? 'year' : 'years'}, ${ahead ? 'owning' : 'renting'} would leave you about ${money(Math.abs(final.difference))} ahead, ${label}.`
+    : r.breakEven == null && r.chartAheadSpan
+    ? aheadDetail(r.chartAheadSpan, v.years * 12, stayText, costs)
     : r.breakEven == null
     ? `Owning does not catch up within your stay: ${costs} and the cost of owning outweigh the gains.`
     : `Break-even: owning pulls ahead in ${monthPoint(r.breakEvenMonth)} (year ${r.breakEven} on a yearly basis).${r.breakEven > 1 ? ` Renting is ahead before that, mostly because of ${costs}.` : ''}`;

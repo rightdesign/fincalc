@@ -11,7 +11,7 @@ const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': 
 // later adds the rent-then-buy line.
 // stay is the year the visitor plans to leave. Returns { svg, description }.
 // breakEvenMonth, when given, is the month (counted from 1) the crossing falls in; the marker sits there.
-export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
+export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth, aheadText = null) {
   const xs = years.map((y) => y.year);
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
@@ -74,11 +74,11 @@ export function rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth) {
   }
   svg += '</svg>';
 
-  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasLater ? `; renting first and buying later is ${fmt(years[0].later)} in year ${xMin} and ${fmt(last.later)} in year ${xMax}` : ''}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? 'Owning does not catch up within the years shown.' : `Owning pulls ahead in ${crossing}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
+  const description = `Net worth line chart for owning and renting. In year ${xMin} owning is ${fmt(years[0].own)} and renting is ${fmt(years[0].rent)}; in year ${xMax} owning is ${fmt(last.own)} and renting is ${fmt(last.rent)}${hasLater ? `; renting first and buying later is ${fmt(years[0].later)} in year ${xMin} and ${fmt(last.later)} in year ${xMax}` : ''}${hasPure ? ` with equal cash, or ${fmt(last.pureRent)} on a pure net worth basis` : ''}. ${breakEven == null ? (aheadText ? `Owning is ahead only for stays of ${aheadText}.` : 'Owning does not catch up within the years shown.') : `Owning pulls ahead in ${crossing}.`}${stay == null ? '' : ` You plan to stay ${stay} ${stay === 1 ? 'year' : 'years'}.`} ${repair ? `The major repair is paid in year ${repair.year}. ` : ''}The table beside the chart lists the years of your stay.`;
   return { svg, description };
 }
 
-export function rentOwnChartHtml(years, breakEven, fmt, stay, breakEvenMonth, unrealized = false) {
-  const { svg, description } = rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth);
+export function rentOwnChartHtml(years, breakEven, fmt, stay, breakEvenMonth, unrealized = false, aheadText = null) {
+  const { svg, description } = rentOwnChart(years, breakEven, fmt, stay, breakEvenMonth, aheadText);
   return `<figure class="chart-box"><figcaption>Net worth by year: own (home equity${unrealized ? ' on paper' : ' after selling costs'}) vs rent (investments, equal-cash dashed and pure dotted)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }

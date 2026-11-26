@@ -1,3 +1,4 @@
+import { durationText } from '../rentown.js';
 import { rentOwnChartHtml } from '../rentown-chart.js';
 import { monthlyChartHtml } from '../rentown-monthly-chart.js';
 import { money, signed } from './format.js';
@@ -15,7 +16,7 @@ export function chartCard(ctx) {
   return `<div class="chart-stack">${netWorthChart(ctx)}${monthlyChart(ctx)}${tablePanel(ctx)}</div>`;
 }
 
-export const netWorthChart = ({ r, later, today, v }) => rentOwnChartHtml(chartData({ r, later, today }), r.chartBreakEven, money, v.years, r.chartBreakEvenMonth, v.view === 'unrealized');
+export const netWorthChart = ({ r, later, today, v }) => rentOwnChartHtml(chartData({ r, later, today }), r.chartBreakEven, money, v.years, r.chartBreakEvenMonth, v.view === 'unrealized', r.chartBreakEvenMonth == null && r.chartAheadSpan ? `${durationText(r.chartAheadSpan.startMonth)} to ${durationText(r.chartAheadSpan.endMonth)}` : null);
 
 export const monthlyChart = ({ r, today, v }) => monthlyChartHtml(r.monthlyCurve, r.monthlyCross, money, v.years, today ? v.inflation : 0, Math.max(v.years, r.chartBreakEven ?? 0));
 
