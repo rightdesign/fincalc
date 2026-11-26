@@ -12,10 +12,27 @@ export const RENTOWN_GROUPS = [
   { id: 'taxes', label: 'Income tax' },
 ];
 
-// Federal figures for 2026, as in the main calculator: standard deduction by filing status, and the
-// state and local tax (SALT) deduction cap for 2025-2029.
+// Federal figures for 2026, as in the main calculator: standard deduction by filing status (indexed to inflation
+// for later years of the stay), and the state and local tax (SALT) deduction cap.
 export const STANDARD_DEDUCTION = { 1: 16100, 2: 32200 };
-export const SALT_CAP = 40000;
+// Under IRC 164(b)(7) the cap is $40,400 in 2026 and grows 1% a year through 2029; in 2030 it reverts to $10,000.
+// The higher cap is cut by 30% of income above $505,000 in 2026 (also +1% a year), but never below $10,000.
+export const SALT_BASE_YEAR = 2026;
+export const SALT_CAP = 40400;
+export const SALT_FLOOR = 10000;
+export const SALT_LAST_HIGH_YEAR = 2029;
+export const SALT_PHASE_DOWN_START = 505000;
+export const SALT_PHASE_DOWN_RATE = 0.3;
+
+// The SALT cap that applies in the `yearIndex`-th year of the stay (0 = 2026), for income `magi` (null = unknown, so no phase-down).
+export function saltCap(yearIndex, magi = null) {
+  if (SALT_BASE_YEAR + yearIndex > SALT_LAST_HIGH_YEAR) return SALT_FLOOR;
+  const grow = 1.01 ** yearIndex;
+  const cap = SALT_CAP * grow;
+  if (magi == null || !(magi > 0)) return cap;
+  return Math.max(SALT_FLOOR, cap - SALT_PHASE_DOWN_RATE * Math.max(0, magi - SALT_PHASE_DOWN_START * grow));
+}
+
 // Mortgage interest is deductible only on the first $750,000 of acquisition debt (single or married filing jointly).
 export const MORTGAGE_DEBT_LIMIT = 750000;
 
@@ -79,6 +96,7 @@ export const RENTOWN_FIELDS = [
   { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.4, min: 0, max: 10, hint: 'For a top-bracket California taxpayer, plan on about 0.4% of the balance per year in tax drag from a taxable S&P 500 index fund' },
   { id: 'filing', group: 'taxes', label: 'Filing status', value: 2, min: 1, max: 2, integer: true, options: [[1, 'Single'], [2, 'Married filing jointly']] },
   { id: 'marginalTaxRate', group: 'taxes', label: 'Marginal income tax rate (federal + state, %)', value: 22, min: 0, max: 60 },
+  { id: 'stateIncomeTax', group: 'taxes', label: 'State and local income tax you pay, optional ($ per year; shares the SALT cap with property tax)', value: 0, min: 0, money: true },
   { id: 'itemize', group: 'taxes', label: 'Deductions', value: 1, min: 0, max: 1, integer: true, options: [[1, 'I itemize'], [0, 'I take the standard deduction']] },
   { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments (%)', value: 15, min: 0, max: 100 },
 ];
@@ -146,14 +164,20 @@ export function invalidRentOwn(v) {
   }).map((f) => f.label.replace(/ \(.*\)$/, ''));
 }
 
-// Income tax saved in one year by owning: mortgage interest plus property tax (up to the SALT cap)
-// counts only for the part above the standard deduction, and not at all if you take the standard deduction.
+// Income tax saved in one year by owning (`yearIndex` 0 is 2026): the owner deducts mortgage interest plus
+// property tax and state income tax together up to that year's SALT cap, against the standard deduction
+// (indexed by inflation). A renter who itemizes would still deduct the state income tax, so the benefit
+// is the owner's deduction less the renter's. Nothing counts if you take the standard deduction.
 // Interest counts in proportion to the debt limit over the year's average loan balance (all of it when omitted).
-export function taxBenefit(v, interest, propertyTax, averageBalance = 0) {
+export function taxBenefit(v, interest, propertyTax, yearIndex = 0, averageBalance = 0) {
   if (!v.itemize) return 0;
   const share = averageBalance > MORTGAGE_DEBT_LIMIT ? MORTGAGE_DEBT_LIMIT / averageBalance : 1;
-  const itemized = interest * share + Math.min(propertyTax, SALT_CAP);
-  return Math.max(0, itemized - STANDARD_DEDUCTION[v.filing]) * (v.marginalTaxRate / 100);
+  const cap = saltCap(yearIndex, v.income);
+  const standard = STANDARD_DEDUCTION[v.filing] * (1 + v.inflation / 100) ** yearIndex;
+  const stateTax = v.stateIncomeTax ?? 0;
+  const owner = Math.max(standard, interest * share + Math.min(propertyTax + stateTax, cap));
+  const renter = Math.max(standard, Math.min(stateTax, cap));
+  return Math.max(0, owner - renter) * (v.marginalTaxRate / 100);
 }
 
 // Net worth of each choice at the end of every year of the stay, in future
@@ -366,7 +390,7 @@ export function compareRentOwn(v) {
     if (put > 0) { portfolio += put; basis += put; } else { ownPortfolio -= put; ownBasis -= put; }
     if (m % 12 === 0) {
       if (m <= stayMonths) yearEndBalances.push(balance);
-      const benefit = taxBenefit(v, yearInterest, yearPropertyTax, yearBalance / 12);
+      const benefit = taxBenefit(v, yearInterest, yearPropertyTax, m / 12 - 1, yearBalance / 12);
       yearInterest = 0;
       yearBalance = 0;
       yearPropertyTax = 0;

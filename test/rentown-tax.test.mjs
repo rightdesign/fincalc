@@ -126,7 +126,7 @@ test('a renter is never drawn below zero by owning costing less: the owner inves
 
 test('mortgage interest is deductible only on the first $750,000 of debt', () => {
   const v = { ...rentOwnDefaults(), itemize: true, marginalTaxRate: 38, filing: 2 };
-  assert.equal(taxBenefit(v, 117000, 0, 1600000) , (117000 * (750000 / 1600000) - 32200) * 0.38);
-  assert.equal(taxBenefit(v, 40000, 0, 700000), (40000 - 32200) * 0.38);
+  assert.equal(taxBenefit(v, 117000, 0, 0, 1600000), (117000 * (750000 / 1600000) - 32200) * 0.38);
+  assert.equal(taxBenefit(v, 40000, 0, 0, 700000), (40000 - 32200) * 0.38);
   assert.equal(taxBenefit(v, 40000, 0), (40000 - 32200) * 0.38);
 });
