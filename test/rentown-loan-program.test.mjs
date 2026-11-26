@@ -24,11 +24,11 @@ test('FHA at 3% down on $450,000: $7,639 upfront and $2,401 a year of insurance'
   assert.equal(round(r.cash.total - compareRentOwn(t0({})).cash.total), 7639);
 });
 
-test('FHA costs about $11,000 more than conventional over the stay', () => {
+test('FHA costs about $6,000 more than conventional over the stay', () => {
   const fha = compareRentOwn(t0({ program: 1, feeFinanced: 0 }));
   const conv = compareRentOwn(t0({}));
   const cost = (r) => r.program.fee + r.totalPmi;
-  assert.ok(cost(fha) - cost(conv) > 9000 && cost(fha) - cost(conv) < 13000);
+  assert.ok(cost(fha) - cost(conv) > 5000 && cost(fha) - cost(conv) < 7000);
 });
 
 test('FHA insurance does not drop at 80%; it ends after 11 years when the loan is 90% or less', () => {

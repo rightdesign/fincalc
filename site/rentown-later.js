@@ -41,6 +41,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
   let resets = 0;
   let repairs = 0;
   let homeBasis = 0;
+  let homeCost = 0;
   let monthsOwned = 0;
   let yearInterest = 0;
   let yearBalance = 0;
@@ -71,6 +72,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       portfolio = Math.max(0, cash - closing - fin.cashFee - down);
       basis = portfolio;
       homeBasis = value + closing;
+      homeCost = value;
       boughtAt = m;
       owned = true;
     }
@@ -88,7 +90,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
         monthlyRate = loanRate / 100 / 12;
         pay = payment(balance, loanRate, v.term * 12 - (monthsOwned - 1));
       }
-      const insured = fin.insuranceMonths == null ? balance > value * 0.8 + 0.005 : monthsOwned <= fin.insuranceMonths;
+      const insured = fin.insuranceMonths == null ? fin.base > homeCost * 0.8 + 0.005 && balance > homeCost * 0.78 + 0.005 : monthsOwned <= fin.insuranceMonths;
       const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
       const interest = balance * monthlyRate;
       const mortgage = monthsOwned <= v.term * 12 ? pay : 0;
@@ -98,6 +100,7 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       balance = Math.max(0, balance + interest - mortgage);
       const repair = v.repairYear > 0 && monthsOwned === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
       repairs = repairs * invest + repair;
+      homeBasis += repair;
       // A renter or owner who runs out of money borrows the shortfall at the mortgage rate and owes no drag.
       const gain = portfolio < 0 ? portfolio * monthlyRate : portfolio * (invest - 1);
       const drag = portfolio > 0 ? Math.min(portfolio * dragRate, Math.max(0, gain)) : 0;

@@ -130,3 +130,18 @@ test('mortgage interest is deductible only on the first $750,000 of debt', () =>
   assert.equal(taxBenefit(v, 40000, 0, 0, 700000), (40000 - 32200) * 0.38);
   assert.equal(taxBenefit(v, 40000, 0), (40000 - 32200) * 0.38);
 });
+
+test('a major repair raises the home basis, so it lowers the home-sale tax', () => {
+  const v = { ...rentOwnDefaults(), price: 2000000, down: 70, capGains: 30, exclusion: 0, growth: 4.7, years: 20, repairYear: 5 };
+  const taxOf = (cost) => compareRentOwn({ ...v, repairCost: cost }).waterfall.moneyBack.homeTax;
+  near(taxOf(0) - taxOf(100000), 100000 * 0.3, 1);
+});
+
+test('PMI needs more than 80% financed and ends at 78% of the original price, not on appreciation', () => {
+  const base = { ...rentOwnDefaults(), price: 400000, pmi: 0.6, years: 30 };
+  assert.equal(compareRentOwn({ ...base, down: 20 }).totalPmi, 0);
+  const slow = compareRentOwn({ ...base, down: 10, growth: 0 }).totalPmi;
+  const fast = compareRentOwn({ ...base, down: 10, growth: 10 }).totalPmi;
+  assert.equal(fast, slow);
+  assert.ok(slow > 0);
+});

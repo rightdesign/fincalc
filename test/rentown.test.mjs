@@ -88,8 +88,8 @@ test('durationText writes months as years and months', () => {
 // Full inputs are stated; every other field is the default (6.5%, 30 years, 1.1% tax, 3% growth, 5% investment).
 const breakEvenCases = [
   ['T0 ($450,000, 20% down, $2,300 rent, 7-year stay)', { price: 450000, down: 20, rent: 2300, years: 7 }, 104, 2415],
-  ['T-NW ($400,000, 10% down, 7.5%, $2,300 rent, 4-year stay)', { price: 400000, down: 10, rate: 7.5, rent: 2300, years: 4 }, 136, 3020],
-  ['T-Z ($300,000, 5% down, $1,800 rent, 7-year stay)', { price: 300000, down: 5, rent: 1800 }, 81, 1780],
+  ['T-NW ($400,000, 10% down, 7.5%, $2,300 rent, 4-year stay)', { price: 400000, down: 10, rate: 7.5, rent: 2300, years: 4 }, 159, 3060],
+  ['T-Z ($300,000, 5% down, $1,800 rent, 7-year stay)', { price: 300000, down: 5, rent: 1800 }, 91, 1831],
 ];
 for (const [name, inputs, months, equivalent] of breakEvenCases) {
   test(`break-even ${name} is pinned and does not move with the stay`, () => {

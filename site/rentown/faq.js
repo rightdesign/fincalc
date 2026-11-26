@@ -28,7 +28,7 @@ export function faqItems({ v, r, final, label, span }) {
     },
     {
       q: 'Does this include taxes?',
-      a: `It includes property tax (${v.tax}% of value a year), the capital gains tax on the renter's investments (${v.capGains}%) and the tax on your home sale gain after the ${money(v.exclusion)} exclusion, which needs a stay of at least two years. It does not model income tax effects of owning, such as the mortgage interest and property tax deductions.`,
+      a: `It includes property tax (${v.tax}% of value a year), the capital gains tax on the renter's investments (${v.capGains}%, the same rate used for your home sale) and the tax on your home sale gain, which counts a major repair as part of what you paid, after the ${money(v.exclusion)} exclusion, which needs a stay of at least two years. It does not model income tax effects of owning, such as the mortgage interest and property tax deductions.`,
     },
     {
       q: 'What does the price-to-rent ratio mean?',
@@ -42,7 +42,7 @@ export function faqItems({ v, r, final, label, span }) {
     },
     {
       q: 'How much does the down payment matter?',
-      a: `You put down ${v.down}% (${money((v.price * v.down) / 100)}) on a ${money(v.price)} home. The renter invests that money instead, so a bigger down payment trades investment growth for a smaller loan and, on a conventional loan, less mortgage insurance (PMI, ${v.pmi}% of the loan while it is above 80% of the home's value). Change the field and watch the break-even move.`,
+      a: `You put down ${v.down}% (${money((v.price * v.down) / 100)}) on a ${money(v.price)} home. The renter invests that money instead, so a bigger down payment trades investment growth for a smaller loan and, on a conventional loan, less mortgage insurance (PMI, ${v.pmi}% of the loan until the loan is paid down to 78% of the original price). Change the field and watch the break-even move.`,
     },
     {
       q: 'How sensitive is the answer to the mortgage rate?',

@@ -98,7 +98,7 @@ export const RENTOWN_FIELDS = [
   { id: 'marginalTaxRate', group: 'taxes', label: 'Marginal income tax rate (federal + state, %)', value: 22, min: 0, max: 60 },
   { id: 'stateIncomeTax', group: 'taxes', label: 'State and local income tax you pay, optional ($ per year; shares the SALT cap with property tax)', value: 0, min: 0, money: true },
   { id: 'itemize', group: 'taxes', label: 'Deductions', value: 1, min: 0, max: 1, integer: true, options: [[1, 'I itemize'], [0, 'I take the standard deduction']] },
-  { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments (%)', value: 15, min: 0, max: 100 },
+  { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments or the home (%)', value: 15, min: 0, max: 100 },
 ];
 
 export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, f.value]));
@@ -210,9 +210,11 @@ export function taxBenefit(v, interest, propertyTax, yearIndex = 0, averageBalan
 // Own net worth as `homeTax`.
 // At the end of each year the tax saved by deducting mortgage interest and property tax is a refund to
 // the owner: it cuts what owning cost, so the renter's account invests that much less.
-// PMI is charged on the original loan each month while the balance is above 80%
-// of the home's value then, so it stops by itself once paying down the loan and
-// appreciation reach that point.
+// PMI applies only when the loan starts above 80% of the price, and is charged on the
+// original loan each month while the balance is above 78%
+// of the home's original price, when lenders cancel it automatically; appreciation
+// does not end it (that needs a new appraisal and a request to the lender).
+// A major repair is a capital improvement, so it raises the home's cost basis.
 const CHART_YEARS = 30;
 
 // Loan programs (v.program): 0 conventional, 1 FHA, 2 VA.
@@ -330,6 +332,7 @@ export function compareRentOwn(v) {
   const curve = [];
   const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
   let repairs = 0;
+  let repairBasis = 0;
   let stay = null;
   // Month by month, what owning costs (all in), what renting costs, and the part of owning that is not the loan.
   const series = [];
@@ -345,7 +348,7 @@ export function compareRentOwn(v) {
       monthlyRate = loanRate / 100 / 12;
       pay = payment(balance, loanRate, v.term * 12 - (m - 1));
     }
-    const insured = fin.insuranceMonths == null ? balance > value * 0.8 + 0.005 : m <= fin.insuranceMonths;
+    const insured = fin.insuranceMonths == null ? fin.base > v.price * 0.8 + 0.005 && balance > v.price * 0.78 + 0.005 : m <= fin.insuranceMonths;
     const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
     if (m <= stayMonths) totalPmi += pmi;
     const interest = balance * monthlyRate;
@@ -356,6 +359,7 @@ export function compareRentOwn(v) {
     yearBalance += before;
     const repair = v.repairYear > 0 && m === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
     repairs = repairs * invest + repair;
+    repairBasis += repair;
     const yearsIn = Math.floor((m - 1) / 12);
     const hoa = v.hoa * (1 + v.hoaGrowth / 100) ** yearsIn;
     const utilities = v.utilities * (1 + v.utilitiesGrowth / 100) ** yearsIn;
@@ -412,9 +416,9 @@ export function compareRentOwn(v) {
     value *= growth;
     assessed *= assessedGrowth;
     // Net worth if everything were sold at the end of this month. The home-sale gain is what is left after
-    // selling costs and the price plus closing costs paid. The exclusion needs two years in the home; the
+    // selling costs and the price plus closing costs paid, plus any major repair. The exclusion needs two years in the home; the
     // capital gains rate is the one the renter's gains use.
-    const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
+    const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100) - repairBasis;
     const homeTax = paper ? 0 : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
     const ownEquity = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
     const ownSaleTax = paper ? 0 : Math.max(0, ownPortfolio - ownBasis) * (v.capGains / 100);
