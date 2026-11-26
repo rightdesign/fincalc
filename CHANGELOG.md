@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.118.4] — 2026-11-26
+
+- FINC-213 The compound interest cost-of-waiting box now describes the yearly contribution step-up and states that the starting balance is assumed idle (0%) during the wait.
+
 ## [0.118.3] — 2026-11-26
 
 - FINC-210 In compound interest, the doubling-milestones heading now says "Each doubling comes faster" only when each doubling takes fewer years than the one before it (otherwise "When your balance doubles"), and the first step is labelled as years from your starting balance.

@@ -1,6 +1,6 @@
 {
   "name": "fincalc",
-  "version": "0.118.3",
+  "version": "0.118.4",
   "private": true,
   "description": "Paul's Financial Calculators",
   "type": "module",
