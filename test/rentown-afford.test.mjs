@@ -21,6 +21,13 @@ test('housing cost as a share of after-tax pay is flagged above 33%', () => {
   assert.equal(affordability(rich, compareRentOwn(rich)).over, false);
 });
 
+test('HOA dues count toward the 33% housing cost', () => {
+  const v = { ...base(), takeHome: 120000 };
+  const plain = affordability(v, compareRentOwn(v));
+  const withHoa = affordability({ ...v, hoa: 1000 }, compareRentOwn({ ...v, hoa: 1000 }));
+  near(withHoa.monthly - plain.monthly, 1000);
+});
+
 test('emergency savings are turned into months of payments', () => {
   const v = { ...base(), takeHome: 120000, emergency: 30000 };
   const r = compareRentOwn(v);

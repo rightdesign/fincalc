@@ -549,7 +549,7 @@ export const JOB_LOSS_MONTHS = 6;
 export function affordability(v, r) {
   if (v.takeHome == null) return null;
   const m = r.monthly[0];
-  const monthly = m.interest + m.principal + m.tax + m.insurance + m.pmi;
+  const monthly = m.interest + m.principal + m.tax + m.insurance + m.pmi + m.hoa;
   const income = v.takeHome / 12;
   const share = (monthly / income) * 100;
   const months = v.emergency == null ? null : monthly > 0 ? v.emergency / monthly : Infinity;
