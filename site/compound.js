@@ -108,6 +108,23 @@ export function effectiveAnnualRate(v) {
   return 100 * (k === Infinity ? Math.expm1(nom) : (1 + nom / k) ** k - 1);
 }
 
+// Years for a lump sum to double at the effective annual rate, after tax on the interest
+// (null when the rate leaves nothing to compound).
+export function yearsToDouble(v) {
+  const net = (effectiveAnnualRate(v) / 100) * (1 - (v.taxRate ?? 0) / 100);
+  return net > 0 ? Math.log(2) / Math.log1p(net) : null;
+}
+
+// Text for the "Time to double" tile: the big value and its caption.
+export function doubleTileText(v) {
+  const years = yearsToDouble(v);
+  if (years === null) return { value: 'Never', caption: 'Needs a positive return after tax' };
+  return {
+    value: `${years < 10 ? years.toFixed(1) : Math.round(years)} years`,
+    caption: `Money invested at the ${effectiveAnnualRate(v).toFixed(2)}% effective rate${v.taxRate > 0 ? ', after tax' : ''}`,
+  };
+}
+
 // Year-by-year growth. The monthly contribution rises by stepUp percent each year after the first.
 // Interest is taxed at taxRate as it is earned (each month's interest when compounding
 // monthly or more often; each period's interest otherwise), so only the after-tax part joins the balance

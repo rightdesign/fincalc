@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -509,6 +509,20 @@ test('Rule of 72 uses the rate the model compounds at: after tax, and after infl
   assert.match(explain({ rate: 9, taxRate: 40, basis: 'today' })['rule-of-72'], /after tax and inflation\)/);
   assert.match(explain({ rate: 2, basis: 'today', inflation: 3 })['rule-of-72'], /never doubles/);
   assert.match(explain({ rate: 7 })['rule-of-72'], /At 7% your money/);
+});
+
+test('yearsToDouble uses the effective rate after tax', () => {
+  const v = { ...modelDefaults(), rate: 9, rateBasis: 'effective', taxRate: 0 };
+  assert.ok(Math.abs(yearsToDouble(v) - Math.log(2) / Math.log(1.09)) < 1e-9);
+  assert.ok(yearsToDouble({ ...v, taxRate: 50 }) > yearsToDouble(v));
+  assert.equal(yearsToDouble({ ...v, rate: 0 }), null);
+});
+
+test('double tile caption does not claim a 0% return when the rate is negative', () => {
+  const v = { ...modelDefaults(), rate: -5, rateBasis: 'effective', taxRate: 0 };
+  assert.deepEqual(doubleTileText(v), { value: 'Never', caption: 'Needs a positive return after tax' });
+  assert.equal(doubleTileText({ ...v, rate: 0 }).value, 'Never');
+  assert.equal(doubleTileText({ ...v, rate: 9 }).value, '8.0 years');
 });
 
 test('compound chart y-axis uses round ticks with compact labels and tops out at a tick', () => {
