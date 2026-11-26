@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.119.1] — 2026-11-26
+
+- FINC-216 The compound interest growth chart's y-axis now shows round values like $500k, $1M and $1.5M instead of odd amounts, with the top of the axis rounded up to the next tick.
+
 ## [0.119.0] — 2026-11-26
 
 - FINC-209 Compound interest's Annual return is now an effective annual rate by default (9% grows 9% a year at any compounding frequency), with a choice of nominal (APR), and the effective annual rate is shown next to the result.
