@@ -5,7 +5,7 @@
 // down payment, and takes a new loan on the balance at `waitRate` (blank: the mortgage rate). From then
 // on it owns, and the budget stays the buy-now owning cost, so any difference from the new loan is
 // invested or drawn from the investments just as the renter's is. Years run to the end of the model.
-import { compareRentOwn } from './rentown.js';
+import { compareRentOwn, withdraw } from './rentown.js';
 import { payment } from './mortgage.js';
 
 // The first year after which buying now is never the lowest of the three, or null if it still is at the end.
@@ -67,9 +67,8 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
     const gain = portfolio * (invest - 1);
     portfolio += gain - Math.min(portfolio * dragRate, Math.max(0, gain));
     const put = budget - spend;
-    if (put < 0 && portfolio > 0) basis *= Math.max(0, portfolio + put) / portfolio;
-    else basis += put;
-    portfolio += put;
+    if (put < 0) ({ portfolio, basis } = withdraw(portfolio, basis, -put, v.view === 'unrealized' ? 0 : capGains));
+    else { basis += put; portfolio += put; }
     value *= growth;
     if (m % 12 === 0) {
       const paper = v.view === 'unrealized';

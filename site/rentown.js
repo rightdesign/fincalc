@@ -231,6 +231,18 @@ function firstAheadMonth(months, field = 'difference') {
   return lastBehind === months.length - 1 ? null : months[lastBehind + 1].month;
 }
 
+// Pays `need` in cash out of the investments. Selling holdings in proportion realizes the gain in the part sold, and the
+// capital gains tax on it comes out of the same sale, so more than `need` is sold. What the holdings cannot cover becomes debt.
+// `rate` is the capital gains rate as a fraction; the unrealized (paper) view passes 0.
+export function withdraw(portfolio, basis, need, rate) {
+  if (need <= 0) return { portfolio, basis };
+  if (portfolio <= 0) return { portfolio: portfolio - need, basis };
+  const keep = 1 - (Math.max(0, portfolio - basis) / portfolio) * rate;
+  if (need >= portfolio * keep) return { portfolio: portfolio * keep - need, basis: 0 };
+  const sold = need / keep;
+  return { portfolio: portfolio - sold, basis: basis * (1 - sold / portfolio) };
+}
+
 // When owning's lead does not last (a sale tax or compounding investments overtake it), the first and last
 // months in which owning is ahead; null if owning is never ahead. The end month is null when the lead holds
 // through the last month, which is the ordinary crossover that firstAheadMonth reports.
@@ -339,10 +351,9 @@ export function compareRentOwn(v) {
     dragPaid += drag;
     portfolio += gain - drag;
     const put = own - rent;
-    // Taking money out sells holdings in proportion, so it also shrinks what counts as money put in.
-    if (put < 0 && portfolio > 0) basis *= Math.max(0, portfolio + put) / portfolio;
-    else basis += put;
-    portfolio += put;
+    // Taking money out sells holdings in proportion, so it shrinks what counts as money put in and realizes (and taxes) the gain sold.
+    if (put < 0) ({ portfolio, basis } = withdraw(portfolio, basis, -put, paper ? 0 : v.capGains / 100));
+    else { basis += put; portfolio += put; }
     if (m % 12 === 0) {
       if (m <= stayMonths) yearEndBalances.push(balance);
       const benefit = taxBenefit(v, yearInterest, yearPropertyTax);
