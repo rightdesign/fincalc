@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.118.0] — 2026-11-26
+
+- FINC-207 In rent vs own, a major repair now raises the home's cost basis (lowering the home-sale tax), the capital gains field says it also sets the home-sale tax rate, and PMI applies only above 80% financed and ends at 78% of the original price instead of when the home appreciates.
+
 ## [0.117.4] — 2026-11-26
 
 - FINC-203 Rent vs own "What drives the verdict" echoes the values you entered exactly (0.25% no longer shows as 0.3%), and a maintenance entered in dollars shows as a short percentage.
