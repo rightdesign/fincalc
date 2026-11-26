@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults, compoundingExplainer, decodeCompound, doublingMilestones, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound } from '../site/compound.js';
+import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound } from '../site/compound.js';
+
+// The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
+const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
 
 test('worked example: $10,000 + $500/month at 7% monthly for 30 years', () => {
   const v = compoundDefaults();
@@ -32,7 +35,7 @@ test('annual compounding gives simple interest on contributions made within the 
 });
 
 test('encode keeps only changed values and round-trips; bad input falls back to defaults', () => {
-  const d = compoundDefaults();
+  const d = modelDefaults();
   assert.equal(encodeCompound(d), '');
   const v = { ...d, monthly: 250, frequency: 'annually' };
   assert.deepEqual(decodeCompound(encodeCompound(v)), v);
@@ -78,9 +81,9 @@ test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in
   assert.equal(zero.futureValue, nominal.futureValue);
   assert.equal(zero.interest, nominal.interest);
   assert.match(headline({ ...v, basis: 'today' }, real), /becomes about \$285,000 in today's dollars — about \$157,000 more than you put in\.$/);
-  const w = { ...v, basis: 'today', inflation: 2.5 };
+  const w = { ...modelDefaults(), basis: 'today', inflation: 2.5 };
   assert.deepEqual(decodeCompound(encodeCompound(w)), w);
-  assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
+  assert.equal(encodeCompound({ ...modelDefaults(), inflation: 3 }), '');
 });
 
 test('beginning-of-month contributions match the closed form and beat end-of-month', () => {
@@ -108,13 +111,13 @@ test('annual compounding lowers the result; timing round-trips through the link'
   assert.ok(fx.frequency.futureValue < r.futureValue && fx.frequency.gap > 0);
   assert.equal(fx.timing.alt, 'start');
   assert.ok(fx.timing.futureValue > r.futureValue && fx.timing.gap < 0);
-  assert.equal(encodeCompound(d), '');
-  assert.deepEqual(decodeCompound(encodeCompound({ ...d, timing: 'start' })), { ...d, timing: 'start' });
+  assert.equal(encodeCompound(modelDefaults()), '');
+  assert.deepEqual(decodeCompound(encodeCompound({ ...modelDefaults(), timing: 'start' })), { ...modelDefaults(), timing: 'start' });
   assert.equal(decodeCompound('#timing=never').timing, 'end');
 });
 
 test('start-early comparison: $500/month at 7% for 40 years versus 30', () => {
-  const v = { start: 0, monthly: 500, rate: 7, years: 40, frequency: 'monthly' };
+  const v = { start: 0, monthly: 500, rate: 7, rateBasis: 'nominal', years: 40, frequency: 'monthly' };
   const c = compareStartingLater(v);
   assert.equal(c.now.contributed, 240000);
   assert.equal(c.later.contributed, 180000);
@@ -280,7 +283,7 @@ test('contribute for: equal to Years matches today, longer is clamped, zero mean
 });
 
 test('contribute for: link round-trip, follows Years when absent, held to Years, Reset restores it', () => {
-  const d = compoundDefaults();
+  const d = modelDefaults();
   assert.equal(encodeCompound({ ...d, contributeYears: 10 }), 'contributeYears=10');
   assert.equal(decodeCompound('#contributeYears=10').contributeYears, 10);
   assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'years=20');
@@ -391,7 +394,7 @@ test('tax rate is validated 0-100 and survives encode/decode', () => {
 });
 
 test('every compounding frequency: more frequent ends higher, and each matches its closed form', () => {
-  const base = { start: 1000, monthly: 0, rate: 8, years: 5, timing: 'end' };
+  const base = { start: 1000, monthly: 0, rate: 8, rateBasis: 'nominal', years: 5, timing: 'end' };
   const fv = (frequency) => simulateCompound({ ...base, frequency }).futureValue;
   const order = ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous'].map(fv);
   for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1]);
@@ -414,7 +417,7 @@ test('every compounding frequency is accepted and handles contributions and zero
 });
 
 test('tax on interest applies to every compounding frequency', () => {
-  const base = { start: 1000, monthly: 0, rate: 8, years: 5, timing: 'end', taxRate: 25 };
+  const base = { start: 1000, monthly: 0, rate: 8, rateBasis: 'nominal', years: 5, timing: 'end', taxRate: 25 };
   const fv = (frequency, extra = {}) => simulateCompound({ ...base, frequency, ...extra }).futureValue;
   assert.ok(Math.abs(fv('quarterly') - 1000 * (1 + 0.08 * 0.75 / 4) ** 20) < 1e-6);
   assert.ok(Math.abs(fv('semiannually') - 1000 * (1 + 0.08 * 0.75 / 2) ** 10) < 1e-6);
@@ -451,6 +454,32 @@ test('chart draws the band only when given one', () => {
   assert.ok(!_chart(rows, String).includes('cc-band'));
   const rg = returnRange({ ...v, variance: 2 });
   assert.ok(_chart(rows, String, { low: rg.low.years, high: rg.high.years }).includes('cc-band'));
+});
+
+test('effective annual rate: 9% grows exactly 9% in a year at every frequency, and is the default', () => {
+  assert.equal(modelDefaults().rateBasis, 'effective');
+  for (const frequency of ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous']) {
+    const r = simulateCompound({ ...modelDefaults(), start: 100000, monthly: 0, rate: 9, years: 1, frequency });
+    assert.ok(Math.abs(r.futureValue - 109000) < 1e-6, frequency);
+  }
+});
+
+test('nominal rate: 9% compounded monthly grows 9.38% a year, and the basis round-trips through the link', () => {
+  const v = { ...modelDefaults(), start: 100000, monthly: 0, rate: 9, years: 1, rateBasis: 'nominal' };
+  assert.ok(Math.abs(simulateCompound(v).futureValue - 100000 * (1 + 0.09 / 12) ** 12) < 1e-6);
+  assert.equal(decodeCompound(encodeCompound(v)).rateBasis, 'nominal');
+  assert.equal(decodeCompound(encodeCompound(modelDefaults())).rateBasis, 'effective');
+  assert.equal(encodeCompound(modelDefaults()).includes('rateBasis'), false);
+});
+
+test('effectiveAnnualRate shows the yearly growth the stated rate produces', () => {
+  const base = { ...modelDefaults(), rate: 9 };
+  for (const frequency of ['annually', 'monthly', 'daily', 'continuous']) {
+    assert.ok(Math.abs(effectiveAnnualRate({ ...base, frequency, rateBasis: 'effective' }) - 9) < 1e-9);
+  }
+  assert.ok(Math.abs(effectiveAnnualRate({ ...base, frequency: 'annually', rateBasis: 'nominal' }) - 9) < 1e-9);
+  assert.ok(Math.abs(effectiveAnnualRate({ ...base, frequency: 'monthly', rateBasis: 'nominal' }) - 9.3807) < 1e-3);
+  assert.equal(effectiveAnnualRate({ ...base, rate: 0, frequency: 'monthly', rateBasis: 'nominal' }), 0);
 });
 
 test('Rule of 72 uses the rate the model compounds at: after tax, and after inflation in the todays-dollars basis', () => {

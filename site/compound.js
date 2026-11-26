@@ -10,11 +10,16 @@ export const COMPOUND_FIELDS = [
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
+  {
+    id: 'rateBasis', label: 'Return is quoted as', kind: 'choice', default: 'effective',
+    hint: 'Effective means the balance grows by exactly this percent over a year, however often interest is added: 9% turns $100 into $109. This is how long-run market returns are quoted. Nominal (APR) is the rate before compounding, as loans and CDs quote it: 9% compounded monthly adds 0.75% a month and grows 9.38% a year.',
+    options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
+  },
   { id: 'variance', label: 'Return variance (± %)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. How far above and below the annual return the real result could land. Set to 2 with a 7% return and the chart shades the range between a 5% and a 9% return, and the results state the balance range. 0 shows a single line.' },
   { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
     id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
-    hint: 'How often interest is added to the balance. Monthly adds one twelfth of the annual rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
+    hint: 'How often interest is added to the balance. An effective annual return grows by that percent over a year whatever you pick here; with a nominal rate, monthly adds one twelfth of the rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
     options: [{ value: 'annually', label: 'Annually' }, { value: 'semiannually', label: 'Semiannually' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'monthly', label: 'Monthly' }, { value: 'daily', label: 'Daily' }, { value: 'continuous', label: 'Continuously' }],
   },
   {
@@ -76,6 +81,20 @@ export const frequencyLabel = (f) => COMPOUND_FIELDS.find((x) => x.id === 'frequ
 // The frequency the "other choice" comparison uses: annually against monthly, everything else against monthly.
 export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
 
+// The nominal yearly rate that compounds k times a year to the stated rate. An effective (APY) rate
+// is converted so the balance grows by exactly that much in a year; a nominal (APR) rate is used as is.
+export function nominalRate(rate, k, basis) {
+  if (basis === 'nominal' || rate === 0) return rate;
+  return k === Infinity ? Math.log1p(rate) : k * ((1 + rate) ** (1 / k) - 1);
+}
+
+// The yearly growth the stated rate really produces once it compounds (the APY), as a percent.
+export function effectiveAnnualRate(v) {
+  const k = PERIODS_PER_YEAR[v.frequency] ?? 12;
+  const nom = nominalRate(v.rate / 100, k, v.rateBasis);
+  return 100 * (k === Infinity ? Math.expm1(nom) : (1 + nom / k) ** k - 1);
+}
+
 // Year-by-year growth. The monthly contribution rises by stepUp percent each year after the first.
 // Interest is taxed at taxRate as it is earned (each month's interest when compounding
 // monthly or more often; each period's interest otherwise), so only the after-tax part joins the balance
@@ -88,8 +107,8 @@ export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
 // months remaining / months in the period, one more month each when made at the beginning of the
 // month) that joins the balance when the period ends.
 export function simulateCompound(v) {
-  const r = v.rate / 100;
   const k = PERIODS_PER_YEAR[v.frequency];
+  const r = nominalRate(v.rate / 100, k, v.rateBasis);
   const keep = 1 - (v.taxRate ?? 0) / 100;
   const early = v.timing === 'start';
   const payYears = contributionYears(v);

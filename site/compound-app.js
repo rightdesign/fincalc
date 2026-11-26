@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -150,7 +150,7 @@ function render() {
   const rows = r.years.map((y) => `<tr${y.year === cross ? ' class="m-cross" aria-label="Year ' + y.year + ', the year interest to date passes contributions to date"' : ''}><td>${y.year}</td><td>${money(y.contributions)}</td><td class="m-int">${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td class="m-int m-int-total">${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
-  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p></div>`;
+  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}</p></div>`;
   const fx = choiceEffects(v, r, today ? v.inflation : null);
   const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
