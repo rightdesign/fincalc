@@ -374,7 +374,8 @@ export function compareRentOwn(v) {
       mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
       hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
     });
-    curve.push({ month: m, own, rent });
+    // `own` is the cash outlay; `cost` leaves out the principal, which builds equity rather than being spent.
+    curve.push({ month: m, own, cost: own - (before - balance), rent });
     if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
     const point = { own, rent, carry: tax + insurance + maintenance + hoa + utilities, tax };
     series.push(point);
@@ -446,7 +447,7 @@ export function compareRentOwn(v) {
     return { year: y.year, repair: y.repair, own: y.own / d, pureOwn: y.pureOwn / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d, taxBenefit: y.taxBenefit / d };
   });
   // Monthly lines cross when renting stays the dearer one from some month on.
-  const lastCheaper = curve.map((c) => c.own > c.rent).lastIndexOf(true);
+  const lastCheaper = curve.map((c) => c.cost > c.rent).lastIndexOf(true);
   const monthlyCross = lastCheaper === curve.length - 1 ? null : curve[lastCheaper + 1].month;
   const real = deflate(years);
   const chartReal = deflate(chartYears);

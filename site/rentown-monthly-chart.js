@@ -8,14 +8,14 @@ const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': 
 
 const when = (month) => `year ${Math.ceil(month / 12)}, month ${((month - 1) % 12) + 1}`;
 
-// curve: [{ month, own, rent }]; cross is the month renting becomes the dearer one for good (or null);
+// curve: [{ month, cost, rent }], cost being owning without the principal that goes to equity; cross is the month renting becomes the dearer one for good (or null);
 // stay is the year the visitor plans to leave; inflation (%) deflates to today's dollars; minYears is the
 // shortest the chart may run (the same span as the net worth chart). Returns { svg, description }.
 export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 0) {
   const crossYears = cross == null ? 0 : Math.ceil(cross / 12);
   const months = Math.min(curve.length, Math.max(minYears, crossYears, stay ?? 0) * 12) || curve.length;
   const d = (m) => (1 + inflation / 100) ** (m / 12);
-  const pts = curve.slice(0, months).map((c) => ({ x: c.month / 12, own: c.own / d(c.month), rent: c.rent / d(c.month) }));
+  const pts = curve.slice(0, months).map((c) => ({ x: c.month / 12, own: c.cost / d(c.month), rent: c.rent / d(c.month) }));
   const xMin = pts[0].x;
   const xMax = pts[pts.length - 1].x;
   const all = pts.flatMap((p) => [p.own, p.rent]);
@@ -60,14 +60,16 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
   svg += '</svg>';
 
   const first = pts[0];
+  // The same month the tables use: the first month of the last year shown.
+  const yearStart = pts[Math.min(pts.length - 1, (Math.ceil(xMax) - 1) * 12)];
   const verdict = cross == null ? 'Owning stays the dearer month to month through the whole run.'
     : cross === 1 ? 'Owning costs no more than renting every month.'
       : `Owning becomes the cheaper month to month in ${when(cross)}.`;
-  const description = `Line chart of the monthly cost of owning and renting. In month 1 owning costs ${fmt(first.own)} and renting costs ${fmt(first.rent)}; in year ${Math.ceil(xMax)} owning costs ${fmt(last.own)} and renting costs ${fmt(last.rent)}. ${verdict}`;
+  const description = `Line chart of the monthly cost of owning and renting. In month 1 owning costs ${fmt(first.own)} and renting costs ${fmt(first.rent)}; in the first month of year ${Math.ceil(xMax)} owning costs ${fmt(yearStart.own)} and renting costs ${fmt(yearStart.rent)}. Owning here leaves out the mortgage principal, which builds equity. ${verdict}`;
   return { svg, description };
 }
 
 export function monthlyChartHtml(curve, cross, fmt, stay, inflation, minYears) {
   const { svg, description } = monthlyChart(curve, cross, fmt, stay, inflation, minYears);
-  return `<figure class="chart-box"><figcaption>Monthly cost by year: own (mortgage, tax, insurance, maintenance, HOA and mortgage insurance) vs rent (rent and renter&rsquo;s insurance)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
+  return `<figure class="chart-box"><figcaption>Monthly cost by year: own (mortgage interest, tax, insurance, maintenance, HOA, mortgage insurance and extra utilities, not the principal that builds equity) vs rent (rent and renter&rsquo;s insurance)</figcaption>${svg}<p class="visually-hidden">${escape(description)}</p></figure>`;
 }

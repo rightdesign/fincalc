@@ -13,8 +13,9 @@ test('the monthly curve starts at the year-1 monthly costs and renting overtakes
   assert.ok(r.monthlyCross > 1);
   const before = r.monthlyCurve[r.monthlyCross - 2];
   const at = r.monthlyCurve[r.monthlyCross - 1];
-  assert.ok(before.own > before.rent);
-  assert.ok(at.own <= at.rent);
+  assert.ok(before.cost > before.rent);
+  assert.ok(at.cost <= at.rent);
+  assert.ok(at.cost < at.own);
 });
 
 test('the monthly chart marks the crossing and describes itself', () => {
@@ -24,6 +25,8 @@ test('the monthly chart marks the crossing and describes itself', () => {
   assert.ok(svg.includes('Monthly break-even'));
   assert.ok(svg.includes('Your stay: year 5'));
   assert.ok(description.includes('cheaper month to month'));
+  assert.ok(description.includes('first month of year'));
+  assert.ok(Math.abs(r.monthlyCurve[48].cost - r.monthly[4].ownCost) < 1e-6);
 });
 
 test('with no monthly crossover no marker is drawn', () => {
