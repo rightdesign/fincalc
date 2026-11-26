@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.7] — 2026-11-26
+
+- FINC-199 The 5% Rule card's disagreement note names what the rule leaves out.
+- FINC-201 The rent vs own price-to-rent line now quotes the ARM starting rate (and says it is adjustable) when Mortgage type is Adjustable rate, instead of the hidden fixed rate.
+- FINC-202 The rent vs own Your mortgage table shows a fixed-rate payment as the same rounded amount every year instead of alternating by $1; principal is derived by subtraction so the row still adds up.
+
 ## [0.115.6] — 2026-11-26
 
 - FINC-193 The rent vs own calculator now counts moving costs against the owner in the net worth comparison, and the cash reserve input says it only affects the cash needed to buy.
