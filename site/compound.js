@@ -130,7 +130,7 @@ export function simulateCompound(v) {
     years.push({ year: y, contributions: added, interest, balance, totalContributed: contributed, totalInterest: balance - contributed });
   }
   const last = years[years.length - 1];
-  return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+  return { years, start: v.start, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
 // Best and worst case: the same plan at the return minus and plus the variance (never below 0%),
@@ -152,34 +152,48 @@ export const WAIT_YEARS = 10;
 // WAIT_YEARS fewer years of the same contribution, return and compounding). Null when the horizon
 // is not longer than the wait, because there is nothing left to compare. In today's-dollars mode
 // both balances (which land on the same date) are divided by (1 + inflation)^years and the gap is
-// recomputed from them; what was contributed stays in the dollars paid.
+// recomputed from them; what was contributed is restated the same way, each at the year it was paid.
 export function compareStartingLater(v) {
   if (!(v.years > WAIT_YEARS)) return null;
   const now = simulateCompound(v);
   const later = simulateCompound({ ...v, years: v.years - WAIT_YEARS });
   const deflate = v.basis === 'today' ? (1 + v.inflation / 100) ** v.years : 1;
+  const today = v.basis === 'today';
+  // Dollars paid at calendar year t are divided by (1 + inflation)^t; the later plan's year 1 is year WAIT_YEARS + 1.
+  const paid = (r, offset) => (today ? r.years.reduce((sum, y) => sum + y.contributions / (1 + v.inflation / 100) ** (y.year + offset), r.start / (1 + v.inflation / 100) ** offset) : r.contributed);
+  const nowContributed = paid(now, 0);
+  const laterContributed = paid(later, WAIT_YEARS);
   const nowBalance = now.futureValue / deflate;
   const laterBalance = later.futureValue / deflate;
   return {
     waitYears: WAIT_YEARS,
     todaysDollars: v.basis === 'today',
-    now: { futureValue: nowBalance, contributed: now.contributed },
-    later: { futureValue: laterBalance, contributed: later.contributed },
+    now: { futureValue: nowBalance, contributed: nowContributed },
+    later: { futureValue: laterBalance, contributed: laterContributed },
     gap: nowBalance - laterBalance,
-    extraContributed: now.contributed - later.contributed,
+    extraContributed: nowContributed - laterContributed,
   };
 }
 
-// The same years with each balance restated in today's dollars: divided by (1 + inflation)^year.
-// What you contributed stays in the dollars you paid; interest becomes the real balance minus that
-// (negative when inflation outruns the return).
+// The same years with every dollar restated in today's dollars: each year's balance and that year's
+// contributions are divided by (1 + inflation)^year, the starting balance is already in today's
+// dollars, and interest is the real balance minus the real contributions (negative when inflation
+// outruns the return). Each year's interest is the real change in balance less what was added.
 export function inTodaysDollars(r, inflation) {
+  let prevBalance = r.start;
+  let prevContributed = r.start;
   const years = r.years.map((y) => {
-    const balance = y.balance / (1 + inflation / 100) ** y.year;
-    return { ...y, balance, totalInterest: balance - y.totalContributed };
+    const f = (1 + inflation / 100) ** y.year;
+    const balance = y.balance / f;
+    const contributions = y.contributions / f;
+    const totalContributed = prevContributed + contributions;
+    const interest = balance - prevBalance - contributions;
+    prevBalance = balance;
+    prevContributed = totalContributed;
+    return { ...y, contributions, interest, balance, totalContributed, totalInterest: balance - totalContributed };
   });
   const last = years[years.length - 1];
-  return { years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+  return { ...r, years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
 // What each choice is worth: the same plan with the other compounding frequency, and with the other

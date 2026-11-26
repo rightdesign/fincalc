@@ -68,11 +68,16 @@ test("today's dollars: ~$285,000 at 3%, equal at 0%, nominal untouched, basis in
   assert.equal(JSON.stringify(nominal), before);
   assert.ok(Math.abs(real.futureValue - nominal.futureValue / 1.03 ** 30) < 1e-6);
   assert.ok(Math.abs(real.futureValue - 285000) < 1000);
-  assert.equal(real.contributed, 190000);
+  // Each year's contributions are deflated at that year's factor, so contributed shrinks and growth rises.
+  const expected = nominal.years.reduce((sum, y) => sum + y.contributions / 1.03 ** y.year, 10000);
+  assert.ok(Math.abs(real.contributed - expected) < 1e-6);
+  assert.ok(real.contributed < 190000);
+  assert.ok(Math.abs(real.interest - (real.futureValue - real.contributed)) < 1e-6);
+  assert.ok(Math.abs(real.years.reduce((sum, y) => sum + y.interest, 0) - real.interest) < 1e-6);
   const zero = inTodaysDollars(nominal, 0);
   assert.equal(zero.futureValue, nominal.futureValue);
   assert.equal(zero.interest, nominal.interest);
-  assert.match(headline({ ...v, basis: 'today' }, real), /becomes about \$285,000 in today's dollars — about \$95,000 more than you put in\.$/);
+  assert.match(headline({ ...v, basis: 'today' }, real), /becomes about \$285,000 in today's dollars — about \$157,000 more than you put in\.$/);
   const w = { ...v, basis: 'today', inflation: 2.5 };
   assert.deepEqual(decodeCompound(encodeCompound(w)), w);
   assert.equal(encodeCompound({ ...v, inflation: 3 }), '');
@@ -126,8 +131,11 @@ test('start-early comparison: $500/month at 7% for 40 years versus 30', () => {
   assert.ok(Math.abs(real.now.futureValue - c.now.futureValue / d) < 0.01);
   assert.ok(Math.abs(real.later.futureValue - c.later.futureValue / d) < 0.01);
   assert.ok(Math.abs(real.gap - (c.now.futureValue - c.later.futureValue) / d) < 0.01);
-  assert.equal(real.now.contributed, 240000);
-  assert.equal(real.extraContributed, 60000);
+  // Contributions are restated at the year they are paid: now pays in years 1-40, the later plan in years 11-40.
+  const paid = (from, to) => { let t = 0; for (let y = from; y <= to; y++) t += 6000 / 1.03 ** y; return t; };
+  assert.ok(Math.abs(real.now.contributed - paid(1, 40)) < 1e-6);
+  assert.ok(Math.abs(real.later.contributed - paid(11, 40)) < 1e-6);
+  assert.ok(Math.abs(real.extraContributed - paid(1, 10)) < 1e-6);
   assert.equal(compareStartingLater({ ...v, basis: 'today', inflation: 0 }).gap, c.gap);
 });
 
