@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.118.2] — 2026-11-26
+
+- FINC-211 The Rule of 72 on compound interest now uses the rate your money actually grows at (after tax, and after inflation in today's dollars) and says which rate it used, instead of always using the pre-tax return.
+
 ## [0.118.1] — 2026-11-26
 
 - FINC-208 Compound interest in today's dollars now restates what you contributed in today's dollars as well, so Total contributed and Growth after inflation (and the year-by-year table and start-early comparison) are consistent with the inflation-adjusted balance.
