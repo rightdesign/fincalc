@@ -38,3 +38,12 @@ test('presets never touch the mortgage rate', () => {
   assert.equal(applied.rate, 8.25);
   assert.equal(matchRentOwnPreset({ ...base(), rate: 8.25 }).id, 'down20');
 });
+
+test('the home-sale exclusion presets are the Section 121 amounts and are valid inputs', async () => {
+  const { EXCLUSION_BY_FILING } = await import('../site/rentown.js');
+  assert.equal(EXCLUSION_BY_FILING[1], 250000);
+  assert.equal(EXCLUSION_BY_FILING[2], 500000);
+  for (const exclusion of Object.values(EXCLUSION_BY_FILING)) {
+    assert.ok(Number.isFinite(compareRentOwn({ ...base(), exclusion }).final.difference));
+  }
+});

@@ -240,7 +240,23 @@ for (const g of RENTOWN_GROUPS) {
     if (f.id === 'exclusion') {
       const note = document.createElement('small');
       note.id = 'rentown-exclusion-note';
-      label.append(note);
+      const row = document.createElement('div');
+      row.className = 'no-print ro-return-presets';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'Home-sale exclusion presets');
+      for (const [value, name] of [[1, 'Single'], [2, 'Married']]) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = name;
+        button.title = `${usd.format(EXCLUSION_BY_FILING[value])} exclusion (federal Section 121)`;
+        button.addEventListener('click', () => {
+          input.value = shown(f, EXCLUSION_BY_FILING[value]);
+          message.textContent = '';
+          render();
+        });
+        row.append(button);
+      }
+      label.append(row, note);
     }
     grid.append(label);
     if (f.id === 'assessed') {
