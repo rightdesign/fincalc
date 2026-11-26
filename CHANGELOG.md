@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.119.3] — 2026-11-26
+
+- FINC-217 Compound interest's "What moves the needle" table no longer labels one change the "biggest lever", since the changes cost different amounts; each row now shows the extra money you would put in next to the gain.
+
 ## [0.119.2] — 2026-11-26
 
 - FINC-214 Compound interest now accepts a negative annual return (down to -20%) and negative inflation (down to -10%), and rejects a return over 30%, a yearly contribution increase over 20%, a return variance over 15% and inflation over 30% with a message naming the allowed range.
