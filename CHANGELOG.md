@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.117.3] — 2026-11-26
+
+- FINC-194 The rent-then-buy comparison now follows the same financing, ARM and tax-refund rules as buying now.
+
 ## [0.117.2] — 2026-11-26
 
 - FINC-206 The rent vs own net worth chart's screen-reader text now describes each line separately, so the pure renter figure is no longer attached to the rent-then-buy line.
