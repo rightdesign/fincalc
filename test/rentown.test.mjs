@@ -7,7 +7,8 @@ import { buildContext } from '../site/rentown/context.js';
 import { CALCULATORS } from '../site/menu.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
-const base = () => rentOwnDefaults();
+// Pinned numbers were recorded with the old 0.7% tax drag default (FINC-186 lowered it to 0.4%).
+const base = () => ({ ...rentOwnDefaults(), investDrag: 0.7 });
 
 test('the menu lists rent vs own third and the page exists', () => {
   assert.equal(CALCULATORS[2].href, 'rent-vs-own.html');
@@ -80,7 +81,7 @@ const breakEvenCases = [
 ];
 for (const [name, inputs, months, equivalent] of breakEvenCases) {
   test(`break-even ${name} is pinned and does not move with the stay`, () => {
-    const v = { ...rentOwnDefaults(), deposit: 0, ...inputs };
+    const v = { ...rentOwnDefaults(), investDrag: 0.7, deposit: 0, ...inputs };
     assert.equal(compareRentOwn(v).chartBreakEvenMonth, months);
     assert.equal(compareRentOwn({ ...v, years: 30 }).chartBreakEvenMonth, months);
     assert.equal(Math.round(equivalentRent(v)), equivalent);

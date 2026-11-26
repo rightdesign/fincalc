@@ -174,6 +174,23 @@ for (const g of RENTOWN_GROUPS) {
         label.append(loan);
       }
     }
+    if (f.hint) {
+      const tip = document.createElement('span');
+      tip.className = 'hint-text';
+      tip.id = `hint-${f.id}`;
+      tip.textContent = f.hint;
+      const hint = document.createElement('button');
+      hint.type = 'button';
+      hint.className = 'hint';
+      hint.textContent = '?';
+      hint.setAttribute('aria-label', `Help: ${f.label}`);
+      hint.setAttribute('aria-expanded', 'false');
+      hint.setAttribute('aria-controls', tip.id);
+      hint.addEventListener('click', (e) => { e.preventDefault(); hint.setAttribute('aria-expanded', String(tip.classList.toggle('open'))); });
+      text.append(' ', hint);
+      input.setAttribute('aria-describedby', tip.id);
+      label.append(tip);
+    }
     if (f.id === 'investment') {
       const row = document.createElement('div');
       row.className = 'no-print ro-return-presets';

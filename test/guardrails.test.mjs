@@ -13,10 +13,10 @@ const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b
 
 test('T0 ($450,000, 20% down, 6.5%, 30 years, $2,300 rent, 7 years) keeps its recorded headline', () => {
   // Renting led by $27,910 before the PMI and investment-tax tickets; with them, and no security deposit, it leads by this much.
-  const r = compareRentOwn({ ...rentOwnDefaults(), deposit: 0 });
+  const r = compareRentOwn({ ...rentOwnDefaults(), investDrag: 0.7, deposit: 0 });
   near(r.final.difference, -12001.84);
   // The default one-month deposit (FINC-125) moves it by the return that money forgoes, after investment tax.
-  near(compareRentOwn(rentOwnDefaults()).final.difference, -11337.02);
+  near(compareRentOwn({ ...rentOwnDefaults(), investDrag: 0.7 }).final.difference, -11337.02);
   assert.equal(r.years.length, 7);
   assert.equal(r.breakEven, null);
 });

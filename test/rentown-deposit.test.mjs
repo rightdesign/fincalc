@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
-const base = () => rentOwnDefaults();
+// Pinned numbers were recorded with the old 0.7% tax drag default (FINC-186 lowered it to 0.4%).
+const base = () => ({ ...rentOwnDefaults(), investDrag: 0.7 });
 
 test('a $0 deposit leaves the T0 gap at $12,002; the default is one month\'s rent', () => {
   near(compareRentOwn({ ...base(), deposit: 0 }).final.difference, -12001.84, 0.5);

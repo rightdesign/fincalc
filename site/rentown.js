@@ -74,7 +74,7 @@ export const RENTOWN_FIELDS = [
   { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($)', value: 250000, min: 0, money: true },
   { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
   { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
-  { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.7, min: 0, max: 10 },
+  { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.4, min: 0, max: 10, hint: 'For a top-bracket California taxpayer, plan on about 0.4% of the balance per year in tax drag from a taxable S&P 500 index fund' },
   { id: 'filing', group: 'taxes', label: 'Filing status', value: 2, min: 1, max: 2, integer: true, options: [[1, 'Single'], [2, 'Married filing jointly']] },
   { id: 'marginalTaxRate', group: 'taxes', label: 'Marginal income tax rate (federal + state, %)', value: 22, min: 0, max: 60 },
   { id: 'itemize', group: 'taxes', label: 'Deductions', value: 1, min: 0, max: 1, integer: true, options: [[1, 'I itemize'], [0, 'I take the standard deduction']] },

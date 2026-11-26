@@ -24,7 +24,7 @@ test('return presets fill the investment return and tax drag, and the defaults s
   const { RETURN_PRESETS } = await import('../site/rentown.js');
   assert.deepEqual(RETURN_PRESETS.map((p) => p.investment), [10, 8, 6, 4]);
   assert.equal(base().investment, 5);
-  assert.equal(base().investDrag, 0.7);
+  assert.equal(base().investDrag, 0.4);
   for (const p of RETURN_PRESETS) {
     const r = compareRentOwn({ ...base(), investment: p.investment, investDrag: p.investDrag });
     assert.ok(Number.isFinite(r.final.difference));
