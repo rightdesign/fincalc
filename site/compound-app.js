@@ -172,7 +172,7 @@ function render() {
   out.innerHTML = `
     <div class="m-tiles">
       <div class="m-tile"><h3>Future value${unit}</h3><p class="m-big">${money(r.futureValue)}</p><p>After ${v.years} year${v.years === 1 ? '' : 's'}</p></div>
-      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year,` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? ` for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
+      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? `${v.stepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
     </div>
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
