@@ -333,12 +333,12 @@ export function compoundingExplainer(v, r) {
   }
   const milestones = doublingMilestones(v, r);
   if (milestones.length > 1) {
-    const faster = milestones.slice(1).every((m) => m.after < milestones[0].after);
-    const steps = milestones.map((m, i) => `${roundedMoney(m.amount)} in year ${m.year}${i === 0 ? '' : ` (${plural(m.after, 'year')} after the last)`}`);
+    const faster = milestones.slice(1).every((m, i) => m.after < milestones[i].after);
+    const steps = milestones.map((m, i) => `${roundedMoney(m.amount)} in year ${m.year}${i > 0 ? ` (${plural(m.after, 'year')} after the last)` : v.start > 0 ? ` (${plural(m.after, 'year')} from your ${roundedMoney(v.start)} start)` : ''}`);
     points.push({
       id: 'milestones',
-      title: 'Each doubling comes faster',
-      text: `Your balance passes ${steps.join(', then ')}. ${faster ? 'After the first, each doubling takes fewer years than the first one did, because growth starts to outweigh what you contribute.' : ''}`.trim(),
+      title: faster ? 'Each doubling comes faster' : 'When your balance doubles',
+      text: `Your balance passes ${steps.join(', then ')}. ${faster ? 'After the first, each doubling takes fewer years than the one before it, because growth starts to outweigh what you contribute.' : ''}`.trim(),
     });
   }
   return points;

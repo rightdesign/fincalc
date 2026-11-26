@@ -221,6 +221,19 @@ test('explainer at the defaults: Rule of 72, last 10 vs first 20 years, doubling
   assert.ok(e['interest-on-interest']);
 });
 
+test('milestones heading only claims "faster" when the gaps shrink, and labels the first step from the start', () => {
+  const titles = (o) => compoundingExplainer({ ...compoundDefaults(), ...o }, simulateCompound({ ...compoundDefaults(), ...o })).find((p) => p.id === 'milestones');
+  const m = titles({ start: 100000, monthly: 534, stepUp: 3.5, rate: 9, years: 26 });
+  assert.equal(m.title, 'When your balance doubles');
+  assert.doesNotMatch(m.text, /fewer years/);
+  assert.match(m.text, /year \d+ \(\d+ years from your \$100,000 start\)/);
+  const shrinkThenGrow = titles({ start: 10000, monthly: 500, rate: 7, years: 30 });
+  assert.equal(shrinkThenGrow.title, 'When your balance doubles');
+  assert.doesNotMatch(shrinkThenGrow.text, /fewer years/);
+  const growing = titles({ start: 0, monthly: 500, rate: 7, years: 40 });
+  assert.equal(growing.title, 'When your balance doubles');
+});
+
 test('explainer follows the inputs: 5% gives a 14-year Rule of 72 and moved figures', () => {
   const e = explain({ rate: 5 });
   assert.match(e['rule-of-72'], /72 ÷ 5 ≈ 14 years/);
