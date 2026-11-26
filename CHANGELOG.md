@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.3] — 2026-11-26
+
+- FINC-191 The rent vs own calculator no longer lets a renter who runs out of money earn the investment return on debt: the shortfall now accrues at the mortgage rate and the investment tax drag is never negative.
+
 ## [0.115.2] — 2026-11-26
 
 - FINC-189 The rent vs own calculator now warns when your after-tax salary is higher than your gross income, so the Ramsey 25%, 33% and 28/36 checks can't silently contradict each other.
