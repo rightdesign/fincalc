@@ -40,3 +40,13 @@ test('the chart draws the pure renter line when the years carry it', () => {
   const years = compareRentOwn(base()).years;
   assert.ok(rentOwnChart(years, null, String).svg.includes('Rent (pure)'));
 });
+
+test('the pure net worth card says it leans toward owning because principal paid is not charged to the owner', async () => {
+  const { lensesCard } = await import('../site/rentown/lenses.js');
+  const r = compareRentOwn(base());
+  const html = lensesCard({ r, final: r.final, label: 'in future dollars', span: '10 years', view: 'realized' });
+  assert.match(html, /home equity against starting cash only/);
+  assert.match(html, /leans toward owning/);
+  assert.match(html, /principal you pay each month/);
+  assert.match(html, /mortgage-interest tax refund are left out/);
+});
