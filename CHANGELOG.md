@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.117.1] — 2026-11-26
+
+- FINC-205 The rent vs own "Pure net worth view" card now says it compares home equity against starting cash only and leans toward owning, because the principal the owner pays each month counts as equity while the renter gets nothing for the same cash, and monthly costs and the mortgage-interest tax refund are left out.
+
 ## [0.117.0] — 2026-11-26
 
 - FINC-196 The rent vs own calculator now applies the SALT cap year by year ($40,400 in 2026, rising 1% a year through 2029, then $10,000 from 2030, phased down for high incomes), counts an optional state and local income tax against the same cap, and raises the standard deduction with inflation.
