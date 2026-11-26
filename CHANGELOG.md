@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.119.4] — 2026-11-26
+
+- FINC-219 Compound interest's first tile no longer repeats the future value; it now shows the time for money to double at the effective rate, or "Never" with a note that it needs a positive return after tax.
+
 ## [0.119.3] — 2026-11-26
 
 - FINC-217 Compound interest's "What moves the needle" table no longer labels one change the "biggest lever", since the changes cost different amounts; each row now shows the extra money you would put in next to the gain.
