@@ -38,3 +38,13 @@ test('waterfall card: only the four buckets and the total are in the main table,
     assert.ok(Math.abs(buckets - totals[totals.length - 1]) < 5, `${buckets} vs ${totals[totals.length - 1]}`);
   }
 });
+
+test('moving costs lower the owner\'s net worth; the cash reserve changes nothing', () => {
+  const none = compareRentOwn(base());
+  const moving = compareRentOwn({ ...base(), moving: 20000 });
+  assert.ok(moving.final.difference < none.final.difference);
+  assert.equal(moving.waterfall.upfront.moving, 20000);
+  near(moving.waterfall.upfront.total - none.waterfall.upfront.total, 20000);
+  const reserve = compareRentOwn({ ...base(), reserve: 24 });
+  assert.equal(reserve.final.difference, none.final.difference);
+});

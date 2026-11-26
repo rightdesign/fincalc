@@ -45,7 +45,7 @@ export const RENTOWN_FIELDS = [
   { id: 'armFloor', group: 'buying', label: 'ARM lowest possible rate (%)', value: 2, min: 0, max: 30, showIf: isArm },
   { id: 'closing', group: 'buying', label: 'Closing costs (% of price)', value: 3, min: 0, max: 20 },
   { id: 'moving', group: 'buying', label: 'Moving costs ($)', value: 0, min: 0, money: true },
-  { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60 },
+  { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60, hint: 'Counted in the cash needed to buy only. It does not change the net worth comparison, because the money stays yours either way.' },
   { id: 'saved', group: 'buying', label: 'Cash you have saved, optional ($)', value: null, min: 0, money: true, optional: true },
   { id: 'takeHome', group: 'buying', label: 'Your after-tax salary, optional ($ per year; for the 33% rule and job-loss check)', value: null, min: 1, money: true, optional: true },
   { id: 'emergency', group: 'buying', label: 'Emergency savings you would keep after buying, optional ($)', value: null, min: 0, money: true, optional: true },
@@ -273,7 +273,7 @@ export function compareRentOwn(v) {
   const assessedGrowth = v.assessed == null ? growth : (1 + v.assessed / 100) ** (1 / 12);
   let assessed = v.price;
   const dragRate = v.investDrag / 100 / 12;
-  const upfront = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee;
+  const upfront = v.price * (v.down / 100 + v.closing / 100) + fin.cashFee + v.moving;
   const deposit = v.deposit ?? v.rent;
   let portfolio = upfront - deposit;
   let basis = portfolio;
@@ -472,7 +472,9 @@ export function equivalentRent(v) {
 // + recurring (owning costs beyond renting) + opportunity cost (growth the
 // investments earned on that money, after the tax on it) - money back from the sale. All four buckets
 // are what the model above already adds up, so they sum to -final.difference.
-// Moving costs and the cash reserve are not part of the net worth comparison.
+// Moving costs are part of the upfront cash: the owner spends them and never gets them back, and the
+// renter invests the same money. The cash reserve is not: it is cash held back on both sides, so it
+// changes neither net worth.
 function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
@@ -485,7 +487,7 @@ function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, b
   const opportunityUpfront = (upfront - deposit) * (invest ** (v.years * 12) - 1);
   const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;
   return {
-    upfront: { down, closing, fee: cashFee, deposit, total: upfront },
+    upfront: { down, closing, fee: cashFee, moving: v.moving, deposit, total: upfront },
     recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, taxBenefit, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
     opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
     moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },

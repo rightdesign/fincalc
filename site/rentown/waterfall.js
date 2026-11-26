@@ -1,5 +1,12 @@
 import { money } from './format.js';
 
+function upfrontLabel({ fee, moving }) {
+  const parts = ['down payment', 'closing costs'];
+  if (fee > 0) parts.push('the upfront fee paid in cash');
+  if (moving > 0) parts.push('moving costs');
+  return `Upfront: ${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
 // Where the gap comes from: four buckets that add up to how far renting is ahead (or behind).
 export function waterfallCard({ r, v }) {
   const w = r.waterfall;
@@ -10,7 +17,7 @@ export function waterfallCard({ r, v }) {
   const sign = w.gap >= 0 ? 'renting ahead by' : 'owning ahead by';
   return `<div class="card ro-waterfall"><h3>Where the difference comes from (after ${v.years} ${v.years === 1 ? 'year' : 'years'}, in future dollars)</h3>
       <table class="data-table"><tbody>
-        ${row(w.upfront.fee > 0 ? 'Upfront: down payment, closing costs and the upfront fee paid in cash' : 'Upfront: down payment and closing costs', w.upfront.total)}
+        ${row(upfrontLabel(w.upfront), w.upfront.total)}
         ${row('Recurring: owning costs beyond renting', rec.total)}
         ${row('Opportunity cost: return forgone by tying up money in the home, after tax on the investments', w.opportunity.total)}
         ${row(`Money back: ${v.view === 'unrealized' ? 'home value' : 'sale price less selling costs'}, less loan payoff${w.moneyBack.homeTax > 0 ? ', tax on the home-sale gain' : ''} and any major repair`, -w.moneyBack.total)}
@@ -22,5 +29,5 @@ export function waterfallCard({ r, v }) {
         ${row('Rent and renter&rsquo;s insurance you would have paid', -(rec.rent + rec.renterInsurance))}
         ${w.moneyBack.homeTax > 0 ? row('Tax on the home-sale gain, already taken out of the money back above', w.moneyBack.homeTax) : ''}
       </tbody></table>
-      <p>Costs of owning are counted as positive; money back reduces the total. The mortgage payments include principal, which comes back in the loan payoff line. Moving costs and the cash reserve are not part of this comparison.${w.upfront.deposit > 0 ? ' The renter&rsquo;s security deposit comes out of the same starting cash and is returned in full, so only the return it forgoes while held shows up, inside the opportunity cost.' : ''}</p></div>`;
+      <p>Costs of owning are counted as positive; money back reduces the total. The mortgage payments include principal, which comes back in the loan payoff line. The cash reserve is not part of this comparison: it stays yours either way.${w.upfront.deposit > 0 ? ' The renter&rsquo;s security deposit comes out of the same starting cash and is returned in full, so only the return it forgoes while held shows up, inside the opportunity cost.' : ''}</p></div>`;
 }
