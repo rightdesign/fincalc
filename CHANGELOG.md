@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.6] — 2026-11-26
+
+- FINC-193 The rent vs own calculator now counts moving costs against the owner in the net worth comparison, and the cash reserve input says it only affects the cash needed to buy.
+- FINC-195 The rent vs own calculator now deducts mortgage interest only on the first $750,000 of the loan, so a large mortgage no longer overstates the income tax saved by owning.
+- FINC-198 The rent vs own "If you rent: invest the difference" card no longer says there is no monthly difference to invest when renting wins but costs more a month; it now says renting is ahead only if the down payment and closing costs are invested, and that the plan relies on covering the extra monthly cost, which grows with rent.
+
 ## [0.115.5] — 2026-11-26
 
 - FINC-192 The rent vs own calculator now taxes the gain realized when the renter sells investments to cover costs above owning, instead of taxing only what is left at the end.
