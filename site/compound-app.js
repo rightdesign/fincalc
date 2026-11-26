@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -138,7 +138,7 @@ function render() {
   if (bad.length) {
     hero.innerHTML = '';
     explainer.hidden = true;
-    out.innerHTML = `<p class="placeholder" role="alert">Enter a valid value for: ${bad.join(', ')}.</p>`;
+    out.innerHTML = `<p class="placeholder" role="alert">Enter a valid value for: ${bad.map((l) => { const f = COMPOUND_FIELDS.find((x) => x.label === l); return f && LIMITS[f.id] ? `${l} (${limitText(f.id)})` : l; }).join(', ')}.</p>`;
     return;
   }
   for (const f of COMPOUND_FIELDS) if (sliders[f.id]) sliders[f.id].value = v[f.id];

@@ -3,13 +3,25 @@
 export const COMPOUND_INPUTS_KEY = 'fincalc.compound';
 export const MAX_YEARS = 100;
 
+// Sensible bounds for the percent inputs that can run away. Negative return and inflation are allowed
+// (a losing investment, deflation); the floors keep (1 + rate) and (1 + inflation) well above zero.
+export const LIMITS = {
+  rate: { min: -20, max: 30 },
+  stepUp: { min: 0, max: 20 },
+  variance: { min: 0, max: 15 },
+  inflation: { min: -10, max: 30 },
+};
+
+// Text for the allowed range of a limited input, e.g. "-20 to 30".
+export const limitText = (id) => `${LIMITS[id].min} to ${LIMITS[id].max}`;
+
 // kind: 'money' ($), 'percent' (%), 'years', 'choice'. slider adds a range input beside the box.
 export const COMPOUND_FIELDS = [
   { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 500000, step: 1000 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
-  { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
+  { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
     id: 'rateBasis', label: 'Return is quoted as', kind: 'choice', default: 'effective',
     hint: 'Effective means the balance grows by exactly this percent over a year, however often interest is added: 9% turns $100 into $109. This is how long-run market returns are quoted. Nominal (APR) is the rate before compounding, as loans and CDs quote it: 9% compounded monthly adds 0.75% a month and grows 9.38% a year.',
@@ -28,7 +40,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'end', label: 'End of month' }, { value: 'start', label: 'Beginning of month' }],
   },
   { id: 'taxRate', label: 'Tax on interest (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your marginal tax rate on the interest and dividends a taxable account pays out. Each period\'s interest is reduced by this rate before it compounds forward, so the results are after tax. Leave at 0 for a tax-free or tax-deferred account, or to ignore tax. 0–100%.' },
-  { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%." },
+  { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
     id: 'basis', label: 'Show results in', kind: 'choice', default: 'future',
     hint: "Future dollars are the plain amounts you will see on the statement. Today's dollars restate the balance in what it could buy at today's prices.",
@@ -62,7 +74,8 @@ export function invalidCompound(v) {
   for (const f of COMPOUND_FIELDS) {
     const x = v[f.id];
     if (f.kind === 'choice') { if (!f.options.some((o) => o.value === x)) bad.push(f.label); continue; }
-    if (!Number.isFinite(x) || x < 0) bad.push(f.label);
+    const lim = LIMITS[f.id];
+    if (!Number.isFinite(x) || x < (lim ? lim.min : 0) || (lim && x > lim.max)) bad.push(f.label);
     else if (f.id === 'taxRate' && x > 100) bad.push(f.label);
     else if (f.id === 'years' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
     else if (f.id === 'contributeYears' && !Number.isInteger(x)) bad.push(f.label);
@@ -152,7 +165,7 @@ export function simulateCompound(v) {
   return { years, start: v.start, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
 }
 
-// Best and worst case: the same plan at the return minus and plus the variance (never below 0%),
+// Best and worst case: the same plan at the return minus and plus the variance (never below the lowest return the page accepts),
 // in the dollars the results are shown in. Null when no variance is set.
 export function returnRange(v) {
   if (!(v.variance > 0)) return null;
@@ -160,7 +173,7 @@ export function returnRange(v) {
     const r = simulateCompound({ ...v, rate });
     return v.basis === 'today' ? inTodaysDollars(r, v.inflation) : r;
   };
-  const lowRate = Math.max(0, v.rate - v.variance);
+  const lowRate = Math.max(LIMITS.rate.min, v.rate - v.variance);
   const highRate = v.rate + v.variance;
   return { lowRate, highRate, low: run(lowRate), high: run(highRate) };
 }
@@ -385,7 +398,8 @@ export function decodeCompound(text) {
     const raw = p.get(f.id);
     if (f.kind === 'choice') { if (f.options.some((o) => o.value === raw)) v[f.id] = raw; continue; }
     const n = parseNumber(raw);
-    if (Number.isFinite(n) && n >= 0) v[f.id] = n;
+    const lim = LIMITS[f.id];
+    if (Number.isFinite(n) && n >= (lim ? lim.min : 0) && !(lim && n > lim.max)) v[f.id] = n;
   }
   // Absent means "as long as Years"; a value past Years is held to it.
   const given = parseNumber(p.get('contributeYears'));

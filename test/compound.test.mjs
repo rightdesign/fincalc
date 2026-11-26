@@ -39,7 +39,7 @@ test('encode keeps only changed values and round-trips; bad input falls back to 
   assert.equal(encodeCompound(d), '');
   const v = { ...d, monthly: 250, frequency: 'annually' };
   assert.deepEqual(decodeCompound(encodeCompound(v)), v);
-  assert.deepEqual(decodeCompound('#years=abc&frequency=weekly&rate=-3'), d);
+  assert.deepEqual(decodeCompound('#years=abc&frequency=weekly&rate=500'), d);
   assert.deepEqual(decodeCompound(''), d);
 });
 
@@ -47,6 +47,19 @@ test('validation and presets', () => {
   assert.deepEqual(invalidCompound(compoundDefaults()), []);
   assert.deepEqual(invalidCompound({ ...compoundDefaults(), years: 2.5, rate: NaN }), ['Annual return (%)', 'Years']);
   for (const p of COMPOUND_PRESETS) assert.deepEqual(invalidCompound({ ...compoundDefaults(), ...p.values }), [], p.id);
+});
+
+test('input limits: runaway values are rejected, negative return and inflation are allowed', () => {
+  const d = compoundDefaults();
+  assert.deepEqual(invalidCompound({ ...d, rate: -2, inflation: -1 }), []);
+  assert.deepEqual(invalidCompound({ ...d, rate: 500, stepUp: 80, variance: 40, inflation: 50 }), ['Increase contribution each year (%)', 'Annual return (%)', 'Return variance (± %)', 'Inflation (% per year)']);
+  assert.deepEqual(invalidCompound({ ...d, rate: -21 }), ['Annual return (%)']);
+  assert.deepEqual(invalidCompound({ ...d, rate: 30, stepUp: 20, variance: 15, inflation: -10 }), []);
+  assert.equal(decodeCompound('#rate=-2&inflation=-1').rate, -2);
+  assert.equal(decodeCompound('#rate=-2&inflation=-1').inflation, -1);
+  assert.equal(decodeCompound('#rate=500&stepUp=80').rate, d.rate);
+  assert.equal(decodeCompound('#stepUp=80').stepUp, d.stepUp);
+  assert.ok(simulateCompound({ ...d, rate: -5, years: 10 }).futureValue < simulateCompound({ ...d, rate: 0, years: 10 }).futureValue);
 });
 
 test('a preset names every input it sets, and sets only those', () => {
@@ -440,7 +453,7 @@ test('returnRange is null without variance and brackets the base case with it', 
   assert.equal(r.highRate, 9);
   const base = _sim(v).futureValue;
   assert.ok(r.low.futureValue < base && base < r.high.futureValue);
-  assert.equal(returnRange({ ...v, rate: 1, variance: 2 }).lowRate, 0);
+  assert.equal(returnRange({ ...v, rate: 1, variance: 2 }).lowRate, -1);
 });
 
 test('variance round-trips through the link and is omitted at 0', () => {
