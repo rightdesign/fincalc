@@ -505,6 +505,11 @@ export function followThrough(r) {
 // (housing included) at most 36%. Housing is the first month's mortgage interest and principal, property tax,
 // insurance, mortgage insurance and HOA dues; maintenance and extra utilities are left out. Null without an income.
 export const HOUSING_CAP = 28;
+// After-tax pay can never exceed gross pay; when both are entered and it does, the affordability checks disagree.
+export function incomeConflict(v) {
+  if (v.income == null || !(v.income > 0) || v.takeHome == null || !(v.takeHome > 0)) return null;
+  return v.takeHome > v.income ? { income: v.income, takeHome: v.takeHome } : null;
+}
 export const DEBT_CAP = 36;
 export function rule2836(v, r) {
   if (v.income == null) return null;
