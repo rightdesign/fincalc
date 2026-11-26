@@ -244,6 +244,8 @@ export function choiceEffects(v, r, inflation) {
 
 // What moves the needle: the end balance with each lever raised on its own, next to the base case.
 // Figures are in the dollars the results are shown in (inflation-adjusted when basis is 'today').
+// Each row also carries extra, the money you would put in beyond the base case, because the levers
+// cost different amounts and so are not ranked against each other.
 // The extra years stop at MAX_YEARS, and the row says how many were actually added.
 export const LEVER_STEPS = { monthly: 100, rate: 1, years: 5 };
 
@@ -253,6 +255,7 @@ export function leverTable(v) {
     return (x.basis === 'today' ? inTodaysDollars(r, x.inflation) : r).futureValue;
   };
   const base = finalBalance(v);
+  const baseContributed = simulateCompound(v).contributed;
   const extraYears = Math.min(LEVER_STEPS.years, MAX_YEARS - v.years);
   const levers = [
     { id: 'monthly', label: `+${usd.format(LEVER_STEPS.monthly)} a month`, values: { ...v, monthly: v.monthly + LEVER_STEPS.monthly } },
@@ -261,10 +264,9 @@ export function leverTable(v) {
   if (extraYears > 0) levers.push({ id: 'years', label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`, values: { ...v, years: v.years + extraYears, ...(contributionYears(v) === v.years && { contributeYears: v.years + extraYears }) } });
   const rows = levers.map((l) => {
     const balance = finalBalance(l.values);
-    return { id: l.id, label: l.label, balance, gain: balance - base };
+    return { id: l.id, label: l.label, balance, gain: balance - base, extra: simulateCompound(l.values).contributed - baseContributed };
   });
-  const best = rows.reduce((a, b) => (b.gain > a.gain ? b : a), rows[0]);
-  return { base, rows, best: best.gain > 0 ? best.id : null };
+  return { base, rows };
 }
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });

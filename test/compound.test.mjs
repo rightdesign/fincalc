@@ -212,7 +212,11 @@ test('lever table: base equals the headline and each row matches a direct rerun'
   assert.ok(Math.abs(by.monthly.gain - 122000) < 2000);
   assert.ok(Math.abs(by.rate.gain - 163400) < 100);
   assert.ok(Math.abs(by.years.gain - 324400) < 100);
-  assert.equal(t.best, 'years');
+  assert.equal(t.best, undefined);
+  const base = simulateCompound(v).contributed;
+  assert.equal(by.monthly.extra, simulateCompound({ ...v, monthly: 600 }).contributed - base);
+  assert.equal(by.rate.extra, 0);
+  assert.equal(by.years.extra, simulateCompound({ ...v, years: 35, contributeYears: 35 }).contributed - base);
 });
 
 test('lever table: today\'s dollars, and extra years stop at the maximum', () => {
