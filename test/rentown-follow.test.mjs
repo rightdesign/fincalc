@@ -22,3 +22,16 @@ test('follow-through when owning wins says what owning costs per month', () => {
   assert.equal(f.direction, 'ownCostsMore');
   near(f.monthly, r.firstOwnMonthly - r.firstRentMonthly);
 });
+
+test('follow-through when renting wins but costs more says the plan relies on covering the extra rent', async () => {
+  const { followCard } = await import('../site/rentown/follow.js');
+  const v = { ...base(), price: 2000000, down: 70, rent: 9000, investment: 10, years: 20 };
+  const r = compareRentOwn(v);
+  const f = followThrough(r);
+  assert.equal(f.winner, 'rent');
+  assert.equal(f.direction, 'rentCostsMore');
+  const html = followCard({ r });
+  assert.match(html, /down payment and closing costs/);
+  assert.match(html, /a month more/);
+  assert.doesNotMatch(html, /no monthly difference/);
+});
