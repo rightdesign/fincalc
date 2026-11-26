@@ -142,7 +142,7 @@ test('start-early comparison: $500/month at 7% for 40 years versus 30', () => {
   assert.equal(compareStartingLater({ ...v, basis: 'today', inflation: 0 }).gap, c.gap);
 });
 
-import { compoundChartHtml, compoundTip, crossoverYear } from '../site/compound-chart.js';
+import { axisLabel, niceTicks, compoundChartHtml, compoundTip, crossoverYear } from '../site/compound-chart.js';
 
 test('compound chart marks the year interest passes contributions at the defaults', () => {
   const years = simulateCompound(compoundDefaults()).years;
@@ -492,4 +492,14 @@ test('Rule of 72 uses the rate the model compounds at: after tax, and after infl
   assert.match(explain({ rate: 9, taxRate: 40, basis: 'today' })['rule-of-72'], /after tax and inflation\)/);
   assert.match(explain({ rate: 2, basis: 'today', inflation: 3 })['rule-of-72'], /never doubles/);
   assert.match(explain({ rate: 7 })['rule-of-72'], /At 7% your money/);
+});
+
+test('compound chart y-axis uses round ticks with compact labels and tops out at a tick', () => {
+  assert.deepEqual(niceTicks(2958683), [0, 500000, 1000000, 1500000, 2000000, 2500000, 3000000]);
+  assert.deepEqual(niceTicks(1), [0, 0.2, 0.4, 0.6, 0.8, 1]);
+  assert.deepEqual(niceTicks(95000), [0, 20000, 40000, 60000, 80000, 100000]);
+  assert.deepEqual([0, 500, 50000, 1500000, 3000000].map(axisLabel), ['$0', '$500', '$50k', '$1.5M', '$3M']);
+  const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
+  const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
+  assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });

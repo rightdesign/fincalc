@@ -34,6 +34,23 @@ export function compoundPlot(rows) {
   return { left: PAD.l / W, right: (W - PAD.r) / W, last };
 }
 
+// Round axis ticks for 0..max: a step of 1, 2, 2.5 or 5 times a power of ten, giving about three to six
+// intervals, with the top tick the first step at or above max.
+export function niceTicks(max) {
+  const raw = max / 6;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * pow).find((c) => c >= raw);
+  const count = Math.ceil(max / step - 1e-9);
+  return Array.from({ length: count + 1 }, (_, i) => Number((i * step).toPrecision(12)));
+}
+
+// Compact axis label: $0, $500, $50k, $1.5M, $2.5B.
+export function axisLabel(n) {
+  const units = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
+  const [size, suffix] = units.find(([u]) => n >= u) ?? [1, ''];
+  return `$${Number((n / size).toFixed(2))}${suffix}`;
+}
+
 // band, when set, is { low, high } rows for the worst and best return; it is shaded around the balance line.
 export function compoundChartHtml(rows, fmt, band = null) {
   const last = rows[rows.length - 1];
@@ -43,17 +60,17 @@ export function compoundChartHtml(rows, fmt, band = null) {
   const edge = (b) => [put[0], ...b.map((r, i) => Math.max(r.balance, put[i + 1]))];
   const lowBal = band ? edge(band.low) : null;
   const highBal = band ? edge(band.high) : null;
-  const yMax = Math.max(...bal, ...(highBal ?? []), 1);
+  const ticks = niceTicks(Math.max(...bal, ...(highBal ?? []), 1));
+  const yMax = ticks[ticks.length - 1];
   const sx = (x) => PAD.l + (x / last.year) * (W - PAD.l - PAD.r);
   const sy = (y) => H - PAD.b - (y / yMax) * (H - PAD.t - PAD.b);
   const f = (n) => n.toFixed(1);
   const line = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${f(sx(xs[i]))},${f(sy(v))}`).join('');
   const base = `L${f(sx(last.year))},${f(sy(0))}L${f(sx(0))},${f(sy(0))}Z`;
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Growth by year chart" class="chart cc-chart">`;
-  for (let i = 0; i <= 4; i++) {
-    const y = (yMax * i) / 4;
+  for (const y of ticks) {
     svg += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(y))}" y2="${f(sy(y))}" class="grid"/>`;
-    svg += `<text x="${PAD.l - 8}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="13">${escape(fmt(y))}</text>`;
+    svg += `<text x="${PAD.l - 8}" y="${f(sy(y) + 4)}" text-anchor="end" font-size="13">${escape(axisLabel(y))}</text>`;
   }
   const step = last.year <= 10 ? 1 : last.year <= 30 ? 5 : 10;
   for (let y = 0; y <= last.year; y += step) {
