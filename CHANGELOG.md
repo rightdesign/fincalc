@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.2] — 2026-11-26
+
+- FINC-189 The rent vs own calculator now warns when your after-tax salary is higher than your gross income, so the Ramsey 25%, 33% and 28/36 checks can't silently contradict each other.
+
 ## [0.115.1] — 2026-11-26
 
 - FINC-186 The rent vs own calculator's tax drag on investments now defaults to 0.4% per year, and a "?" tip on the field explains it (about 0.4% of the balance per year for a top-bracket California taxpayer holding a taxable S&P 500 index fund).
