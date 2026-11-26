@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.118.1] — 2026-11-26
+
+- FINC-208 Compound interest in today's dollars now restates what you contributed in today's dollars as well, so Total contributed and Growth after inflation (and the year-by-year table and start-early comparison) are consistent with the inflation-adjusted balance.
+
 ## [0.118.0] — 2026-11-26
 
 - FINC-207 In rent vs own, a major repair now raises the home's cost basis (lowering the home-sale tax), the capital gains field says it also sets the home-sale tax rate, and PMI applies only above 80% financed and ends at 78% of the original price instead of when the home appreciates.
