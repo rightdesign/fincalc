@@ -19,3 +19,9 @@ test('the line shows under the headline', () => {
   const html = renderCards(buildContext(rentOwnDefaults(), 'future'));
   assert.ok(html.indexOf('ro-headline') < html.indexOf('ro-ratio'));
 });
+
+test('with an ARM the line quotes the ARM starting rate, not the hidden fixed rate', () => {
+  const line = ratioLine({ ...rentOwnDefaults(), arm: 1, rate: 7.32, armRate: 5.75 });
+  assert.match(line, /at your 5\.75% adjustable starting rate:/);
+  assert.doesNotMatch(line, /7\.32/);
+});

@@ -12,7 +12,8 @@ export function ratioLine(v) {
   const rule = tie == null
     ? 'no rent from $50 to $50,000 a month ties owning and renting on these inputs'
     : `renting wins below ~${pct(((tie * 12) / v.price) * 100)}/yr`;
-  return `Price-to-rent ${ratio} · rent is ${pct(share)} of price/yr · rule of thumb at your ${v.rate}% rate: ${rule}`;
+  const rateText = v.arm === 1 ? `${v.armRate}% adjustable starting rate` : `${v.rate}% rate`;
+  return `Price-to-rent ${ratio} · rent is ${pct(share)} of price/yr · rule of thumb at your ${rateText}: ${rule}`;
 }
 
 export const ratioCard = ({ v }) => `<p class="ro-ratio">${ratioLine(v)}</p>`;
