@@ -39,6 +39,13 @@ test('waterfall card: only the four buckets and the total are in the main table,
   }
 });
 
+test('cost waterfall: the recurring detail lines, including income tax saved, add up to the recurring total', () => {
+  for (const extra of [{}, { hoa: 300, utilities: 150 }, { marginalTaxRate: 38, income: 50000 }]) {
+    const rec = compareRentOwn({ ...base(), ...extra }).waterfall.recurring;
+    near(rec.mortgage + rec.pmi + rec.tax + rec.insurance + rec.maintenance + rec.hoa + rec.utilities - rec.taxBenefit - rec.rent - rec.renterInsurance, rec.total);
+  }
+});
+
 test('moving costs lower the owner\'s net worth; the cash reserve changes nothing', () => {
   const none = compareRentOwn(base());
   const moving = compareRentOwn({ ...base(), moving: 20000 });

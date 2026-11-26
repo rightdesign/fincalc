@@ -26,6 +26,7 @@ export function waterfallCard({ r, v }) {
       <h4>Detail (already included in the lines above, not added again)</h4>
       <table class="data-table ro-detail"><tbody>
         ${lines}
+        ${rec.taxBenefit !== 0 ? row('Income tax saved by deducting interest and property tax', -rec.taxBenefit) : ''}
         ${row('Rent and renter&rsquo;s insurance you would have paid', -(rec.rent + rec.renterInsurance))}
         ${w.moneyBack.homeTax > 0 ? row('Tax on the home-sale gain, already taken out of the money back above', w.moneyBack.homeTax) : ''}
       </tbody></table>
