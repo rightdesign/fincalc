@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.117.0] — 2026-11-26
+
+- FINC-196 The rent vs own calculator now applies the SALT cap year by year ($40,400 in 2026, rising 1% a year through 2029, then $10,000 from 2030, phased down for high incomes), counts an optional state and local income tax against the same cap, and raises the standard deduction with inflation.
+- FINC-197 The rent vs own "Where the difference comes from" detail now shows the income tax saved by deducting mortgage interest and property tax, so the detail lines add up to the Recurring line.
+- FINC-200 The rent vs own 33% rule now counts HOA dues like the other two affordability cards, and the Dave Ramsey 25% check uses a 15-year payment (or your own shorter term) and says first-month instead of first-year.
+
 ## [0.116.0] — 2026-11-26
 
 - FINC-190 Reconcile the equal-cash owner savings with the renter shortfall in the rent vs own calculator.
