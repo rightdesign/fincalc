@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.118.3] — 2026-11-26
+
+- FINC-210 In compound interest, the doubling-milestones heading now says "Each doubling comes faster" only when each doubling takes fewer years than the one before it (otherwise "When your balance doubles"), and the first step is labelled as years from your starting balance.
+- FINC-212 Compound interest's Total contributed tile no longer ends with a stray comma when the monthly contribution rises each year.
+
 ## [0.118.2] — 2026-11-26
 
 - FINC-211 The Rule of 72 on compound interest now uses the rate your money actually grows at (after tax, and after inflation in today's dollars) and says which rate it used, instead of always using the pre-tax return.
