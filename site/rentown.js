@@ -16,6 +16,8 @@ export const RENTOWN_GROUPS = [
 // state and local tax (SALT) deduction cap for 2025-2029.
 export const STANDARD_DEDUCTION = { 1: 16100, 2: 32200 };
 export const SALT_CAP = 40000;
+// Mortgage interest is deductible only on the first $750,000 of acquisition debt (single or married filing jointly).
+export const MORTGAGE_DEBT_LIMIT = 750000;
 
 // Home-sale exclusion by filing status (v.filing: 1 single, 2 married filing jointly).
 export const EXCLUSION_BY_FILING = { 1: 250000, 2: 500000 };
@@ -146,9 +148,11 @@ export function invalidRentOwn(v) {
 
 // Income tax saved in one year by owning: mortgage interest plus property tax (up to the SALT cap)
 // counts only for the part above the standard deduction, and not at all if you take the standard deduction.
-export function taxBenefit(v, interest, propertyTax) {
+// Interest counts in proportion to the debt limit over the year's average loan balance (all of it when omitted).
+export function taxBenefit(v, interest, propertyTax, averageBalance = 0) {
   if (!v.itemize) return 0;
-  const itemized = interest + Math.min(propertyTax, SALT_CAP);
+  const share = averageBalance > MORTGAGE_DEBT_LIMIT ? MORTGAGE_DEBT_LIMIT / averageBalance : 1;
+  const itemized = interest * share + Math.min(propertyTax, SALT_CAP);
   return Math.max(0, itemized - STANDARD_DEDUCTION[v.filing]) * (v.marginalTaxRate / 100);
 }
 
@@ -289,6 +293,7 @@ export function compareRentOwn(v) {
   let peakRate = loanRate;
   let totalPmi = 0;
   let yearInterest = 0;
+  let yearBalance = 0;
   let yearPropertyTax = 0;
   let firstTaxBenefit = 0;
   let yearBenefit = 0;
@@ -321,6 +326,7 @@ export function compareRentOwn(v) {
     const before = balance;
     balance = Math.max(0, balance + interest - mortgage);
     yearInterest += before > 0 ? Math.min(interest, mortgage) : 0;
+    yearBalance += before;
     const repair = v.repairYear > 0 && m === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
     repairs = repairs * invest + repair;
     const yearsIn = Math.floor((m - 1) / 12);
@@ -356,8 +362,9 @@ export function compareRentOwn(v) {
     else { basis += put; portfolio += put; }
     if (m % 12 === 0) {
       if (m <= stayMonths) yearEndBalances.push(balance);
-      const benefit = taxBenefit(v, yearInterest, yearPropertyTax);
+      const benefit = taxBenefit(v, yearInterest, yearPropertyTax, yearBalance / 12);
       yearInterest = 0;
+      yearBalance = 0;
       yearPropertyTax = 0;
       if (m === 12) firstTaxBenefit = benefit;
       if (m <= stayMonths) totalTaxBenefit += benefit;

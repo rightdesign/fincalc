@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import { compareRentOwn, rentOwnDefaults, taxBenefit } from '../site/rentown.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
 // Written for a single filer's $250,000 exclusion; the app default is now married filing jointly ($500,000).
@@ -116,4 +116,11 @@ test('a renter who runs out of money pays no negative tax drag and the debt does
   const richer = compareRentOwn({ ...base(), rent: 20000, years: 20, investment: 20 });
   assert.ok(richer.final.rent < 0);
   assert.ok(richer.final.rent > -1e9);
+});
+
+test('mortgage interest is deductible only on the first $750,000 of debt', () => {
+  const v = { ...rentOwnDefaults(), itemize: true, marginalTaxRate: 38, filing: 2 };
+  assert.equal(taxBenefit(v, 117000, 0, 1600000) , (117000 * (750000 / 1600000) - 32200) * 0.38);
+  assert.equal(taxBenefit(v, 40000, 0, 700000), (40000 - 32200) * 0.38);
+  assert.equal(taxBenefit(v, 40000, 0), (40000 - 32200) * 0.38);
 });
