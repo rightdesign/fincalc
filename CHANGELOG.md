@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.116.0] — 2026-11-26
+
+- FINC-190 Reconcile the equal-cash owner savings with the renter shortfall in the rent vs own calculator.
+
 ## [0.115.7] — 2026-11-26
 
 - FINC-199 The 5% Rule card's disagreement note names what the rule leaves out.
