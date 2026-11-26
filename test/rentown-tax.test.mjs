@@ -108,3 +108,12 @@ test('the SALT cap limits the property tax deduction', () => {
   const capped = compareRentOwn({ ...base(), price: 3000000, tax: 3, filing: 1 }).firstTaxBenefit;
   assert.ok(capped < 0.22 * (2400000 * 0.065 + 40000));
 });
+
+test('a renter who runs out of money pays no negative tax drag and the debt does not earn the investment return', () => {
+  const r = compareRentOwn({ ...base(), rent: 20000, years: 20 });
+  assert.ok(r.final.rent < 0);
+  assert.ok(r.years.every((y, i) => y.dragPaid >= 0 && (i === 0 || y.dragPaid >= r.years[i - 1].dragPaid)));
+  const richer = compareRentOwn({ ...base(), rent: 20000, years: 20, investment: 20 });
+  assert.ok(richer.final.rent < 0);
+  assert.ok(richer.final.rent > -1e9);
+});

@@ -323,8 +323,9 @@ export function compareRentOwn(v) {
     if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
     series.push({ own, rent, carry: tax + insurance + maintenance + hoa + utilities });
     if (m === 1) { firstMortgage = mortgage; firstOwn = own; firstRent = rent; firstPmi = pmi; }
-    const gain = portfolio * (invest - 1);
-    const drag = Math.min(portfolio * dragRate, Math.max(0, gain));
+    // A renter who runs out of money borrows the shortfall at the mortgage rate; it earns nothing and owes no drag.
+    const gain = portfolio < 0 ? portfolio * monthlyRate : portfolio * (invest - 1);
+    const drag = portfolio > 0 ? Math.min(portfolio * dragRate, Math.max(0, gain)) : 0;
     dragPaid += drag;
     portfolio += gain - drag;
     const put = own - rent;
