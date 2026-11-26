@@ -439,3 +439,15 @@ test('chart draws the band only when given one', () => {
   const rg = returnRange({ ...v, variance: 2 });
   assert.ok(_chart(rows, String, { low: rg.low.years, high: rg.high.years }).includes('cc-band'));
 });
+
+test('Rule of 72 uses the rate the model compounds at: after tax, and after inflation in the todays-dollars basis', () => {
+  const taxed = explain({ rate: 9, taxRate: 40 });
+  assert.match(taxed['rule-of-72'], /72 ÷ 5\.4 ≈ 13 years/);
+  assert.match(taxed['rule-of-72'], /5\.4% \(your 9% return after tax\)/);
+  const real = explain({ rate: 9, basis: 'today', inflation: 3 });
+  assert.match(real['rule-of-72'], /72 ÷ 5\.83 ≈ 12 years/);
+  assert.match(real['rule-of-72'], /after inflation\)/);
+  assert.match(explain({ rate: 9, taxRate: 40, basis: 'today' })['rule-of-72'], /after tax and inflation\)/);
+  assert.match(explain({ rate: 2, basis: 'today', inflation: 3 })['rule-of-72'], /never doubles/);
+  assert.match(explain({ rate: 7 })['rule-of-72'], /At 7% your money/);
+});

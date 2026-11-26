@@ -296,13 +296,28 @@ export function compoundingExplainer(v, r) {
       : 'At a 0% return nothing grows on its own: your balance is only what you put in. Raise the return to see interest start earning interest.',
   });
   if (v.rate > 0) {
-    const doubling = 72 / v.rate;
-    const shown = doubling >= 10 ? String(Math.round(doubling)) : doubling.toFixed(1);
-    points.push({
-      id: 'rule-of-72',
-      title: 'The Rule of 72',
-      text: `Divide 72 by the return and you get roughly how many years it takes money to double: 72 ÷ ${v.rate} ≈ ${shown} years. At ${v.rate}% your money doubles about every ${shown} years, and each doubling is bigger than the last.`,
-    });
+    // The rate the model actually compounds at: after tax, and after inflation in today's dollars.
+    const afterTax = v.rate * (1 - (v.taxRate ?? 0) / 100);
+    const eff = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + v.inflation / 100) - 1) * 100 : afterTax;
+    const pct = (n) => String(Math.round(n * 100) / 100);
+    const adjusts = [v.taxRate > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean);
+    const used = eff === v.rate ? `${pct(v.rate)}%` : `${pct(eff)}% (your ${pct(v.rate)}% return after ${adjusts.join(' and ')})`;
+    const intro = 'Divide 72 by the return and you get roughly how many years it takes money to double';
+    if (eff > 0) {
+      const doubling = 72 / eff;
+      const shown = doubling >= 10 ? String(Math.round(doubling)) : doubling.toFixed(1);
+      points.push({
+        id: 'rule-of-72',
+        title: 'The Rule of 72',
+        text: `${intro}: 72 ÷ ${pct(eff)} ≈ ${shown} years. At ${used} your money doubles about every ${shown} years, and each doubling is bigger than the last.`,
+      });
+    } else {
+      points.push({
+        id: 'rule-of-72',
+        title: 'The Rule of 72',
+        text: `${intro}. After ${adjusts.join(' and ')}, your ${pct(v.rate)}% return grows your money at ${pct(eff)}% a year, so it never doubles.`,
+      });
+    }
   }
   const lastN = Math.floor(v.years / 3);
   if (lastN >= 1 && v.rate > 0) {
