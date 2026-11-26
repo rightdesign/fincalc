@@ -163,8 +163,8 @@ export function taxBenefit(v, interest, propertyTax, averageBalance = 0) {
 // that share the same starting cash (the down payment and closing costs,
 // invested) and differ in the monthly cash flow:
 // - Equal-cash (`rent`, the headline): both sides spend the same each month, so
-//   the renter's account also takes in whatever owning costs beyond rent (or
-//   pays out the shortfall when owning is cheaper).
+//   the renter's account also takes in whatever owning costs beyond rent, and
+//   the owner invests whatever owning saves.
 // - Pure net worth (`pureRent`): the starting cash only grows; the monthly
 //   difference is not credited to either side.
 // Each grows at the investment return. Each month the tax drag (never more than
@@ -281,6 +281,9 @@ export function compareRentOwn(v) {
   const deposit = v.deposit ?? v.rent;
   let portfolio = upfront - deposit;
   let basis = portfolio;
+  // What the owner invests in the months owning costs less than renting (and the tax refund), taxed the same way.
+  let ownPortfolio = 0;
+  let ownBasis = 0;
   let dragPaid = 0;
   let pure = portfolio;
   const pureStart = pure;
@@ -351,15 +354,16 @@ export function compareRentOwn(v) {
     if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
     series.push({ own, rent, carry: tax + insurance + maintenance + hoa + utilities });
     if (m === 1) { firstMortgage = mortgage; firstOwn = own; firstRent = rent; firstPmi = pmi; }
-    // A renter who runs out of money borrows the shortfall at the mortgage rate; it earns nothing and owes no drag.
+    // A renter whose deposit exceeds the cash put in starts in debt and borrows the shortfall at the mortgage rate; it earns nothing and owes no drag.
     const gain = portfolio < 0 ? portfolio * monthlyRate : portfolio * (invest - 1);
     const drag = portfolio > 0 ? Math.min(portfolio * dragRate, Math.max(0, gain)) : 0;
     dragPaid += drag;
     portfolio += gain - drag;
+    const ownGain = ownPortfolio * (invest - 1);
+    ownPortfolio += ownGain - Math.min(ownPortfolio * dragRate, Math.max(0, ownGain));
+    // Whichever side costs less that month invests the difference.
     const put = own - rent;
-    // Taking money out sells holdings in proportion, so it shrinks what counts as money put in and realizes (and taxes) the gain sold.
-    if (put < 0) ({ portfolio, basis } = withdraw(portfolio, basis, -put, paper ? 0 : v.capGains / 100));
-    else { basis += put; portfolio += put; }
+    if (put > 0) { portfolio += put; basis += put; } else { ownPortfolio -= put; ownBasis -= put; }
     if (m % 12 === 0) {
       if (m <= stayMonths) yearEndBalances.push(balance);
       const benefit = taxBenefit(v, yearInterest, yearPropertyTax, yearBalance / 12);
@@ -369,9 +373,9 @@ export function compareRentOwn(v) {
       if (m === 12) firstTaxBenefit = benefit;
       if (m <= stayMonths) totalTaxBenefit += benefit;
       yearBenefit = benefit;
-      // The refund is money the renter did not need to put in, like any other cut in what owning costs.
-      if (portfolio > 0) basis *= Math.max(0, portfolio - benefit) / portfolio;
-      portfolio -= benefit;
+      // The refund is money the owner gets back and invests, like any other cut in what owning costs.
+      ownPortfolio += benefit;
+      ownBasis += benefit;
     } else yearBenefit = 0;
     // Pure lens: the starting cash alone, with the same tax drag and no monthly flow.
     const pureGain = pure * (invest - 1);
@@ -383,16 +387,18 @@ export function compareRentOwn(v) {
     // capital gains rate is the one the renter's gains use.
     const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100);
     const homeTax = paper ? 0 : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
-    const ownWorth = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
+    const ownEquity = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
+    const ownSaleTax = paper ? 0 : Math.max(0, ownPortfolio - ownBasis) * (v.capGains / 100);
+    const ownWorth = ownEquity + ownPortfolio - ownSaleTax;
     const saleTax = paper ? 0 : Math.max(0, portfolio - basis) * (v.capGains / 100);
     const rentWorth = portfolio - saleTax + deposit;
     const pureWorth = (paper ? pure : pure - Math.max(0, pure - pureStart) * (v.capGains / 100)) + deposit;
-    months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownWorth - pureWorth });
+    months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownEquity - pureWorth });
     if (m % 12 === 0) {
-      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureRent: pureWorth, pureDifference: ownWorth - pureWorth, dragPaid, saleTax, homeTax, taxBenefit: yearBenefit, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureOwn: ownEquity, pureRent: pureWorth, pureDifference: ownEquity - pureWorth, dragPaid, saleTax, homeTax, taxBenefit: yearBenefit, repair: v.repairYear === m / 12 && v.repairCost > 0 });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
-    if (m === stayMonths) stay = { sum: { ...sum }, taxBenefit: totalTaxBenefit, value, balance, portfolio, repairs };
+    if (m === stayMonths) stay = { sum: { ...sum }, taxBenefit: totalTaxBenefit, value, balance, portfolio, repairs, ownSavings: ownPortfolio - ownSaleTax };
   }
   const years = all.slice(0, v.years);
   const breakEven = firstAheadYear(years);
@@ -409,7 +415,7 @@ export function compareRentOwn(v) {
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
   const deflate = (rows) => rows.map((y) => {
     const d = (1 + v.inflation / 100) ** y.year;
-    return { year: y.year, repair: y.repair, own: y.own / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d, taxBenefit: y.taxBenefit / d };
+    return { year: y.year, repair: y.repair, own: y.own / d, pureOwn: y.pureOwn / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d, taxBenefit: y.taxBenefit / d };
   });
   // Monthly lines cross when renting stays the dearer one from some month on.
   const lastCheaper = curve.map((c) => c.own > c.rent).lastIndexOf(true);
@@ -419,7 +425,7 @@ export function compareRentOwn(v) {
   const cash = cashNeeded(v, firstOwn, firstRent, fin.cashFee, deposit);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, deposit, cashFee: fin.cashFee, ...stay, ownWorth: final.own, invest, saleTax: final.saleTax, homeTax: final.homeTax });
+  const waterfall = costWaterfall(v, { upfront, deposit, cashFee: fin.cashFee, ...stay, ownWorth: final.pureOwn, invest, saleTax: final.saleTax, homeTax: final.homeTax });
   return {
     years,
     monthly,
@@ -482,14 +488,15 @@ export function equivalentRent(v) {
 // Moving costs are part of the upfront cash: the owner spends them and never gets them back, and the
 // renter invests the same money. The cash reserve is not: it is cash held back on both sides, so it
 // changes neither net worth.
-function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, balance, portfolio, ownWorth, invest, repairs, saleTax, homeTax }) {
+function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, balance, portfolio, ownSavings, ownWorth, invest, repairs, saleTax, homeTax }) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
   const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
   const rentCosts = sum.rent + sum.renterInsurance;
   // Income tax refunds from the home deductions cut what owning cost.
   const recurring = ownCosts - taxBenefit - rentCosts;
-  const opportunity = portfolio - saleTax + deposit - upfront - recurring;
+  // What the owner invests along the way offsets the renter's account, so the buckets stay on the net basis.
+  const opportunity = portfolio - ownSavings - saleTax + deposit - upfront - recurring;
   // The deposit is part of the starting cash but earns nothing while the landlord holds it.
   const opportunityUpfront = (upfront - deposit) * (invest ** (v.years * 12) - 1);
   const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;

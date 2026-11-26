@@ -11,7 +11,7 @@ const v = { ...rentOwnDefaults(), years: 8 };
 test('the CSV has the columns shown and one line per year of the stay', () => {
   const r = compareRentOwn(v);
   const lines = tableCsv({ columns: TABLE_COLUMNS, rows: tableRows(r, false) }).trimEnd().split('\r\n');
-  assert.equal(lines[0], 'Year,Own,Rent (equal-cash),Difference (equal-cash),Rent (pure),Difference (pure)');
+  assert.equal(lines[0], 'Year,Own (equal-cash),Rent (equal-cash),Difference (equal-cash),Own (pure),Rent (pure),Difference (pure)');
   assert.equal(lines.length, 9);
   assert.ok(!lines.join('').includes('$'));
 });

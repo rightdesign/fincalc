@@ -25,15 +25,27 @@ test('with a free home and no growth, owning loses exactly the costs paid', () =
   // No loan, no costs but selling, flat value, no investment return, rent 0.01: renting keeps the cash.
   const v = { ...base(), down: 100, rate: 0, closing: 0, tax: 0, insurance: 0, maintenance: 0, growth: 0, selling: 10, investment: 0, rent: 1, rentGrowth: 0, renterInsurance: 0, years: 2, price: 120000 };
   const r = compareRentOwn(v);
-  near(r.final.own, 108000);
-  near(r.final.rent, 120000 - 24);
+  // Owning costs nothing, so the owner invests the 24 of rent saved.
+  near(r.final.pureOwn, 108000);
+  near(r.final.own, 108024);
+  near(r.final.rent, 120000);
   assert.equal(r.breakEven, null);
 });
 
 test('a loan is repaid over its term and the owner net worth is equity after selling costs', () => {
   const v = { ...base(), years: 30, term: 30, growth: 0, selling: 0 };
   const r = compareRentOwn(v);
-  near(r.final.own, v.price, 1);
+  near(r.final.pureOwn, v.price, 1);
+});
+
+test('when owning costs less, the owner invests the difference and the equal-cash Own includes it', () => {
+  const v = { ...base(), rent: 9000, years: 10, down: 70, tax: 0.5 };
+  const r = compareRentOwn(v);
+  assert.ok(r.firstOwnMonthly < r.firstRentMonthly);
+  assert.ok(r.final.own > r.final.pureOwn);
+  // The pure view still compares the home equity alone.
+  near(r.final.pureDifference, r.final.pureOwn - r.final.pureRent);
+  near(r.final.difference, r.final.own - r.final.rent);
 });
 
 test('break-even is the first year after which owning stays ahead', () => {

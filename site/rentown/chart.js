@@ -4,9 +4,9 @@ import { monthlyChartHtml } from '../rentown-monthly-chart.js';
 import { money, signed } from './format.js';
 
 // The year-by-year table as plain numbers, shared by the card below and the CSV download.
-export const TABLE_COLUMNS = ['Year', 'Own', 'Rent (equal-cash)', 'Difference (equal-cash)', 'Rent (pure)', 'Difference (pure)'];
+export const TABLE_COLUMNS = ['Year', 'Own (equal-cash)', 'Rent (equal-cash)', 'Difference (equal-cash)', 'Own (pure)', 'Rent (pure)', 'Difference (pure)'];
 export const tableYears = (r, today) => (today ? r.real : r.years);
-export const tableRows = (r, today) => tableYears(r, today).map((y) => [y.year, ...[y.own, y.rent, y.difference, y.pureRent, y.pureDifference].map(Math.round)]);
+export const tableRows = (r, today) => tableYears(r, today).map((y) => [y.year, ...[y.own, y.rent, y.difference, y.pureOwn, y.pureRent, y.pureDifference].map(Math.round)]);
 
 function chartData({ r, later, today }) {
   return (today ? r.chartReal : r.chartYears).map((y, i) => ({ ...y, later: (today ? later.chartReal : later.chartYears)[i].later }));
@@ -22,7 +22,7 @@ export const monthlyChart = ({ r, today, v }) => monthlyChartHtml(r.monthlyCurve
 
 export function tablePanel({ v, r, today, final, label }) {
   const rows_ = tableYears(r, today);
-  const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}${y.homeTax > 0 ? ` <small>(tax if you sell: ${money(y.homeTax)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td><td>${money(y.pureRent)}</td><td>${signed(y.pureDifference)}</td></tr>`).join('');
+  const rows = rows_.map((y) => `<tr><td>${y.year}${y.repair ? ` <small>(major repair ${money(v.repairCost)})</small>` : ''}${y.homeTax > 0 ? ` <small>(tax if you sell: ${money(y.homeTax)})</small>` : ''}</td><td>${money(y.own)}</td><td>${money(y.rent)}</td><td>${signed(y.difference)}</td><td>${money(y.pureOwn)}</td><td>${money(y.pureRent)}</td><td>${signed(y.pureDifference)}</td></tr>`).join('');
   return `<div class="ro-table-wrap"><table class="data-table"><caption>Net worth at the end of each year, ${label}</caption>
         <thead><tr>${TABLE_COLUMNS.map((c) => `<th scope="col">${c}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody></table>

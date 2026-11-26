@@ -10,7 +10,7 @@ import { tableRows } from '../site/rentown/chart.js';
 // table rows the page shows.
 const LENSES = [
   { title: 'Equal-cash view', col: 3, key: 'difference', breakEven: 'breakEven', month: 'breakEvenMonth', final: 'difference' },
-  { title: 'Pure net worth view', col: 5, key: 'pureDifference', breakEven: 'pureBreakEven', month: 'pureBreakEvenMonth', final: 'pureDifference' },
+  { title: 'Pure net worth view', col: 6, key: 'pureDifference', breakEven: 'pureBreakEven', month: 'pureBreakEvenMonth', final: 'pureDifference' },
 ];
 
 const INPUTS = [

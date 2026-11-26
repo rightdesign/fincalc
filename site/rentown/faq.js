@@ -37,8 +37,8 @@ export function faqItems({ v, r, final, label, span }) {
     {
       q: 'Why do the two views disagree?',
       a: differ
-        ? `On your inputs they do: the equal-cash view says ${side(final.difference)} comes out ahead and the pure net worth view says ${side(final.pureDifference)}. The equal-cash view credits the renter with investing whatever owning costs beyond renting each month; the pure view gives neither side that credit and only compares the starting cash with the home. The headline follows the equal-cash view.`
-        : `On your inputs they agree, with ${side(final.difference)} ahead in both. They can differ because the equal-cash view credits the renter with investing whatever owning costs beyond renting each month, while the pure view only compares the starting cash with the home. The headline follows the equal-cash view.`,
+        ? `On your inputs they do: the equal-cash view says ${side(final.difference)} comes out ahead and the pure net worth view says ${side(final.pureDifference)}. The equal-cash view credits whichever side costs less each month with investing the difference; the pure view gives neither side that credit and only compares the starting cash with the home. The headline follows the equal-cash view.`
+        : `On your inputs they agree, with ${side(final.difference)} ahead in both. They can differ because the equal-cash view credits whichever side costs less each month with investing the difference, while the pure view only compares the starting cash with the home. The headline follows the equal-cash view.`,
     },
     {
       q: 'How much does the down payment matter?',

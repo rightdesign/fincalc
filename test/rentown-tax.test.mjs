@@ -109,13 +109,19 @@ test('the SALT cap limits the property tax deduction', () => {
   assert.ok(capped < 0.22 * (2400000 * 0.065 + 40000));
 });
 
-test('a renter who runs out of money pays no negative tax drag and the debt does not earn the investment return', () => {
-  const r = compareRentOwn({ ...base(), rent: 20000, years: 20 });
+test('a renter whose deposit exceeds the cash put in owes at the mortgage rate and the debt earns no investment return', () => {
+  // Owning costing more than renting is the only other way into the account, and it only adds to it.
+  const debt = (extra) => compareRentOwn({ ...base(), down: 0, closing: 0, deposit: 500000, years: 20, ...extra });
+  const r = debt({});
   assert.ok(r.final.rent < 0);
   assert.ok(r.years.every((y, i) => y.dragPaid >= 0 && (i === 0 || y.dragPaid >= r.years[i - 1].dragPaid)));
-  const richer = compareRentOwn({ ...base(), rent: 20000, years: 20, investment: 20 });
-  assert.ok(richer.final.rent < 0);
-  assert.ok(richer.final.rent > -1e9);
+  near(debt({ investment: 20 }).final.rent, r.final.rent, 1e-6);
+});
+
+test('a renter is never drawn below zero by owning costing less: the owner invests the difference', () => {
+  const r = compareRentOwn({ ...base(), rent: 20000, years: 20 });
+  assert.ok(r.final.rent > 0);
+  assert.ok(r.final.own > r.final.pureOwn);
 });
 
 test('mortgage interest is deductible only on the first $750,000 of debt', () => {
