@@ -687,7 +687,7 @@ export function rentOwnThresholds(v) {
   const ahead = (x, d) => compareRentOwn({ ...v, [d.id]: x }).final.difference >= 0;
   return drivers.map((d) => {
     const flip = rentOwnFlipPoint(v, d);
-    const entered = pct(v[d.id]);
+    const entered = `${+Number(v[d.id]).toFixed(3)}%`;
     if (flip == null) {
       const winner = ahead(v[d.id], d) ? 'Owning' : 'Renting';
       return { id: d.id, label: d.label, flip: null, text: `${winner} wins at every ${d.label.toLowerCase()} from ${d.min}% to ${d.max}%, so this assumption does not change the verdict (you entered ${entered}).` };
