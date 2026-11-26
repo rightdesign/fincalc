@@ -3,13 +3,14 @@ import { money, word } from './format.js';
 const r0 = Math.round;
 
 // One row per year of the stay, from the model's first month of each year. Every column is the rounded
-// dollar amount shown, so the paid-each-month figure always adds up on the page.
+// dollar amount shown, so the paid-each-month figure always adds up on the page. The payment is the rounded
+// actual payment and principal is the remainder, so a fixed payment never flips between $1 apart.
 export function mortgageRows(r) {
   return r.monthly.map((m, i) => {
     const interest = r0(m.interest);
-    const principal = r0(m.principal);
+    const payment = r0(m.interest + m.principal);
+    const principal = payment - interest;
     const other = r0(m.tax) + r0(m.insurance) + r0(m.pmi) + r0(m.maintenance) + r0(m.hoa) + r0(m.utilities);
-    const payment = interest + principal;
     return { year: m.year, payment, interest, principal, other, paid: payment + other, balance: r.yearEndBalances[i] ?? 0, paidOff: payment === 0 };
   });
 }
