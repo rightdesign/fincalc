@@ -88,3 +88,39 @@ test('the unrealized view applies to the rent-then-buy line too', () => {
   const l = compareRentThenBuy({ ...v, waitYears: v.years }, r);
   l.years.forEach((y, i) => near(y.later, r.years[i].rent));
 });
+
+test('the renting years match rent forever exactly, tax refund included', () => {
+  const v = { ...base(), price: 2000000, down: 70, takeHome: 300000, marginalTaxRate: 38, rent: 9000, waitYears: 2, years: 10 };
+  const r = compareRentOwn(v);
+  assert.ok(r.firstTaxBenefit > 0);
+  const l = compareRentThenBuy(v, r);
+  near(l.years[0].later, r.years[0].rent);
+  near(l.years[1].later, r.years[1].rent);
+});
+
+test('buying immediately gets the same mortgage interest and property tax deduction as buying now', () => {
+  const v = { ...base(), waitYears: 0, price: 1000000, marginalTaxRate: 38 };
+  const r = compareRentOwn(v);
+  assert.ok(r.firstTaxBenefit > 0);
+  compareRentThenBuy(v, r).years.forEach((y, i) => near(y.later, r.years[i].own, 0.5));
+});
+
+test('the later purchase follows the loan program: VA has no PMI, FHA adds its fee, ARM starts at the ARM rate', () => {
+  const v = { ...base(), waitYears: 2, down: 5, pmi: 1.5 };
+  const conv = compareRentThenBuy(v);
+  const va = compareRentThenBuy({ ...v, program: 2, feeFinanced: 1 });
+  const fha = compareRentThenBuy({ ...v, program: 1, feeFinanced: 1 });
+  assert.ok(va.final.later !== conv.final.later);
+  assert.ok(fha.loan > conv.loan);
+  const arm = compareRentThenBuy({ ...v, arm: 1, armRate: 3 });
+  near(arm.rate, 3);
+});
+
+test('buying immediately with a loan program matches buying now', () => {
+  for (const extra of [{ program: 1 }, { program: 2, feeFinanced: 0 }, { arm: 1 }]) {
+    const v = { ...base(), waitYears: 0, down: 5, ...extra };
+    const r = compareRentOwn(v);
+    const l = compareRentThenBuy(v, r);
+    l.years.forEach((y, i) => near(y.later, r.years[i].own, 0.5));
+  }
+});

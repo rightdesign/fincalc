@@ -5,7 +5,7 @@ export function laterCard({ v, r, later, today, final, label }) {
   const l = today ? later.finalReal : later.final;
   const rows = today ? later.real : later.years;
   const span = word(v.waitYears, 'year');
-  const rate = v.waitRate ?? v.rate;
+  const rate = later.rate;
   const buy = later.buyYear == null
     ? `Your stay ends before the purchase, so this path is the same as renting for all ${word(v.years, 'year')}.`
     : v.waitYears === 0

@@ -232,7 +232,7 @@ function vaFundingFeePct(downPct, repeat) {
 
 // The financing the program implies: the upfront fee (FHA MIP or VA funding fee) and whether it
 // is added to the loan or paid in cash, and the yearly insurance percentage on the base loan.
-function financing(v) {
+export function financing(v) {
   const base = v.price * (1 - v.down / 100);
   const ltv = 100 - v.down;
   if (v.program === 1) {
@@ -376,7 +376,8 @@ export function compareRentOwn(v) {
     });
     curve.push({ month: m, own, rent });
     if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
-    series.push({ own, rent, carry: tax + insurance + maintenance + hoa + utilities });
+    const point = { own, rent, carry: tax + insurance + maintenance + hoa + utilities, tax };
+    series.push(point);
     if (m === 1) { firstMortgage = mortgage; firstOwn = own; firstRent = rent; firstPmi = pmi; }
     // A renter whose deposit exceeds the cash put in starts in debt and borrows the shortfall at the mortgage rate; it earns nothing and owes no drag.
     const gain = portfolio < 0 ? portfolio * monthlyRate : portfolio * (invest - 1);
@@ -401,6 +402,9 @@ export function compareRentOwn(v) {
       ownPortfolio += benefit;
       ownBasis += benefit;
     } else yearBenefit = 0;
+    // The renter's account at the end of this month, which the rent-then-buy path follows while it rents.
+    point.portfolio = portfolio;
+    point.basis = basis;
     // Pure lens: the starting cash alone, with the same tax drag and no monthly flow.
     const pureGain = pure * (invest - 1);
     pure += pureGain - Math.min(pure * dragRate, Math.max(0, pureGain));
@@ -480,6 +484,7 @@ export function compareRentOwn(v) {
     cash,
     waterfall,
     series,
+    startPortfolio: upfront - deposit,
   };
 }
 
