@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.115.4] — 2026-11-26
+
+- FINC-188 The rent vs own headline, "Owning pulls ahead" tile and tornado now report the range of stays where owning wins (for example 4 to 15 years) when its lead is later overtaken, instead of saying renting always wins or "never"; the tornado end year matches the Table tab, the detail line fits stays shorter than the range, and the lenses card and chart description use the range.
+
 ## [0.115.3] — 2026-11-26
 
 - FINC-191 The rent vs own calculator no longer lets a renter who runs out of money earn the investment return on debt: the shortfall now accrues at the mortgage rate and the investment tax drag is never negative.
