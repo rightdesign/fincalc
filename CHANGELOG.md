@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.117.4] — 2026-11-26
+
+- FINC-203 Rent vs own "What drives the verdict" echoes the values you entered exactly (0.25% no longer shows as 0.3%), and a maintenance entered in dollars shows as a short percentage.
+- FINC-204 The rent vs own monthly cost chart now leaves out mortgage principal (which builds equity), names extra utilities in its caption, and describes the first month of the last year so it matches the tables.
+
 ## [0.117.3] — 2026-11-26
 
 - FINC-194 The rent-then-buy comparison now follows the same financing, ARM and tax-refund rules as buying now.
