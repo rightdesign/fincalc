@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.125.0] — 2026-11-27
+
+- FINC-235 Compound interest withdrawals can now be taken monthly, quarterly, half-yearly or yearly, as a fixed amount, a percent of the balance or a percent of the earnings.
+
 ## [0.124.0] — 2026-11-27
 
 - FINC-233 Compound interest now shows the effective annual rate after tax and after inflation, and its time to double uses the after-inflation rate in today's dollars.
