@@ -54,7 +54,20 @@ hooks:
       sleep 2
     done
     [ -n "$run" ] || { echo "deploy: the $wf run never appeared after dispatch" >&2; exit 1; }
-    gh run watch "$run" --exit-status --interval 5
+    # `gh run watch` is only here for the live log. It can fail on a run
+    # that is fine: just after dispatch GitHub may answer 404 for the new
+    # run's jobs. So its exit status is ignored, and the run's own
+    # conclusion decides the hook's: poll until it completes (10 minutes).
+    gh run watch "$run" --interval 5 || echo "deploy: gh run watch failed; checking run $run directly" >&2
+    conclusion=""
+    for _ in $(seq 1 120); do
+      state="$(gh run view "$run" --json status,conclusion --jq '.status + " " + (.conclusion // "")' 2>/dev/null || true)"
+      case "$state" in
+        "completed "*) conclusion="${state#completed }"; break ;;
+      esac
+      sleep 5
+    done
+    [ "$conclusion" = success ] || { echo "deploy: run $run ended as '${conclusion:-unknown}'" >&2; exit 1; }
 
 labels:
   test: npm test
