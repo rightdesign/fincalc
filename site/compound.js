@@ -395,13 +395,13 @@ export function compoundingExplainer(v, r) {
   return points;
 }
 
-// Only values that differ from the defaults are written, so links stay short.
+// Only values that differ from the defaults are written, so links stay short. Contribute for is written unless the link is already default for both it and Years (the decoder reads an absent value as Years), even when it equals Years, so a link keeps the plan if Years is edited later.
 export function encodeCompound(v) {
   const d = compoundDefaults();
   const p = new URLSearchParams();
   for (const f of COMPOUND_FIELDS) {
     if (v[f.id] == null || Number.isNaN(v[f.id])) continue;
-    if (f.id === 'contributeYears') { if (v.years >= 0 && v[f.id] < v.years) p.set(f.id, String(v[f.id])); continue; }
+    if (f.id === 'contributeYears') { const held = Math.min(v[f.id], v.years); if (held !== d[f.id] || v.years !== d.years) p.set(f.id, String(held)); continue; }
     if (v[f.id] !== d[f.id]) p.set(f.id, String(v[f.id]));
   }
   return p.toString();

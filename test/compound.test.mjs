@@ -303,7 +303,13 @@ test('contribute for: link round-trip, follows Years when absent, held to Years,
   const d = modelDefaults();
   assert.equal(encodeCompound({ ...d, contributeYears: 10 }), 'contributeYears=10');
   assert.equal(decodeCompound('#contributeYears=10').contributeYears, 10);
-  assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'years=20');
+  assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'contributeYears=20&years=20');
+  assert.equal(decodeCompound('#years=26&contributeYears=26').contributeYears, 26);
+  assert.equal(decodeCompound('#years=30&contributeYears=26').contributeYears, 26);
+  const long = { ...d, years: 40, contributeYears: 30 };
+  assert.equal(encodeCompound(long), 'contributeYears=30&years=40');
+  assert.deepEqual(decodeCompound('#' + encodeCompound(long)), long);
+  assert.equal(encodeCompound({ ...d }), '');
   assert.equal(decodeCompound('#years=20').contributeYears, 20);
   assert.equal(decodeCompound('#years=20&contributeYears=40').contributeYears, 20);
   assert.equal(decodeCompound('#years=20&contributeYears=abc').contributeYears, 20);
