@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, solveGoal, withdrawsOn, yearsCaption, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, feeEffect, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, solveGoal, withdrawsOn, yearsCaption, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -778,10 +778,45 @@ test('account type is a choice that round-trips and defaults to taxable interest
   assert.ok(!encodeCompound(compoundDefaults()).includes('accountType'));
 });
 
+test('annual fee: zero changes nothing; a fee lowers the balance and is reported', () => {
+  const v = { ...modelDefaults(), start: 100000, monthly: 534, rate: 9, years: 26 };
+  const free = simulateCompound(v);
+  assert.equal(free.fees, 0);
+  const f = simulateCompound({ ...v, fee: 1 });
+  assert.ok(f.futureValue < free.futureValue);
+  assert.ok(f.fees > 0);
+  // Balance still ties out: contributed + interest (net of fees) = balance.
+  assert.ok(Math.abs(f.contributed + f.interest - f.futureValue) < 1e-6);
+  assert.ok(Math.abs(f.years.reduce((s, y) => s + y.fees, 0) - f.fees) < 1e-6);
+  const e = feeEffect({ ...v, fee: 1 }, f, null);
+  assert.ok(Math.abs(e.futureValue - free.futureValue) < 1e-6 && e.gap > 0 && e.paid === f.fees);
+  assert.equal(feeEffect(v, free, null), null);
+});
+
+test('annual fee: one month at 12% costs 1% of the balance, and it works with every frequency', () => {
+  const one = simulateCompound({ ...modelDefaults(), start: 1000, monthly: 0, rate: 0, years: 1, fee: 12 });
+  assert.ok(Math.abs(one.fees - (1000 - 1000 * 0.99 ** 12)) < 1e-6);
+  for (const frequency of ['annually', 'semiannually', 'quarterly', 'monthly', 'daily', 'continuous']) {
+    const a = simulateCompound({ ...modelDefaults(), frequency, fee: 1 });
+    assert.ok(a.futureValue < simulateCompound({ ...modelDefaults(), frequency }).futureValue, frequency);
+  }
+});
+
+test('annual fee: range check, link round trip, today\'s dollars and doubling time', () => {
+  const v = { ...modelDefaults(), fee: 1.25 };
+  assert.deepEqual(invalidCompound({ ...v, fee: 11 }), ['Annual fees (% of balance)']);
+  assert.equal(decodeCompound(encodeCompound(v)).fee, 1.25);
+  assert.ok(!encodeCompound(modelDefaults()).includes('fee'));
+  const r = inTodaysDollars(simulateCompound(v), 3);
+  assert.ok(r.fees > 0 && r.fees < simulateCompound(v).fees);
+  assert.ok(yearsToDouble({ ...v, fee: 1 }) > yearsToDouble({ ...v, fee: 0 }));
+  assert.equal(doubleTileText({ ...v, rate: 1, fee: 2 }).value, 'Never');
+});
+
 test('monthly schedule: 12 rows a year, each December matches its year row, in every compounding mode', () => {
   for (const frequency of ['monthly', 'daily', 'quarterly', 'annually']) {
     for (const timing of ['end', 'start']) {
-      const r = simulateCompound({ ...compoundDefaults(), years: 5, frequency, timing, stepUp: 3, taxRate: 20 });
+      const r = simulateCompound({ ...compoundDefaults(), years: 5, frequency, timing, stepUp: 3, taxRate: 20, fee: 1.5, withdrawal: 50, withdrawFrom: 2 });
       assert.equal(r.months.length, 60);
       r.years.forEach((y, i) => {
         const dec = r.months[i * 12 + 11];
@@ -1023,4 +1058,12 @@ test('cost of waiting and the extra-years lever honour months', () => {
   assert.equal(compareStartingLater({ ...v, years: 10, months: 1 }) !== null, true);
   const lever = leverTable({ ...v, years: 99, months: 6 }).rows.find((r) => r.id === 'years');
   assert.equal(lever, undefined);
+});
+
+test('annual fee: growth rates, months term, and tax-deferred balances reconcile', () => {
+  assert.ok(growthRates({ ...modelDefaults(), fee: 1 }).afterFees < growthRates(modelDefaults()).afterTax);
+  const v = { ...modelDefaults(), years: 2, months: 6, fee: 1, accountType: 'deferred', taxRate: 20 };
+  const r = simulateCompound(v);
+  assert.ok(r.fees > 0 && r.futureValue < simulateCompound({ ...v, fee: 0 }).futureValue);
+  assert.ok(Math.abs(r.contributed + r.interest - r.futureValue) < 1e-6);
 });

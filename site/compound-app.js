@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { contribUnit, contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, solveGoal, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { contribUnit, contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, feeEffect, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, solveGoal, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -263,6 +263,9 @@ function render() {
   const fx = choiceEffects(v, r, today ? v.inflation : null);
   const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
+  const fee = feeEffect(v, r, today ? v.inflation : null);
+  const feeRow = fee ? `<tr><th scope="row">Annual fees</th><td>${v.fee}% a year</td><td>No fees</td><td>${money(fee.futureValue)}</td><td>${sign(fee.gap)}</td></tr>` : '';
+  const feeNote = fee ? `<p class="m-strip" id="compound-fees">With ${v.fee}% annual fees the balance after ${monthsText(termMonths(v))} is <strong>${money(r.futureValue)}</strong>${unit}, <strong>${money(fee.gap)}</strong> less than the ${money(fee.futureValue)} you would have with no fees. Fees charged along the way total ${money(fee.paid)}${unit}; the rest of the gap is the growth that money would have earned.</p>` : '';
   const range = returnRange(v);
   const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${monthsText(termMonths(v))} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
   const goal = goalPanel(v, solveGoal(v), unit);
@@ -296,7 +299,8 @@ function render() {
     ${breakdown}
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
-      <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of period' : 'Beginning of period', fx.timing.alt === 'end' ? 'End of period' : 'Beginning of period', fx.timing)}</tbody></table></div>
+      <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of period' : 'Beginning of period', fx.timing.alt === 'end' ? 'End of period' : 'Beginning of period', fx.timing)}${feeRow}</tbody></table></div>
+    ${feeNote}
     ${goal}
     ${rangeNote}
     <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis, v.target > 0 ? v.target : null)}</div>

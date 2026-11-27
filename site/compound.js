@@ -37,6 +37,7 @@ export const LIMITS = {
   withdrawPercent: { min: 0, max: 100 },
   variance: { min: 0, max: 15 },
   inflation: { min: -10, max: 30 },
+  fee: { min: 0, max: 10 },
 };
 
 // Text for the allowed range of a limited input, e.g. "-20 to 30".
@@ -100,6 +101,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'interest', label: 'Taxable: interest' }, { value: 'stocks', label: 'Taxable: stocks' }, { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' }, { value: 'free', label: 'Tax-free (Roth)' }],
   },
   { id: 'taxRate', advanced: true, label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
+  { id: 'fee', advanced: true, label: 'Annual fees (% of balance)', kind: 'percent', default: 0, slider: { min: 0, max: 3, step: 0.05 }, hint: 'Optional. Fund expense ratio plus any advisory fee, as a percent of the balance per year. It is charged monthly (a twelfth each month) on the whole balance, so it comes out of the growth and reduces what compounds. 0 ignores fees. 0–10%.' },
   { id: 'inflation', advanced: true, label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Shown next to the result as the balance in today's dollars, and used for the tables and chart when Show results in is Today's dollars: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
     id: 'basis', advanced: true, label: 'Show results in', kind: 'choice', default: 'future',
@@ -225,8 +227,10 @@ export const interestTax = (v) => ((v.accountType ?? 'interest') === 'interest' 
 export function growthRates(v) {
   const effective = effectiveAnnualRate(v);
   const afterTax = effective * (1 - interestTax(v) / 100);
-  const real = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + (v.inflation ?? 0) / 100) - 1) * 100 : null;
-  return { effective, afterTax, real, net: real ?? afterTax };
+  // The monthly fee comes off the balance, so it takes a twelfth of the percent twelve times over.
+  const afterFees = v.fee > 0 ? (1 + afterTax / 100) * (1 - v.fee / 1200) ** 12 * 100 - 100 : afterTax;
+  const real = v.basis === 'today' ? ((1 + afterFees / 100) / (1 + (v.inflation ?? 0) / 100) - 1) * 100 : null;
+  return { effective, afterTax, afterFees, real, net: real ?? afterFees };
 }
 
 // Years for a lump sum to double at the rate it really grows (after tax, and after inflation in
@@ -239,7 +243,7 @@ export function yearsToDouble(v) {
 // Text for the "Time to double" tile: the big value and its caption.
 export function doubleTileText(v) {
   const years = yearsToDouble(v);
-  const adjusts = [interestTax(v) > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean).join(' and ');
+  const adjusts = [interestTax(v) > 0 && 'tax', v.fee > 0 && 'fees', v.basis === 'today' && 'inflation'].filter(Boolean).join(' and ');
   if (years === null) return { value: 'Never', caption: `Needs a positive return after ${adjusts || 'tax'}` };
   const rate = growthRates(v).net;
   return {
@@ -304,6 +308,9 @@ export function simulateCompound(v) {
   let balance = v.start;
   let contributed = v.start;
   let withdrawn = 0;
+  let totalFees = 0;
+  // The annual fee is a twelfth of the percent taken from the balance each month (per period, compounded, when interest is added less often).
+  const feeKeep = 1 - (v.fee ?? 0) / 1200;
   let runsOut = null;
   const years = [];
   // The same run month by month (for the monthly schedule). Below monthly compounding, interest
@@ -314,6 +321,7 @@ export function simulateCompound(v) {
   for (let y = 1; y <= rows; y++) {
     let interest = 0;
     let added = 0;
+    let fees = 0;
     let taken = 0;
     // A partial final year covers only the months left in the term.
     const nm = Math.min(12, term - 12 * (y - 1));
@@ -352,11 +360,14 @@ export function simulateCompound(v) {
         i -= got * monthRate * (1 - tauW);
         if (early) earned += i;
         balance += i + paid - got;
+        const fee = balance * (1 - feeKeep);
+        balance -= fee;
+        fees += fee;
         settle(s + 1);
         interest += i;
         taken += got;
         added += paid;
-        pushMonth(y, s + 1, paid, got, i, balance, contributed + added, withdrawn + taken);
+        pushMonth(y, s + 1, paid, got, i - fee, balance, contributed + added, withdrawn + taken);
       } else {
         const periodOpen = balance;
         // A period cut short by the end of the term earns only for the months it has; later dates earn nothing.
@@ -390,6 +401,9 @@ export function simulateCompound(v) {
           if (!runsOut) runsOut = { year: y, month: (y - 1) * 12 + s * span + len };
         }
         if (Math.abs(balance) < 1e-9) balance = 0;
+        const fee = balance * (1 - feeKeep ** len);
+        balance -= fee;
+        fees += fee;
         // Spread the period's deposits and withdrawals over its months (withdrawals scaled if the clamp above trimmed them); interest lands in the last month.
         const paidIn = Array.from({ length: span }, () => 0);
         for (const d of deposits[s]) paidIn[monthIn(d[1]) - 1] += d[0];
@@ -400,7 +414,7 @@ export function simulateCompound(v) {
           const w = (gots[j - 1] ?? 0) * scale;
           cumPaid += paidIn[j - 1];
           cumTaken += w;
-          pushMonth(y, s * span + j, paidIn[j - 1], w, j === len ? periodInterest : 0, periodOpen + cumPaid - cumTaken + (j === len ? periodInterest : 0), contributed + added + cumPaid, withdrawn + taken + cumTaken);
+          pushMonth(y, s * span + j, paidIn[j - 1], w, j === len ? periodInterest - fee : 0, periodOpen + cumPaid - cumTaken + (j === len ? periodInterest - fee : 0), contributed + added + cumPaid, withdrawn + taken + cumTaken);
         }
         interest += periodInterest;
         taken += periodTaken;
@@ -418,11 +432,13 @@ export function simulateCompound(v) {
     }
     const value = after(balance, basis);
     if (type === 'deferred' || type === 'stocks') interest = value - shown - added + taken;
+    else interest -= fees;
     shown = value;
-    years.push({ year: y === rows ? term / 12 : y, contributions: added, withdrawals: taken, interest, balance: value, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: value - contributed + withdrawn });
+    totalFees += fees;
+    years.push({ year: y === rows ? term / 12 : y, contributions: added, withdrawals: taken, interest, fees, balance: value, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: value - contributed + withdrawn });
   }
   const last = years[years.length - 1];
-  return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
+  return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest, fees: totalFees };
 }
 
 // Goal seek: what it would take to end at v.target (in the dollars the results are shown in), changing
@@ -511,6 +527,7 @@ export function inTodaysDollars(r, inflation) {
   let prevBalance = r.start;
   let prevContributed = r.start;
   let prevWithdrawn = 0;
+  let totalFees = 0;
   const years = r.years.map((y) => {
     const f = (1 + inflation / 100) ** y.year;
     const balance = y.balance / f;
@@ -522,7 +539,8 @@ export function inTodaysDollars(r, inflation) {
     prevBalance = balance;
     prevContributed = totalContributed;
     prevWithdrawn = totalWithdrawn;
-    return { ...y, contributions, withdrawals, interest, balance, totalContributed, totalWithdrawn, totalInterest: balance - totalContributed + totalWithdrawn };
+    totalFees += (y.fees ?? 0) / f;
+    return { ...y, contributions, withdrawals, interest, fees: (y.fees ?? 0) / f, balance, totalContributed, totalWithdrawn, totalInterest: balance - totalContributed + totalWithdrawn };
   });
   // Months are restated to match: balances at (1 + inflation)^(month / 12), contributions at their year's factor as above,
   // so each December equals its year row.
@@ -540,7 +558,7 @@ export function inTodaysDollars(r, inflation) {
     return { ...m, balance, contributions, withdrawals, interest, totalContributed: paidM, totalWithdrawn: outM, totalInterest: balance - paidM + outM };
   });
   const last = years[years.length - 1];
-  return { ...r, years, months, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest };
+  return { ...r, years, months, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest, fees: totalFees };
 }
 
 // The final balance split four ways: the starting balance, the contributions, and the interest each earned.
@@ -570,6 +588,15 @@ export function choiceEffects(v, r, inflation) {
     frequency: { ...flip({ frequency: altFrequency(v.frequency) }), alt: altFrequency(v.frequency) },
     timing: { ...flip({ timing: v.timing === 'end' ? 'start' : 'end' }), alt: v.timing === 'end' ? 'start' : 'end' },
   };
+}
+
+// What the annual fee costs: the same plan with no fee, in the dollars of r (inflation-adjusted when inflation is given).
+// Null when no fee is set. gap is what the fee takes from the end balance; paid is the fees charged along the way.
+export function feeEffect(v, r, inflation) {
+  if (!(v.fee > 0)) return null;
+  const alt = simulateCompound({ ...v, fee: 0 });
+  const f = (inflation == null ? alt : inTodaysDollars(alt, inflation)).futureValue;
+  return { futureValue: f, gap: f - r.futureValue, paid: r.fees };
 }
 
 // What moves the needle: the end balance with each lever raised on its own, next to the base case.
@@ -666,10 +693,10 @@ export function compoundingExplainer(v, r) {
   });
   if (v.rate > 0) {
     // The rate the model actually compounds at: after tax, and after inflation in today's dollars.
-    const afterTax = v.rate * (1 - interestTax(v) / 100);
+    const afterTax = v.rate * (1 - interestTax(v) / 100) - (v.fee ?? 0);
     const eff = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + v.inflation / 100) - 1) * 100 : afterTax;
     const pct = (n) => String(Math.round(n * 100) / 100);
-    const adjusts = [interestTax(v) > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean);
+    const adjusts = [interestTax(v) > 0 && 'tax', v.fee > 0 && 'fees', v.basis === 'today' && 'inflation'].filter(Boolean);
     const used = eff === v.rate ? `${pct(v.rate)}%` : `${pct(eff)}% (your ${pct(v.rate)}% return after ${adjusts.join(' and ')})`;
     const intro = 'Divide 72 by the return and you get roughly how many years it takes money to double';
     if (eff > 0) {

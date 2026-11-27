@@ -32,10 +32,10 @@ export function faqItems(v, r) {
     {
       q: 'What about taxes and fees?',
       a: v.accountType === 'free'
-        ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth, so to allow for them, enter a return a little lower than you expect.`
+        ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. ${feeSentence(v, unit)}`
         : v.taxRate > 0
-          ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). Fund or account fees are not modelled, and a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth; to allow for fees, enter a return a little lower than you expect.`
-          : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth, so to allow for them, enter a return a little lower than you expect.`,
+          ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). ${feeSentence(v, unit)}`
+          : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. ${feeSentence(v, unit)}`,
     },
     {
       q: 'What if I stop contributing?',
@@ -95,6 +95,15 @@ function increaseAnswer(v, r, unit) {
 const accountText = (t) => ({ deferred: 'tax-deferred account (tax on the whole balance at the end)', stocks: 'taxable stock account (tax on yearly dividends and on the gain at the end)' })[t] ?? 'taxable interest account (each period\'s interest is taxed before it compounds)';
 
 // The same plan with no tax, in the dollars the page shows.
+// The fee half of the "taxes and fees" answer: what the fee input did, or how to try one.
+function feeSentence(v, unit) {
+  if (!(v.fee > 0)) return `Fees are not charged because Annual fees is 0%: enter your fund expense ratio plus any advisory fee under "Annual fees" to see what ${monthsText(termMonths(v))} of them cost.`;
+  const free = simulate({ ...v, fee: 0 });
+  const base = v.basis === 'today' ? inTodaysDollars(free, v.inflation) : free;
+  const mine = v.basis === 'today' ? inTodaysDollars(simulate(v), v.inflation) : simulate(v);
+  return `Fees are modelled too: ${v.fee}% a year, charged monthly on the balance, leaves ${money(base.futureValue - mine.futureValue)} less${unit} than the same plan with no fees (${money(base.futureValue)}${unit}).`;
+}
+
 function untaxed(v) {
   const x = simulate({ ...v, taxRate: 0 });
   return v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x;

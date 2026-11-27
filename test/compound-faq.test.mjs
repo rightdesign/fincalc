@@ -30,7 +30,7 @@ test('answers quote the numbers on the page and follow the inputs', () => {
 
 test('taxes: described by the tax input; fees not modelled; yearly increase is described', () => {
   const items = faqItems(v, r);
-  assert.match(items.find((i) => i.q.startsWith('What about taxes')).a, /before tax.*Choose an account type.*Fees are not modelled/);
+  assert.match(items.find((i) => i.q.startsWith('What about taxes')).a, /before tax.*Choose an account type.*Fees are not charged/);
   const w = { ...v, taxRate: 25 };
   const a = faqItems(w, simulateCompound(w)).find((i) => i.q.startsWith('What about taxes')).a;
   assert.match(a, /25% tax rate.*after tax/);
