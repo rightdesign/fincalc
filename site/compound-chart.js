@@ -51,8 +51,20 @@ export function axisLabel(n) {
   return `$${Number((n / size).toFixed(2))}${suffix}`;
 }
 
-// band, when set, is { low, high } rows for the worst and best return; it is shaded around the balance line.
-export function compoundChartHtml(rows, fmt, band = null) {
+// Legend and the Future / Today's dollars switch above the chart. band is { lowRate, highRate } when the
+// return range is shaded; basis is 'future' or 'today' (null leaves the switch out).
+export function chartKeyHtml(band, basis) {
+  const item = (cls, text) => `<li><span class="cc-swatch ${cls}" aria-hidden="true"></span>${escape(text)}</li>`;
+  const entries = item('cc-sw-put', 'What you put in') + item('cc-sw-int', 'Interest earned')
+    + (band && band.lowRate !== undefined ? item('cc-sw-band', `Range at ${band.lowRate}%\u2013${band.highRate}% return`) : band ? item('cc-sw-band', 'Range of returns') : '');
+  const btn = (value, label) => `<button type="button" class="ghost" data-basis="${value}" aria-pressed="${basis === value}">${label}</button>`;
+  const toggle = basis === null ? '' : `<div class="cc-basis no-print" role="group" aria-label="Show chart in">${btn('future', 'Future dollars')}${btn('today', "Today's dollars")}</div>`;
+  return `<div class="cc-key"><ul class="cc-legend">${entries}</ul>${toggle}</div>`;
+}
+
+// band, when set, is { low, high } rows for the worst and best return (plus optional lowRate and highRate for the
+// legend); it is shaded around the balance line. basis ('future' or 'today') adds the on-chart dollars switch.
+export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   const last = rows[rows.length - 1];
   const xs = [0, ...rows.map((r) => r.year)];
   const put = [rows[0].totalContributed - rows[0].contributions, ...rows.map((r) => r.totalContributed)];
@@ -83,7 +95,13 @@ export function compoundChartHtml(rows, fmt, band = null) {
     const back = highBal.map((v, i) => `L${f(sx(xs[i]))},${f(sy(v))}`).reverse().join('');
     svg += `<path d="${line(lowBal)}${back}Z" class="cc-band" style="fill:var(--series-2);fill-opacity:0.25;stroke:var(--series-2)" stroke-width="1" stroke-dasharray="4 3"/>`;
   }
-  svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(bal[bal.length - 1]) + 20)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-2)">Interest earned</text>`;
+  const intY = band ? sy(lowBal[lowBal.length - 1]) + 40 : sy(bal[bal.length - 1]) + 20;
+  if (band) {
+    const end = f(sx(last.year) - 4);
+    svg += `<text x="${end}" y="${f(sy(highBal[highBal.length - 1]) - 6)}" text-anchor="end" font-size="13" class="cc-band-label">${escape(fmt(band.high[band.high.length - 1].balance))}</text>`;
+    svg += `<text x="${end}" y="${f(sy(lowBal[lowBal.length - 1]) + 18)}" text-anchor="end" font-size="13" class="cc-band-label">${escape(fmt(band.low[band.low.length - 1].balance))}</text>`;
+  }
+  svg += `<text x="${f(sx(last.year) - 10)}" y="${f(intY)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-2)">Interest earned</text>`;
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(put[put.length - 1]) - 8)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-1)">What you put in</text>`;
   const cross = crossoverYear(rows);
   if (cross !== null) {
@@ -121,7 +139,7 @@ export function compoundChartHtml(rows, fmt, band = null) {
   const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
   const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${last.year}.` : '';
   const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText}${stopText}${bandText} The full values for every year are in the table below.`;
-  return `<figure class="m-chart cc-figure"><div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
+  return `<figure class="m-chart cc-figure">${chartKeyHtml(band, basis)}<div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
 
 // Two horizontal bars for the start-early comparison: each end balance, with the part that was

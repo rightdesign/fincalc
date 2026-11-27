@@ -540,3 +540,21 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });
+
+test('compound chart has a legend entry for the return range, labels the band ends and offers a dollars switch', () => {
+  const v = { start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' };
+  const years = simulateCompound(v).years;
+  const low = simulateCompound({ ...v, rate: 7 }).years;
+  const high = simulateCompound({ ...v, rate: 11 }).years;
+  const fmt = (n) => `$${Math.round(n)}`;
+  const html = compoundChartHtml(years, fmt, { low, high, lowRate: 7, highRate: 11 }, 'future');
+  assert.match(html, /Range at 7%–11% return/);
+  assert.match(html, /class="cc-band-label"[^>]*>\$\d+</);
+  assert.ok(html.includes(`>${fmt(high[high.length - 1].balance)}<`) && html.includes(`>${fmt(low[low.length - 1].balance)}<`));
+  assert.match(html, /data-basis="future" aria-pressed="true"/);
+  assert.match(html, /data-basis="today" aria-pressed="false"/);
+  assert.match(compoundChartHtml(years, fmt, null, 'today'), /data-basis="today" aria-pressed="true"/);
+  const plain = compoundChartHtml(years, fmt);
+  assert.doesNotMatch(plain, /Range at|cc-band-label|data-basis/);
+  assert.match(plain, /What you put in/);
+});

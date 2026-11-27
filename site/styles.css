@@ -944,6 +944,16 @@ body {
 .m-explainer h3 { margin: var(--gap) 0 0.25rem; font-size: 1rem; }
 .m-explainer p { margin: 0; max-width: 60ch; }
 /* Compound chart: large, with a hover and tap tooltip */
+.cc-key { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-bottom: 0.5rem; }
+.cc-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0; padding: 0; list-style: none; font-size: 0.85rem; }
+.cc-swatch { display: inline-block; width: 0.9rem; height: 0.9rem; margin-right: 0.35rem; vertical-align: -0.1rem; border: 1px solid; border-radius: 0.15rem; }
+.cc-sw-put { background: var(--series-1); border-color: var(--series-1); opacity: 0.8; }
+.cc-sw-int { background: var(--series-2); border-color: var(--series-2); opacity: 0.6; }
+.cc-sw-band { background: var(--series-2); border: 1px dashed var(--series-2); opacity: 0.35; }
+.cc-basis { display: inline-flex; gap: 0.25rem; }
+.cc-basis button { padding: 0.2rem 0.6rem; font-size: 0.85rem; }
+.cc-basis button[aria-pressed="true"] { font-weight: 600; border-color: var(--focus); }
+.cc-band-label { fill: currentColor; font-variant-numeric: tabular-nums; }
 .cc-wrap { position: relative; touch-action: pan-y; }
 .cc-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cc-chart { min-height: 18rem; }

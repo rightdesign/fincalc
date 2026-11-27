@@ -181,7 +181,7 @@ function render() {
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
       <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
     ${rangeNote}
-    <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years })}</div>
+    <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis)}</div>
     <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}. The changes cost different amounts, so compare each gain with the extra you put in.</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
@@ -198,6 +198,15 @@ function render() {
   explainerBody.innerHTML = compoundingExplainer(v, r).map((p) => `<h3>${p.title}</h3><p>${p.text}</p>`).join('');
   explainer.hidden = false;
   wireChart(out.querySelector('.cc-wrap'), r.years);
+  for (const b of out.querySelectorAll('.cc-basis button')) {
+    b.addEventListener('click', () => {
+      if (inputs.basis.value === b.dataset.basis) return;
+      inputs.basis.value = b.dataset.basis;
+      render();
+      persist();
+      out.querySelector(`.cc-basis [data-basis="${b.dataset.basis}"]`)?.focus();
+    });
+  }
 }
 
 // Hover, tap and arrow keys show one year's balance, contributions and interest in a tooltip.
