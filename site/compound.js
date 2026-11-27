@@ -66,7 +66,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'interest', label: 'Taxable: interest' }, { value: 'stocks', label: 'Taxable: stocks' }, { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' }, { value: 'free', label: 'Tax-free (Roth)' }],
   },
   { id: 'taxRate', advanced: true, label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
-  { id: 'inflation', advanced: true, label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
+  { id: 'inflation', advanced: true, label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Shown next to the result as the balance in today's dollars, and used for the tables and chart when Show results in is Today's dollars: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
     id: 'basis', advanced: true, label: 'Show results in', kind: 'choice', default: 'future',
     hint: "Future dollars are the plain amounts you will see on the statement. Today's dollars restate the balance in what it could buy at today's prices.",

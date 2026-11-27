@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsToDouble } from '../site/compound.js';
@@ -714,6 +715,12 @@ test('a negative return never drives the balance below zero with withdrawals, an
       for (const y of small.years) assert.ok(y.balance >= 0, `${frequency}/${timing} small year ${y.year} balance ${y.balance}`);
     }
   }
+});
+
+test('hero shows the balance in both future and today\'s dollars, so Inflation always has a visible effect', () => {
+  const app = readFileSync(new URL('../site/compound-app.js', import.meta.url), 'utf8');
+  assert.match(app, /id="compound-other-dollars"/);
+  assert.match(app, /in today's dollars \(\$\{infl\}\)/);
 });
 
 test('compound chart has a legend entry for the return range, labels the band ends and offers a dollars switch', () => {
