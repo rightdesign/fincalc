@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.122.0] — 2026-11-27
+
+- FINC-229 Compound interest's schedule now has a Yearly / Monthly toggle, a "Download table (CSV)" button and a Print button; the printed page lists your inputs.
+
 ## [0.121.0] — 2026-11-27
 
 - FINC-225 Compound interest now supports withdrawals: a monthly amount starting in a chosen year with an optional yearly increase, shown with the year the money runs out.
