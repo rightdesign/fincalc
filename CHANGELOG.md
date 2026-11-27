@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.130.0] — 2026-11-27
+
+- FINC-227 Compound interest takes the term in years and months, so a plan can last 18 months or a college fund can end mid-year; Contribute for takes months too, and the year-by-year table ends with a partial final year.
+
 ## [0.129.0] — 2026-11-27
 
 - FINC-226 Compound interest now accepts weekly, biweekly, semimonthly, monthly, quarterly or yearly contributions, plus an optional annual lump sum with its own yearly increase.
