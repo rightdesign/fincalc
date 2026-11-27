@@ -1,0 +1,9 @@
+# Build output and installs.
+dist/
+node_modules/
+package-lock.json
+
+# Written by the release (changelog) and by scripts/update-*.mjs (data): the
+# tools that write them own their layout.
+CHANGELOG.md
+site/data/

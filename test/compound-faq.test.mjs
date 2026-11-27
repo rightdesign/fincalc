@@ -47,7 +47,7 @@ test('sources have links and dates, and the card renders them', () => {
 test('page keeps the methodology formula and convention, and ends with the standard footer', () => {
   const page = readFileSync(new URL('../site/compound.html', import.meta.url), 'utf8');
   assert.ok(page.includes('FV = S') && page.includes('Monthly compounding:') && page.includes('Annual compounding:'));
-  assert.match(page, /<p class="disclaimer"><strong>Not financial advice\.<\/strong>/);
+  assert.match(page, /<p class="disclaimer">\s*<strong>Not financial advice\.<\/strong>/);
   assert.ok(readFileSync(new URL('../site/compound-app.js', import.meta.url), 'utf8').includes('faqCard(v, r)'));
 });
 

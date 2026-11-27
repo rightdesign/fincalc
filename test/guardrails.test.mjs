@@ -9,6 +9,8 @@ import { CALCULATORS } from '../site/menu.js';
 
 // Regression guardrails (FINC-114): what must survive every change to the calculators.
 const page = (name) => readFileSync(new URL(`../site/${name}`, import.meta.url), 'utf8');
+// A page's text with runs of whitespace collapsed, so a sentence is found wherever the formatter wraps it.
+const prose = (name) => page(name).replace(/\s+/g, ' ');
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
 
 test('T0 ($450,000, 20% down, 6.5%, 30 years, $2,300 rent, 7 years) keeps its recorded headline', () => {
@@ -39,7 +41,7 @@ test('the main calculator still has the two lenses and the "What drives the verd
 });
 
 test('rent-vs-own keeps its break-even definition and its drivers', () => {
-  assert.ok(page('rent-vs-own.html').includes('Break-even is the first year after which owning stays ahead through the end of your stay.'));
+  assert.ok(prose('rent-vs-own.html').includes('Break-even is the first year after which owning stays ahead through the end of your stay.'));
   assert.ok(rentOwnThresholds(rentOwnDefaults()).length >= 3);
 });
 
