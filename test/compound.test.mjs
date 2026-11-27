@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsCaption, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -565,6 +565,77 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });
 
+const zero = { ...modelDefaults(), start: 0, rate: 0, years: 2 };
+
+test('contribution frequency: deposits per year, with no growth at a 0% return', () => {
+  const total = (contribFrequency) => simulateCompound({ ...zero, monthly: 100, contribFrequency }).contributed;
+  assert.equal(total('weekly'), 100 * 52 * 2);
+  assert.equal(total('biweekly'), 100 * 26 * 2);
+  assert.equal(total('semimonthly'), 100 * 24 * 2);
+  assert.equal(total('monthly'), 100 * 12 * 2);
+  assert.equal(total('quarterly'), 100 * 4 * 2);
+  assert.equal(total('annually'), 100 * 2);
+});
+
+test('contribution frequency: the default stays monthly and an unset frequency behaves the same', () => {
+  const v = modelDefaults();
+  assert.equal(v.contribFrequency, 'monthly');
+  assert.equal(v.annual, 0);
+  const { contribFrequency, annual, annualStepUp, ...old } = v;
+  assert.equal(simulateCompound(old).futureValue, simulateCompound(v).futureValue);
+});
+
+test('contribution frequency: the same yearly total earns more when paid more often', () => {
+  const run = (contribFrequency, monthly) => simulateCompound({ ...modelDefaults(), start: 0, monthly, contribFrequency }).futureValue;
+  const yearly = 12000;
+  assert.ok(run('weekly', yearly / 52) > run('monthly', yearly / 12));
+  assert.ok(run('monthly', yearly / 12) > run('quarterly', yearly / 4));
+  assert.ok(run('quarterly', yearly / 4) > run('annually', yearly));
+});
+
+test('contribution frequency: an annual deposit made at the start of the year earns a full year', () => {
+  const end = simulateCompound({ ...zero, rate: 6, frequency: 'annually', rateBasis: 'nominal', years: 1, monthly: 1000, contribFrequency: 'annually', timing: 'end' });
+  const start = simulateCompound({ ...zero, rate: 6, frequency: 'annually', rateBasis: 'nominal', years: 1, monthly: 1000, contribFrequency: 'annually', timing: 'start' });
+  assert.equal(end.futureValue, 1000);
+  assert.ok(Math.abs(start.futureValue - 1060) < 1e-9);
+});
+
+test('annual lump sum: adds to the regular contribution, steps up on its own, and stops with Contribute for', () => {
+  const v = { ...zero, years: 3, monthly: 100, annual: 1000, annualStepUp: 10, stepUp: 0 };
+  const r = simulateCompound(v);
+  assert.deepEqual(r.years.map((y) => Math.round(y.contributions)), [2200, 2300, 2410]);
+  const stopped = simulateCompound({ ...v, contributeYears: 1 });
+  assert.deepEqual(stopped.years.map((y) => Math.round(y.contributions)), [2200, 0, 0]);
+  assert.equal(simulateCompound({ ...v, monthly: 0 }).contributed, 1000 + 1100 + 1210);
+});
+
+test('annual lump sum and frequency round-trip through the link and validate', () => {
+  const v = { ...modelDefaults(), contribFrequency: 'biweekly', annual: 6500, annualStepUp: 3 };
+  const back = decodeCompound(encodeCompound(v));
+  assert.equal(back.contribFrequency, 'biweekly');
+  assert.equal(back.annual, 6500);
+  assert.equal(back.annualStepUp, 3);
+  assert.deepEqual(invalidCompound(v), []);
+  assert.ok(invalidCompound({ ...v, contribFrequency: 'daily' }).length > 0);
+  assert.ok(invalidCompound({ ...v, annualStepUp: 25 }).length > 0);
+  assert.ok(invalidCompound({ ...v, annual: -1 }).length > 0);
+});
+
+test('headline and levers name the contribution frequency', () => {
+  const v = { ...modelDefaults(), contribFrequency: 'weekly' };
+  assert.match(leverTable(v).rows[0].label, /a week/);
+  const stopped = { ...v, contributeYears: 0 };
+  assert.match(headline(stopped, simulateCompound(stopped)), /you made no contributions/);
+});
+
+test('the year-by-year caption names the contribution period instead of always saying month', () => {
+  const v = { ...modelDefaults(), timing: 'end' };
+  assert.equal(yearsCaption(v), 'Year by year (contributions at the end of each month)');
+  assert.equal(yearsCaption({ ...v, contribFrequency: 'weekly', timing: 'start' }), 'Year by year (contributions at the beginning of each week)');
+  assert.equal(yearsCaption({ ...v, contribFrequency: 'quarterly' }), 'Year by year (contributions at the end of each quarter)');
+  assert.equal(yearsCaption({ ...v, contribFrequency: 'annually', annual: 1000 }), 'Year by year (contributions at the end of each year, the annual lump sum at the end of each year)');
+});
+
 test('balance breakdown: four parts add to the final balance and match a hand calculation', () => {
   const v = { start: 10000, monthly: 500, rate: 7, years: 30, frequency: 'monthly', rateBasis: 'nominal', timing: 'end', stepUp: 0, taxRate: 0 };
   const b = balanceBreakdown(v);
@@ -759,6 +830,17 @@ test('compound chart has a legend entry for the return range, labels the band en
   assert.match(plain, /What you put in/);
 });
 
+test('withdrawals combine with contribution frequency and the annual lump sum, and the totals still reconcile', () => {
+  for (const frequency of ['monthly', 'quarterly', 'annually']) {
+    for (const timing of ['end', 'start']) {
+      const r = simulateCompound({ ...modelDefaults(), start: 5000, monthly: 50, contribFrequency: 'weekly', annual: 1000, rate: 6, years: 5, frequency, timing, withdrawal: 400, withdrawFrom: 2 });
+      assert.ok(r.withdrawn > 0 && r.years[0].withdrawals === 0, `${frequency}/${timing}`);
+      assert.ok(r.years.every((y) => y.balance >= 0), `${frequency}/${timing}`);
+      assert.ok(Math.abs(r.futureValue - (r.contributed - r.withdrawn + r.interest)) < 1e-6, `${frequency}/${timing} reconciles`);
+    }
+  }
+});
+
 test('balance breakdown with withdrawals nets them out of the contributions and still adds to the balance', () => {
   const v = { start: 20000, monthly: 300, rate: 6, years: 20, frequency: 'monthly', rateBasis: 'nominal', timing: 'end', stepUp: 0, taxRate: 0, withdrawal: 100, withdrawFrom: 11, withdrawStep: 0 };
   for (const inflation of [null, 3]) {
@@ -780,6 +862,23 @@ test('monthly schedule with withdrawals: each December matches its year row, wit
         assert.ok(Math.abs(dec.balance - y.balance) < 1e-6, `${frequency} balance ${y.year}`);
         assert.ok(Math.abs(w - y.withdrawals) < 1e-6, `${frequency} withdrawals ${y.year}`);
         assert.ok(Math.abs(dec.totalInterest - y.totalInterest) < 1e-6, `${frequency} interest ${y.year}`);
+      });
+    }
+  }
+});
+
+test('monthly schedule with weekly contributions and a lump sum: months add up to the year rows', () => {
+  for (const frequency of ['monthly', 'quarterly', 'annually']) {
+    for (const timing of ['end', 'start']) {
+      const r = simulateCompound({ ...modelDefaults(), start: 1000, monthly: 25, contribFrequency: 'weekly', annual: 600, rate: 6, years: 4, frequency, timing, withdrawal: 100, withdrawFrom: 2 });
+      assert.equal(r.months.length, 48);
+      r.years.forEach((y, i) => {
+        const ms = r.months.slice(i * 12, i * 12 + 12);
+        const sum = (key) => ms.reduce((a, m) => a + m[key], 0);
+        assert.ok(Math.abs(ms[11].balance - y.balance) < 1e-6, `${frequency}/${timing} balance ${y.year}`);
+        assert.ok(Math.abs(sum('contributions') - y.contributions) < 1e-6, `${frequency}/${timing} contributions ${y.year}`);
+        assert.ok(Math.abs(sum('withdrawals') - y.withdrawals) < 1e-6, `${frequency}/${timing} withdrawals ${y.year}`);
+        assert.ok(Math.abs(sum('interest') - y.interest) < 1e-6, `${frequency}/${timing} interest ${y.year}`);
       });
     }
   }

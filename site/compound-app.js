@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -171,7 +171,7 @@ function scheduleSection({ r, today, unit, cross, taking }) {
 
 function drawSchedule() {
   const host = document.getElementById('compound-schedule');
-  const { timing, today, unit, cross, taking } = schedule;
+  const { caption, today, unit, cross, taking } = schedule;
   const intCol = taking ? 3 : 2;
   const sec = scheduleSection(schedule);
   const monthly = scheduleView === 'monthly';
@@ -180,7 +180,7 @@ function drawSchedule() {
   const heads = sec.columns.map((c, j) => `<th scope="col"${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</th>`).join('');
   const note = monthly && schedule.r.months.some((m) => m.interest === 0 && m.balance > 0) ? ' Below monthly compounding, interest joins the balance only when each compounding period ends.' : '';
   host.innerHTML = `<div class="m-schedule-bar no-print"><div class="m-toggle" role="group" aria-label="Schedule detail"><button type="button" data-view="yearly" aria-pressed="${!monthly}">Yearly</button><button type="button" data-view="monthly" aria-pressed="${monthly}">Monthly</button></div> <button type="button" class="ghost" id="compound-csv">Download table (CSV)</button> <button type="button" class="ghost" id="compound-print">Print&hellip;</button></div>
-    <p class="m-table-caption" id="compound-years-caption">${monthly ? 'Month by month' : 'Year by year'} (contributions at the ${timing === 'start' ? 'beginning' : 'end'} of each month)${!monthly && cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}${note}</p>
+    <p class="m-table-caption" id="compound-years-caption">${monthly ? caption.replace('Year by year', 'Month by month') : caption}${!monthly && cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}${note}</p>
     <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
   for (const b of host.querySelectorAll('[data-view]')) b.addEventListener('click', () => { scheduleView = b.dataset.view; drawSchedule(); host.querySelector(`[data-view="${scheduleView}"]`).focus(); });
   host.querySelector('#compound-csv').addEventListener('click', () => {
@@ -243,7 +243,7 @@ function render() {
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
   const bd = balanceBreakdown(v, today ? v.inflation : null);
-  const parts = [['Starting balance', bd.start, 1], [bd.withdrawn ? 'Contributions, net of withdrawals' : 'Monthly contributions', bd.contributions, 2], ['Interest on starting balance', bd.startInterest, 3], ['Interest on contributions', bd.contributionInterest, 4]];
+  const parts = [['Starting balance', bd.start, 1], [bd.withdrawn ? 'Contributions, net of withdrawals' : 'Contributions', bd.contributions, 2], ['Interest on starting balance', bd.startInterest, 3], ['Interest on contributions', bd.contributionInterest, 4]];
   const barOk = parts.every(([, n]) => n >= -0.005) && bd.total > 0;
   const breakdown = `<div class="m-panelbox m-breakdown" id="compound-breakdown"><h3>Where the final balance comes from${unit}</h3>
       ${barOk ? `<div class="m-bar" role="img" aria-label="${parts.map(([n, a]) => `${n} ${money(a)}`).join(', ')}">${parts.map(([n, a, i]) => `<span class="m-bar-${i}" style="flex-grow:${Math.max(a, 0)}"></span>`).join('')}</div>` : ''}
@@ -252,7 +252,7 @@ function render() {
   const c = compareStartingLater(v);
   const compare = withdrawsOn(v) ? '' : c ? `
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
-      <p>Same ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
+      <p>Same ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
       ${v.start > 0 ? `<p class="m-strip">The ${money(v.start)} starting balance is assumed to sit idle (earning 0%) during the ${c.waitYears}-year wait and is invested only when the later plan starts. If that money would be invested anyway, the real cost of waiting is smaller than shown.</p>` : ''}
       ${compareChartHtml(c, money)}
       <div class="m-table-wrap"><table class="m-table m-stack"><thead><tr><th scope="col"></th><th scope="col">Start now</th><th scope="col">Start ${c.waitYears} years later</th><th scope="col">Difference</th></tr></thead>
@@ -264,13 +264,13 @@ function render() {
     ${printInputs(v)}
     <div class="m-tiles">
       <div class="m-tile" id="compound-double"><h3>Time to double</h3><p class="m-big">${doubleTile.value}</p><p>${doubleTile.caption}</p></div>
-      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? `${v.stepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
+      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.annual > 0 && v.annualStepUp > 0 ? `, the lump sum rising ${v.annualStepUp}% a year` : ''}${contributes(v) && contributionYears(v) < v.years ? `${v.stepUp > 0 || v.annualStepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : (taking ? 'All interest earned, including what was withdrawn' : `${share}% of the final balance`)}</p></div>
     </div>
     ${breakdown}
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
-      <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>
+      <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of period' : 'Beginning of period', fx.timing.alt === 'end' ? 'End of period' : 'Beginning of period', fx.timing)}</tbody></table></div>
     ${rangeNote}
     <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis)}</div>
     <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}. The changes cost different amounts, so compare each gain with the extra you put in.</caption>
@@ -279,7 +279,7 @@ function render() {
     ${compare}
     <div id="compound-schedule"></div>
     ${faqCard(v, r)}`;
-  schedule = { r, today, unit, cross, timing: v.timing, taking };
+  schedule = { r, today, unit, cross, caption: yearsCaption(v), taking };
   drawSchedule();
   for (const t of out.querySelectorAll('.m-stack')) {
     const heads = [...t.querySelectorAll('thead th')].map((h) => h.textContent);

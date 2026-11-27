@@ -1,4 +1,4 @@
-import { altFrequency, contributionYears, frequencyLabel, inTodaysDollars, simulateCompound as simulate } from './compound.js';
+import { altFrequency, contribUnit, contributionPhrase, contributes, contributionYears, frequencyLabel, inTodaysDollars, simulateCompound as simulate } from './compound.js';
 
 // FAQ and sources for the compound interest page. Pure (no DOM). Each answer quotes the numbers on the page right now.
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -26,7 +26,7 @@ export function faqItems(v, r) {
     },
     {
       q: 'Does compounding work with monthly contributions?',
-      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${money(v.monthly)} a month adds up to ${money(r.contributed - v.start)} over ${years(v.years)}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
+      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${contributionPhrase(v, money)} adds up to ${money(r.contributed - v.start)} over ${years(v.years)}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
         ? `. You also take out ${money(r.withdrawn)}, so ${money(r.futureValue)}${unit} is left; the interest can be larger than that balance because withdrawals come out of it.`
         : ` (${share}% of the ${money(r.futureValue)} total${unit}).`}`,
     },
@@ -73,7 +73,7 @@ function stopAnswer(v, r, unit) {
     return `Your contributions stop after ${years(pay)} and the balance keeps compounding for the other ${years(v.years - pay)}, ending at ${money(r.futureValue)}${unit} on ${money(r.contributed)} contributed. Contributing for all ${years(v.years)} would end at ${money(whole.futureValue)}${unit}, so stopping early costs ${money(whole.futureValue - r.futureValue)}${unit}.`;
   }
   const cut = Math.max(1, Math.round(v.years / 3));
-  if (v.years < 2 || v.monthly <= 0) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
+  if (v.years < 2 || !contributes(v)) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
   const stopped = restate(simulate({ ...v, contributeYears: cut }));
   return `Right now you contribute for all ${years(v.years)}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${years(cut)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
 }
@@ -81,15 +81,15 @@ function stopAnswer(v, r, unit) {
 // Quotes the page's plan against the same plan with a flat contribution (or, when the plan is flat, a 3% yearly increase).
 function increaseAnswer(v, r, unit) {
   const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
-  if (!(v.monthly > 0) || contributionYears(v) < 1) return 'With no monthly contribution there is nothing to increase. Enter a monthly amount, then use "Increase contribution each year (%)" to raise it every year.';
+  if (!(v.monthly > 0) || contributionYears(v) < 1) return 'With no regular contribution there is nothing to increase. Enter a contribution amount, then use "Increase contribution each year (%)" to raise it every year.';
   const step = v.stepUp ?? 0;
   if (step > 0) {
     const flat = restate(simulate({ ...v, stepUp: 0 }));
     const last = v.monthly * (1 + step / 100) ** (contributionYears(v) - 1);
-    return `Your contribution rises ${step}% a year, from ${money(v.monthly)} a month in year 1 to ${money(last)} a month in year ${contributionYears(v)}, so you put in ${money(r.contributed)} and end at ${money(r.futureValue)}${unit}. Kept flat at ${money(v.monthly)} a month it would end at ${money(flat.futureValue)}${unit}, so the increases add ${money(r.futureValue - flat.futureValue)}${unit}. Set the increase to 0 to keep it flat.`;
+    return `Your contribution rises ${step}% a year, from ${money(v.monthly)} ${contribUnit(v)} in year 1 to ${money(last)} ${contribUnit(v)} in year ${contributionYears(v)}, so you put in ${money(r.contributed)} and end at ${money(r.futureValue)}${unit}. Kept flat at ${money(v.monthly)} ${contribUnit(v)} it would end at ${money(flat.futureValue)}${unit}, so the increases add ${money(r.futureValue - flat.futureValue)}${unit}. Set the increase to 0 to keep it flat.`;
   }
   const raised = restate(simulate({ ...v, stepUp: 3 }));
-  return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} a month for ${years(contributionYears(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
+  return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} ${contribUnit(v)} for ${years(contributionYears(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
 }
 
 const accountText = (t) => ({ deferred: 'tax-deferred account (tax on the whole balance at the end)', stocks: 'taxable stock account (tax on yearly dividends and on the gain at the end)' })[t] ?? 'taxable interest account (each period\'s interest is taxed before it compounds)';
