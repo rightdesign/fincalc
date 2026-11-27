@@ -547,6 +547,13 @@ test('double tile caption does not claim a 0% return when the rate is negative',
   assert.equal(doubleTileText({ ...v, rate: 9 }).value, '8.0 years');
 });
 
+test('double tile is about a lump sum, so a withdrawal leaves it unchanged', () => {
+  const v = { ...modelDefaults(), rate: 7, rateBasis: 'effective', taxRate: 0 };
+  const w = { ...v, withdrawal: 2500, withdrawFrom: 31, years: 50 };
+  assert.deepEqual(doubleTileText(w), doubleTileText(v));
+  assert.equal(doubleTileText(w).value, '10.2 years'.replace('10.2', String(Math.round(Math.log(2) / Math.log(1.07)))));
+});
+
 test('compound chart y-axis uses round ticks with compact labels and tops out at a tick', () => {
   assert.deepEqual(niceTicks(2958683), [0, 500000, 1000000, 1500000, 2000000, 2500000, 3000000]);
   assert.deepEqual(niceTicks(1), [0, 0.2, 0.4, 0.6, 0.8, 1]);
@@ -555,6 +562,76 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
+});
+
+test('withdrawals: zero rate takes the amount out each month, from the start year, with a yearly increase', () => {
+  const base = { start: 12000, monthly: 0, rate: 0, years: 3, frequency: 'monthly', timing: 'end' };
+  const r = simulateCompound({ ...base, withdrawal: 100, withdrawFrom: 2, withdrawStep: 0 });
+  assert.equal(r.years[0].withdrawals, 0);
+  assert.equal(r.years[1].withdrawals, 1200);
+  assert.equal(r.futureValue, 12000 - 2400);
+  assert.equal(r.withdrawn, 2400);
+  assert.equal(r.runsOut, null);
+  const up = simulateCompound({ ...base, withdrawal: 100, withdrawFrom: 1, withdrawStep: 10 });
+  assert.ok(Math.abs(up.years[1].withdrawals - 1320) < 1e-9);
+  assert.equal(r.years[2].totalInterest, 0);
+});
+
+test('withdrawals never take the balance below zero and report when the money runs out', () => {
+  for (const frequency of ['monthly', 'annually']) {
+    const r = simulateCompound({ start: 10000, monthly: 0, rate: 5, years: 10, frequency, timing: 'end', withdrawal: 500, withdrawFrom: 1 });
+    assert.equal(r.futureValue, 0, frequency);
+    assert.ok(r.years.every((y) => y.balance >= 0));
+    assert.ok(r.runsOut.year >= 2 && r.runsOut.year <= 3, `${frequency} ran out in ${r.runsOut.year}`);
+    assert.ok(Math.abs(r.futureValue - (r.contributed - r.withdrawn + r.interest)) < 1e-6, frequency);
+    assert.match(headline({ years: 10, basis: 'future' }, r), /the money runs out in year \d/);
+  }
+});
+
+test('withdrawals: interest is total earned, so balance = put in - taken out + interest; todays dollars keeps that', () => {
+  const v = { ...compoundDefaults(), withdrawal: 1000, withdrawFrom: 31, years: 40, contributeYears: 30 };
+  const r = simulateCompound(v);
+  assert.ok(Math.abs(r.futureValue - (r.contributed - r.withdrawn + r.interest)) < 1e-6);
+  const t = inTodaysDollars(r, 3);
+  assert.ok(Math.abs(t.futureValue - (t.contributed - t.withdrawn + t.interest)) < 1e-6);
+  assert.equal(compareStartingLater(v), null);
+});
+
+test('withdrawal inputs: validated, encoded in links and defaulted to none', () => {
+  assert.equal(compoundDefaults().withdrawal, 0);
+  assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawFrom: 0 }), ['Start withdrawing in year']);
+  assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawStep: 25 }), ['Increase withdrawal each year (%)']);
+  assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawal: -5 }), ['Monthly withdrawal']);
+  const v = { ...modelDefaults(), withdrawal: 2000, withdrawFrom: 31, withdrawStep: 3 };
+  const back = decodeCompound(encodeCompound(v));
+  assert.equal(back.withdrawal, 2000);
+  assert.equal(back.withdrawFrom, 31);
+  assert.equal(back.withdrawStep, 3);
+  assert.equal(encodeCompound(modelDefaults()), '');
+});
+
+test('a withdrawal that overdraws pays out the whole balance at every compounding frequency, with no negative interest', () => {
+  for (const frequency of ['monthly', 'quarterly', 'semiannually', 'annually']) {
+    for (const timing of ['end', 'start']) {
+      const r = simulateCompound({ start: 10000, monthly: 0, rate: 6, rateBasis: 'effective', years: 10, frequency, timing, withdrawal: 2000, withdrawFrom: 1 });
+      assert.ok(r.withdrawn >= 10000, `${frequency}/${timing} withdrew ${r.withdrawn}`);
+      assert.ok(r.interest >= 0, `${frequency}/${timing} interest ${r.interest}`);
+      assert.ok(r.runsOut && r.runsOut.year === 1, `${frequency}/${timing} runs out in year 1`);
+    }
+  }
+});
+
+test('a negative return never drives the balance below zero with withdrawals, and the totals still reconcile', () => {
+  for (const frequency of ['monthly', 'quarterly', 'semiannually', 'annually']) {
+    for (const timing of ['end', 'start']) {
+      const r = simulateCompound({ start: 50000, monthly: 0, rate: -5, rateBasis: 'effective', years: 10, frequency, timing, withdrawal: 20000, withdrawFrom: 2, withdrawStep: 3 });
+      for (const y of r.years) assert.ok(y.balance >= 0, `${frequency}/${timing} year ${y.year} balance ${y.balance}`);
+      assert.ok(r.runsOut, `${frequency}/${timing} reports the run-out`);
+      assert.ok(Math.abs(r.futureValue - (r.contributed - r.withdrawn + r.interest)) < 1e-6, `${frequency}/${timing} reconciles`);
+      const small = simulateCompound({ start: 50000, monthly: 0, rate: -5, rateBasis: 'effective', years: 10, frequency, timing, withdrawal: 500, withdrawFrom: 2 });
+      for (const y of small.years) assert.ok(y.balance >= 0, `${frequency}/${timing} small year ${y.year} balance ${y.balance}`);
+    }
+  }
 });
 
 test('compound chart has a legend entry for the return range, labels the band ends and offers a dollars switch', () => {

@@ -11,10 +11,14 @@ export function faqItems(v, r) {
   const gap = simulateGap(v);
   const unit = today ? " in today's dollars" : '';
   const growth = today ? 'growth after inflation' : 'interest';
+  const out = r.withdrawn > 0;
+  const kept = out ? ' The same withdrawals are taken in both plans.' : '';
   return [
     {
       q: 'What is compound interest?',
-      a: `Interest earned on both your original money and the interest it has already earned. Over many years the interest on interest becomes the larger part of the total. On this page it is ${money(r.interest)} of the ${money(r.futureValue)}${unit}.`,
+      a: `Interest earned on both your original money and the interest it has already earned. Over many years the interest on interest becomes the larger part of the total. ${out
+        ? `On this page you put in ${money(r.contributed)}, took out ${money(r.withdrawn)} and earned ${money(r.interest)} in interest, leaving ${money(r.futureValue)}${unit}.`
+        : `On this page it is ${money(r.interest)} of the ${money(r.futureValue)}${unit}.`}`,
     },
     {
       q: 'Is 7% a realistic return?',
@@ -22,7 +26,9 @@ export function faqItems(v, r) {
     },
     {
       q: 'Does compounding work with monthly contributions?',
-      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${money(v.monthly)} a month adds up to ${money(r.contributed - v.start)} over ${years(v.years)}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)} (${share}% of the ${money(r.futureValue)} total${unit}).`,
+      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${money(v.monthly)} a month adds up to ${money(r.contributed - v.start)} over ${years(v.years)}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
+        ? `. You also take out ${money(r.withdrawn)}, so ${money(r.futureValue)}${unit} is left; the interest can be larger than that balance because withdrawals come out of it.`
+        : ` (${share}% of the ${money(r.futureValue)} total${unit}).`}`,
     },
     {
       q: 'What about taxes and fees?',
@@ -32,11 +38,11 @@ export function faqItems(v, r) {
     },
     {
       q: 'What if I stop contributing?',
-      a: stopAnswer(v, r, unit),
+      a: stopAnswer(v, r, unit) + kept,
     },
     {
       q: 'What if I increase my contribution every year?',
-      a: increaseAnswer(v, r, unit),
+      a: increaseAnswer(v, r, unit) + kept,
     },
     {
       q: 'Does it matter how often interest compounds?',

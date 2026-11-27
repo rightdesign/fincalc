@@ -157,10 +157,12 @@ function render() {
   const unit = today ? " (today's dollars)" : '';
   const cross = crossoverYear(r.years);
   const doubleTile = doubleTileText(v);
-  const rows = r.years.map((y) => `<tr${y.year === cross ? ' class="m-cross" aria-label="Year ' + y.year + ', the year interest to date passes contributions to date"' : ''}><td>${y.year}</td><td>${money(y.contributions)}</td><td class="m-int">${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td class="m-int m-int-total">${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
+  const taking = r.withdrawn > 0;
+  const rows = r.years.map((y) => `<tr${y.year === cross ? ' class="m-cross" aria-label="Year ' + y.year + ', the year interest to date passes contributions to date"' : ''}><td>${y.year}</td><td>${money(y.contributions)}</td>${taking ? `<td>${money(y.withdrawals)}</td>` : ''}<td class="m-int">${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td class="m-int m-int-total">${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
+  const withdrawNote = taking ? (r.runsOut ? `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance runs out in year ${r.runsOut.year}, so later withdrawals could not be paid.` : `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance lasts the full ${v.years} year${v.years === 1 ? '' : 's'}.`) : (v.withdrawal > 0 ? `No withdrawals are taken: they start in year ${v.withdrawFrom}, after the ${v.years} years shown.` : '');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
-  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}</p></div>`;
+  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
   const fx = choiceEffects(v, r, today ? v.inflation : null);
   const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
@@ -170,7 +172,7 @@ function render() {
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
   const c = compareStartingLater(v);
-  const compare = c ? `
+  const compare = v.withdrawal > 0 ? '' : c ? `
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
       <p>Same ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
       ${v.start > 0 ? `<p class="m-strip">The ${money(v.start)} starting balance is assumed to sit idle (earning 0%) during the ${c.waitYears}-year wait and is invested only when the later plan starts. If that money would be invested anyway, the real cost of waiting is smaller than shown.</p>` : ''}
@@ -184,7 +186,7 @@ function render() {
     <div class="m-tiles">
       <div class="m-tile" id="compound-double"><h3>Time to double</h3><p class="m-big">${doubleTile.value}</p><p>${doubleTile.caption}</p></div>
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? `${v.stepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
-      <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : `${share}% of the final balance`}</p></div>
+      <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : (taking ? 'All interest earned, including what was withdrawn' : `${share}% of the final balance`)}</p></div>
     </div>
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
@@ -197,7 +199,7 @@ function render() {
     ${compare}
     <p class="m-table-caption" id="compound-years-caption">Year by year (contributions at the ${v.timing === 'start' ? 'beginning' : 'end'} of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</p>
     <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption">
-      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th><th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
+      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th>${taking ? '<th scope="col">Taken out this year</th>' : ''}<th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     ${faqCard(v, r)}`;
   for (const t of out.querySelectorAll('.m-stack')) {

@@ -79,3 +79,16 @@ test('the stop-contributing FAQ quotes the live numbers', () => {
   const b = faqItems(v, r).find((i) => i.q === 'What if I stop contributing?').a;
   assert.match(b, /stopped after 10 years/);
 });
+
+test('with a withdrawal the FAQ never quotes interest as a share of the balance and mentions the money taken out', () => {
+  const w = { ...v, withdrawal: 2500, withdrawFrom: 31, years: 50 };
+  const wr = simulateCompound(w);
+  const items = faqItems(w, wr);
+  for (const i of items) assert.doesNotMatch(i.a, /\d+% of the \$/, i.q);
+  const first = items.find((i) => i.q === 'What is compound interest?').a;
+  assert.match(first, /took out \$/);
+  assert.doesNotMatch(first, /of the \$/);
+  const monthly = items.find((i) => i.q === 'Does compounding work with monthly contributions?').a;
+  assert.match(monthly, /take out \$/);
+  assert.match(items.find((i) => i.q === 'What if I stop contributing?').a, /same withdrawals are taken in both plans/);
+});

@@ -8,6 +8,8 @@ export const MAX_YEARS = 100;
 export const LIMITS = {
   rate: { min: -20, max: 30 },
   stepUp: { min: 0, max: 20 },
+  withdrawStep: { min: 0, max: 20 },
+  withdrawFrom: { min: 1, max: MAX_YEARS },
   variance: { min: 0, max: 15 },
   inflation: { min: -10, max: 30 },
 };
@@ -22,6 +24,9 @@ export const COMPOUND_FIELDS = [
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 100000, step: 50, curve: 2 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
+  { id: 'withdrawal', label: 'Monthly withdrawal', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. What you take out every month, at the same point in the month as contributions (set below). Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match.' },
+  { id: 'withdrawFrom', label: 'Start withdrawing in year', kind: 'years', default: 1, slider: { min: 1, max: 60, step: 1 }, hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.' },
+  { id: 'withdrawStep', label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
     id: 'rateBasis', label: 'Return is quoted as', kind: 'choice', default: 'effective',
@@ -93,7 +98,7 @@ export function invalidCompound(v) {
     const lim = LIMITS[f.id];
     if (!Number.isFinite(x) || x < (lim ? lim.min : 0) || (lim && x > lim.max)) bad.push(f.label);
     else if (f.id === 'taxRate' && x > 100) bad.push(f.label);
-    else if (f.id === 'years' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
+    else if ((f.id === 'years' || f.id === 'withdrawFrom') && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
     else if (f.id === 'contributeYears' && !Number.isInteger(x)) bad.push(f.label);
   }
   return bad;
@@ -163,19 +168,34 @@ export function simulateCompound(v) {
   const rm = r * keep;
   const monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
   const span = 12 / k;
+  const wStart = v.withdrawFrom ?? 1;
+  const wBase = v.withdrawal ?? 0;
   let balance = v.start;
   let contributed = v.start;
+  let withdrawn = 0;
+  let runsOut = null;
   const years = [];
   for (let y = 1; y <= v.years; y++) {
     const open = balance;
     let interest = 0;
     let added = 0;
+    let taken = 0;
     const monthly = y <= payYears ? v.monthly * (1 + (v.stepUp ?? 0) / 100) ** (y - 1) : 0;
+    const want = y >= wStart ? wBase * (1 + (v.withdrawStep ?? 0) / 100) ** (y - wStart) : 0;
+    // Takes the month's withdrawal out of the balance, never more than is there; notes the first month it falls short.
+    const take = (m) => {
+      if (!(want > 0)) return;
+      const got = Math.min(want, Math.max(balance, 0));
+      if (got < want && !runsOut) runsOut = { year: y, month: (y - 1) * 12 + m };
+      balance -= got;
+      taken += got;
+    };
     if (k >= 12) {
       for (let m = 1; m <= 12; m++) {
-        if (early) balance += monthly;
+        if (early) { balance += monthly; take(m); }
         const i = balance * monthRate;
         balance += i + (early ? 0 : monthly);
+        if (!early) take(m);
         interest += i;
         added += monthly;
       }
@@ -184,18 +204,37 @@ export function simulateCompound(v) {
         const periodOpen = balance;
         let periodInterest = periodOpen * (r / k);
         let periodAdded = 0;
-        for (let j = 1; j <= span; j++) { periodInterest += monthly * (r / k) * ((span - j + (early ? 1 : 0)) / span); periodAdded += monthly; }
+        let periodTaken = 0;
+        for (let j = 1; j <= span; j++) {
+          // Interest is simple within the period, so a month's withdrawal is limited to the cash on hand
+          // (the opening balance plus contributions less what was already taken) and never drives the interest below zero.
+          const got = want > 0 ? Math.min(want, Math.max(periodOpen + periodAdded + monthly - periodTaken, 0)) : 0;
+          if (got < want && !runsOut) runsOut = { year: y, month: (y - 1) * 12 + p * span + j };
+          periodInterest += (monthly - got) * (r / k) * ((span - j + (early ? 1 : 0)) / span);
+          periodAdded += monthly;
+          periodTaken += got;
+        }
         periodInterest *= keep;
-        balance = periodOpen + periodAdded + periodInterest;
+        balance = periodOpen + periodAdded - periodTaken + periodInterest;
+        // A negative return can leave the period short even after the cash cap; what could not be covered was never paid out.
+        if (balance < 0 && periodTaken > 0) {
+          const short = Math.min(-balance, periodTaken);
+          periodTaken -= short;
+          balance += short;
+          if (!runsOut) runsOut = { year: y, month: (y - 1) * 12 + (p + 1) * span };
+        }
+        if (Math.abs(balance) < 1e-9) balance = 0;
         interest += periodInterest;
         added += periodAdded;
+        taken += periodTaken;
       }
     }
     contributed += added;
-    years.push({ year: y, contributions: added, interest, balance, totalContributed: contributed, totalInterest: balance - contributed });
+    withdrawn += taken;
+    years.push({ year: y, contributions: added, withdrawals: taken, interest, balance, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: balance - contributed + withdrawn });
   }
   const last = years[years.length - 1];
-  return { years, start: v.start, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+  return { years, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
 }
 
 // Best and worst case: the same plan at the return minus and plus the variance (never below the lowest return the page accepts),
@@ -219,7 +258,7 @@ export const WAIT_YEARS = 10;
 // both balances (which land on the same date) are divided by (1 + inflation)^years and the gap is
 // recomputed from them; what was contributed is restated the same way, each at the year it was paid.
 export function compareStartingLater(v) {
-  if (!(v.years > WAIT_YEARS)) return null;
+  if (!(v.years > WAIT_YEARS) || v.withdrawal > 0) return null;
   const now = simulateCompound(v);
   const later = simulateCompound({ ...v, years: v.years - WAIT_YEARS });
   const deflate = v.basis === 'today' ? (1 + v.inflation / 100) ** v.years : 1;
@@ -247,18 +286,22 @@ export function compareStartingLater(v) {
 export function inTodaysDollars(r, inflation) {
   let prevBalance = r.start;
   let prevContributed = r.start;
+  let prevWithdrawn = 0;
   const years = r.years.map((y) => {
     const f = (1 + inflation / 100) ** y.year;
     const balance = y.balance / f;
     const contributions = y.contributions / f;
+    const withdrawals = (y.withdrawals ?? 0) / f;
     const totalContributed = prevContributed + contributions;
-    const interest = balance - prevBalance - contributions;
+    const totalWithdrawn = prevWithdrawn + withdrawals;
+    const interest = balance - prevBalance - contributions + withdrawals;
     prevBalance = balance;
     prevContributed = totalContributed;
-    return { ...y, contributions, interest, balance, totalContributed, totalInterest: balance - totalContributed };
+    prevWithdrawn = totalWithdrawn;
+    return { ...y, contributions, withdrawals, interest, balance, totalContributed, totalWithdrawn, totalInterest: balance - totalContributed + totalWithdrawn };
   });
   const last = years[years.length - 1];
-  return { ...r, years, futureValue: last.balance, contributed: last.totalContributed, interest: last.totalInterest };
+  return { ...r, years, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest };
 }
 
 // What each choice is worth: the same plan with the other compounding frequency, and with the other
@@ -320,6 +363,11 @@ function stopNote(v) {
 export function headline(v, r) {
   const yrs = `${v.years} year${v.years === 1 ? '' : 's'}`;
   if (r.contributed === 0) return `After ${yrs}, nothing has been invested yet.`;
+  if (r.withdrawn > 0) {
+    const today = v.basis === 'today' ? " in today's dollars" : '';
+    const end = r.runsOut ? `the money runs out in year ${r.runsOut.year}` : `${roundedMoney(r.futureValue)} is left${today}`;
+    return `After ${yrs}, you put in ${usd.format(r.contributed)} and took out ${usd.format(r.withdrawn)}${today}; ${end}.`;
+  }
   if (v.basis === 'today') {
     const gap = r.interest >= 0 ? `about ${roundedMoney(r.interest)} more than you put in` : `about ${roundedMoney(-r.interest)} less than you put in`;
     return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} in today's dollars — ${stopNote(v) || gap}.`;

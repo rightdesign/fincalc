@@ -24,6 +24,7 @@ export function stopYear(rows) {
 // year it also says that year's $0 contribution and the interest it earned.
 export function compoundTip(row, fmt, stop = null) {
   const lines = [['Balance', fmt(row.balance)], ['Put in to date', fmt(row.totalContributed)], ['Interest to date', fmt(row.totalInterest)]];
+  if (row.totalWithdrawn > 0) lines.push(['Taken out to date', fmt(row.totalWithdrawn)]);
   if (stop !== null && row.year > stop) lines.push(['Put in this year', fmt(row.contributions)], ['Interest this year', fmt(row.interest)]);
   return { title: `Year ${row.year}`, lines };
 }
