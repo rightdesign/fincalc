@@ -17,6 +17,12 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.120.0] — 2026-11-27
+
+- FINC-218 Compound interest shared links keep "Contribute for" whenever it is not the default, including when it equals Years or when Years is changed, so a link reopens the plan that was shared.
+- FINC-222 The compound interest "Return variance (± %)" input is now "Return range (± percentage points)", with a hint that says it shows the result at the annual return minus and plus that many points (for example 7% and 11% for a 9% return and a range of 2). Existing links keep working.
+- FINC-223 The compound interest growth chart now shows a legend entry for the shaded return range (e.g. "Range at 7%–11% return"), labels the band's top and bottom values at the final year, and has a Future / Today's dollars switch right on the chart.
+
 ## [0.119.4] — 2026-11-26
 
 - FINC-219 Compound interest's first tile no longer repeats the future value; it now shows the time for money to double at the effective rate, or "Never" with a note that it needs a positive return after tax.
