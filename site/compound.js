@@ -10,6 +10,7 @@ export const LIMITS = {
   stepUp: { min: 0, max: 20 },
   withdrawStep: { min: 0, max: 20 },
   withdrawFrom: { min: 1, max: MAX_YEARS },
+  withdrawPercent: { min: 0, max: 100 },
   variance: { min: 0, max: 15 },
   inflation: { min: -10, max: 30 },
 };
@@ -27,9 +28,20 @@ export const COMPOUND_FIELDS = [
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 100000, step: 50, curve: 2 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
   { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
-  { id: 'withdrawal', label: 'Monthly withdrawal', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. What you take out every month, at the same point in the month as contributions (set below). Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match.' },
+  {
+    id: 'withdrawMode', label: 'Withdraw', kind: 'choice', default: 'amount',
+    hint: 'A fixed dollar amount each time, a percent of the balance at the moment of each withdrawal, or a percent of the interest earned since the previous withdrawal (nothing is taken if that interest is negative). The amount below is used for the fixed mode; the percent below for the other two.',
+    options: [{ value: 'amount', label: 'A fixed amount' }, { value: 'percentBalance', label: 'A percent of the balance' }, { value: 'percentEarnings', label: 'A percent of the earnings' }],
+  },
+  { id: 'withdrawal', label: 'Withdrawal amount', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. The fixed amount you take out each time, at the same point in the month as contributions (set below). How often is set by Withdraw every. Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match. Only used when Withdraw is a fixed amount.' },
+  { id: 'withdrawPercent', label: 'Withdrawal percent (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.1 }, hint: 'The percent taken each time when Withdraw is a percent of the balance or of the earnings (0-100). Remember it applies to every withdrawal, so 1% a month is far more than 1% a year. Only used for those two modes.' },
+  {
+    id: 'withdrawFreq', label: 'Withdraw every', kind: 'choice', default: 'monthly',
+    hint: 'How often the withdrawal is taken. Quarterly, half-yearly and yearly withdrawals happen in the last month of each 3, 6 or 12 months (the first month of each when contributions are at the beginning of the month), counted from the start of year 1, and a withdrawal only happens once the start year is reached.',
+    options: [{ value: 'monthly', label: 'Month' }, { value: 'quarterly', label: 'Quarter' }, { value: 'semiannually', label: 'Half year' }, { value: 'yearly', label: 'Year' }],
+  },
   { id: 'withdrawFrom', label: 'Start withdrawing in year', kind: 'years', default: 1, slider: { min: 1, max: 60, step: 1 }, hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.' },
-  { id: 'withdrawStep', label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat.' },
+  { id: 'withdrawStep', label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises a fixed withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat. Not used for the percent modes.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
     id: 'rateBasis', label: 'Return is quoted as', kind: 'choice', default: 'effective',
@@ -111,6 +123,12 @@ export function invalidCompound(v) {
   }
   return bad;
 }
+
+// Months between withdrawals for each frequency choice.
+export const WITHDRAW_MONTHS = { monthly: 1, quarterly: 3, semiannually: 6, yearly: 12 };
+
+// Whether the plan takes money out at all: a fixed amount above 0, or a percent above 0 in the percent modes.
+export const withdrawsOn = (v) => ((v.withdrawMode ?? 'amount') === 'amount' ? v.withdrawal > 0 : v.withdrawPercent > 0);
 
 // How many years the monthly contribution runs: never more than Years, and all of them when unset.
 export const contributionYears = (v) => Math.min(v.contributeYears ?? v.years, v.years);
@@ -199,6 +217,11 @@ export function simulateCompound(v) {
   const span = 12 / k;
   const wStart = v.withdrawFrom ?? 1;
   const wBase = v.withdrawal ?? 0;
+  const mode = v.withdrawMode ?? 'amount';
+  const wEvery = WITHDRAW_MONTHS[v.withdrawFreq ?? 'monthly'];
+  const wPct = (v.withdrawPercent ?? 0) / 100;
+  // Interest earned since the last withdrawal (or the plan's start), for the percent-of-earnings mode.
+  let earned = 0;
   let balance = v.start;
   let contributed = v.start;
   let withdrawn = 0;
@@ -213,9 +236,18 @@ export function simulateCompound(v) {
     let added = 0;
     let taken = 0;
     const monthly = y <= payYears ? v.monthly * (1 + (v.stepUp ?? 0) / 100) ** (y - 1) : 0;
-    const want = y >= wStart ? wBase * (1 + (v.withdrawStep ?? 0) / 100) ** (y - wStart) : 0;
+    const yearAmount = wBase * (1 + (v.withdrawStep ?? 0) / 100) ** (y - wStart);
+    // What month m of this year asks to take out, given the cash on hand. Zero outside the start year and off the withdrawal schedule.
+    const wantAt = (m, cash) => {
+      const abs = (y - 1) * 12 + m;
+      if (y < wStart || (early ? (abs - 1) % wEvery : abs % wEvery) !== 0) return 0;
+      return mode === 'amount' ? yearAmount : mode === 'percentBalance' ? Math.max(cash, 0) * wPct : Math.max(earned, 0) * wPct;
+    };
+    // After a month's interest and withdrawal: a withdrawal month restarts the earnings count, as does any month before withdrawals begin.
+    const settle = (m) => { if (y < wStart || (early ? ((y - 1) * 12 + m - 1) % wEvery : ((y - 1) * 12 + m) % wEvery) === 0) earned = 0; };
     // Takes the month's withdrawal out of the balance, never more than is there; notes the first month it falls short.
     const take = (m) => {
+      const want = wantAt(m, balance);
       if (!(want > 0)) return;
       const got = Math.min(want, Math.max(balance, 0));
       if (got < want && !runsOut) runsOut = { year: y, month: (y - 1) * 12 + m };
@@ -227,8 +259,10 @@ export function simulateCompound(v) {
         const t0 = taken;
         if (early) { balance += monthly; take(m); }
         const i = balance * monthRate;
+        earned += i;
         balance += i + (early ? 0 : monthly);
         if (!early) take(m);
+        settle(m);
         interest += i;
         added += monthly;
         pushMonth(y, m, monthly, taken - t0, i, balance, contributed + added, withdrawn + taken);
@@ -243,7 +277,11 @@ export function simulateCompound(v) {
         for (let j = 1; j <= span; j++) {
           // Interest is simple within the period, so a month's withdrawal is limited to the cash on hand
           // (the opening balance plus contributions less what was already taken) and never drives the interest below zero.
-          const got = want > 0 ? Math.min(want, Math.max(periodOpen + periodAdded + monthly - periodTaken, 0)) : 0;
+          const cash = periodOpen + periodAdded + monthly - periodTaken;
+          earned += periodOpen * (r / k) * keep / span;
+          const want = wantAt((p * span) + j, cash);
+          const got = want > 0 ? Math.min(want, Math.max(cash, 0)) : 0;
+          settle((p * span) + j);
           if (got < want && !runsOut) runsOut = { year: y, month: (y - 1) * 12 + p * span + j };
           periodInterest += (monthly - got) * (r / k) * ((span - j + (early ? 1 : 0)) / span);
           periodAdded += monthly;
@@ -313,7 +351,7 @@ export const WAIT_YEARS = 10;
 // both balances (which land on the same date) are divided by (1 + inflation)^years and the gap is
 // recomputed from them; what was contributed is restated the same way, each at the year it was paid.
 export function compareStartingLater(v) {
-  if (!(v.years > WAIT_YEARS) || v.withdrawal > 0) return null;
+  if (!(v.years > WAIT_YEARS) || withdrawsOn(v)) return null;
   const now = simulateCompound(v);
   const later = simulateCompound({ ...v, years: v.years - WAIT_YEARS });
   const deflate = v.basis === 'today' ? (1 + v.inflation / 100) ** v.years : 1;

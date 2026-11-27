@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -218,7 +218,7 @@ function render() {
   const cross = crossoverYear(r.years);
   const doubleTile = doubleTileText(v);
   const taking = r.withdrawn > 0;
-  const withdrawNote = taking ? (r.runsOut ? `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance runs out in year ${r.runsOut.year}, so later withdrawals could not be paid.` : `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance lasts the full ${v.years} year${v.years === 1 ? '' : 's'}.`) : (v.withdrawal > 0 ? `No withdrawals are taken: they start in year ${v.withdrawFrom}, after the ${v.years} years shown.` : '');
+  const withdrawNote = taking ? (r.runsOut ? `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance runs out in year ${r.runsOut.year}, so later withdrawals could not be paid.` : `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance lasts the full ${v.years} year${v.years === 1 ? '' : 's'}.`) : (withdrawsOn(v) ? `No withdrawals are taken: they start in year ${v.withdrawFrom}, after the ${v.years} years shown.` : '');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
   hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}${rateBreakdown(v)}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
@@ -231,7 +231,7 @@ function render() {
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
   const c = compareStartingLater(v);
-  const compare = v.withdrawal > 0 ? '' : c ? `
+  const compare = withdrawsOn(v) ? '' : c ? `
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
       <p>Same ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
       ${v.start > 0 ? `<p class="m-strip">The ${money(v.start)} starting balance is assumed to sit idle (earning 0%) during the ${c.waitYears}-year wait and is invested only when the later plan starts. If that money would be invested anyway, the real cost of waiting is smaller than shown.</p>` : ''}

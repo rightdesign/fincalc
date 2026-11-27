@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -668,7 +668,7 @@ test('withdrawal inputs: validated, encoded in links and defaulted to none', () 
   assert.equal(compoundDefaults().withdrawal, 0);
   assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawFrom: 0 }), ['Start withdrawing in year']);
   assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawStep: 25 }), ['Increase withdrawal each year (%)']);
-  assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawal: -5 }), ['Monthly withdrawal']);
+  assert.deepEqual(invalidCompound({ ...compoundDefaults(), withdrawal: -5 }), ['Withdrawal amount']);
   const v = { ...modelDefaults(), withdrawal: 2000, withdrawFrom: 31, withdrawStep: 3 };
   const back = decodeCompound(encodeCompound(v));
   assert.equal(back.withdrawal, 2000);
@@ -738,4 +738,30 @@ test('monthly schedule with withdrawals: each December matches its year row, wit
       });
     }
   }
+});
+
+test('withdrawals: quarterly, half-yearly and yearly amounts are taken on their schedule', () => {
+  const base = { start: 10000, monthly: 0, rate: 0, years: 3, frequency: 'monthly', timing: 'end', rateBasis: 'effective', withdrawal: 100, withdrawFrom: 1 };
+  assert.equal(simulateCompound({ ...base, withdrawFreq: 'monthly' }).years[0].withdrawals, 1200);
+  assert.equal(simulateCompound({ ...base, withdrawFreq: 'quarterly' }).years[0].withdrawals, 400);
+  assert.equal(simulateCompound({ ...base, withdrawFreq: 'semiannually' }).years[0].withdrawals, 200);
+  const yearly = simulateCompound({ ...base, withdrawFreq: 'yearly', withdrawFrom: 2 });
+  assert.deepEqual(yearly.years.map((y) => y.withdrawals), [0, 100, 100]);
+  assert.equal(yearly.months.filter((m) => m.withdrawals > 0).map((m) => m.month).join(), '24,36');
+  assert.equal(simulateCompound({ ...base, withdrawFreq: 'yearly', timing: 'start' }).months.filter((m) => m.withdrawals > 0).map((m) => m.month).join(), '1,13,25');
+});
+
+test('withdrawals: a percent of the balance and of the earnings', () => {
+  const base = { start: 10000, monthly: 0, rate: 12, years: 3, frequency: 'annually', timing: 'end', rateBasis: 'effective', withdrawFrom: 1, withdrawFreq: 'yearly' };
+  const bal = simulateCompound({ ...base, withdrawMode: 'percentBalance', withdrawPercent: 10 });
+  // Below monthly compounding the interest joins the balance only at period end, so the percent applies to the cash on hand.
+  assert.ok(Math.abs(bal.years[0].withdrawals - 1000) < 1e-9);
+  assert.ok(Math.abs(bal.futureValue - (bal.contributed - bal.withdrawn + bal.interest)) < 1e-6);
+  const earn = simulateCompound({ ...base, withdrawMode: 'percentEarnings', withdrawPercent: 50 });
+  assert.ok(Math.abs(earn.years[0].withdrawals - 600) < 1e-9);
+  assert.equal(earn.runsOut, null);
+  assert.equal(simulateCompound({ ...base, withdrawMode: 'percentBalance', withdrawPercent: 0 }).withdrawn, 0);
+  assert.equal(withdrawsOn({ withdrawMode: 'percentBalance', withdrawal: 500, withdrawPercent: 0 }), false);
+  assert.equal(withdrawsOn({ withdrawal: 500 }), true);
+  assert.deepEqual(invalidCompound({ ...modelDefaults(), withdrawPercent: 101 }), ['Withdrawal percent (%)']);
 });
