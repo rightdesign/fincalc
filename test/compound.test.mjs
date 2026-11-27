@@ -52,7 +52,7 @@ test('validation and presets', () => {
 test('input limits: runaway values are rejected, negative return and inflation are allowed', () => {
   const d = compoundDefaults();
   assert.deepEqual(invalidCompound({ ...d, rate: -2, inflation: -1 }), []);
-  assert.deepEqual(invalidCompound({ ...d, rate: 500, stepUp: 80, variance: 40, inflation: 50 }), ['Increase contribution each year (%)', 'Annual return (%)', 'Return variance (± %)', 'Inflation (% per year)']);
+  assert.deepEqual(invalidCompound({ ...d, rate: 500, stepUp: 80, variance: 40, inflation: 50 }), ['Increase contribution each year (%)', 'Annual return (%)', 'Return range (± percentage points)', 'Inflation (% per year)']);
   assert.deepEqual(invalidCompound({ ...d, rate: -21 }), ['Annual return (%)']);
   assert.deepEqual(invalidCompound({ ...d, rate: 30, stepUp: 20, variance: 15, inflation: -10 }), []);
   assert.equal(decodeCompound('#rate=-2&inflation=-1').rate, -2);
