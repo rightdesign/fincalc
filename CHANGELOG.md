@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.123.0] — 2026-11-27
+
+- FINC-232 Compound interest: choose an account type (taxable interest, taxable stocks, tax-deferred, tax-free) so results show the after-tax balance for each
+
 ## [0.122.0] — 2026-11-27
 
 - FINC-229 Compound interest's schedule now has a Yearly / Monthly toggle, a "Download table (CSV)" button and a Print button; the printed page lists your inputs.
