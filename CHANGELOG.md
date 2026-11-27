@@ -17,6 +17,11 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.133.0] — 2026-11-27
+
+- Merge of master into the FINC-231 branch (no separate entry; see the FINC-231 commit).
+- FINC-231 (unchanged from earlier commits on this branch)
+
 ## [0.132.0] — 2026-11-27
 
 - FINC-230 Compound interest has an optional Annual fees (% of balance) input; the page shows the balance with and without fees, the fees paid, and the fee's effect on time to double.
