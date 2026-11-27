@@ -4,16 +4,32 @@ import { test } from 'node:test';
 import { decodeRentOwn, longDate, parseLiveRate, rentOwnDefaults } from '../site/rentown.js';
 import { latestObservation } from '../scripts/update-rate.mjs';
 
-const good = { rate: 7.32, week: '2026-10-22', updated: '2026-11-15', source: 'Freddie Mac survey', url: 'https://www.freddiemac.com/pmms' };
+const good = {
+  rate: 7.32,
+  week: '2026-10-22',
+  updated: '2026-11-15',
+  source: 'Freddie Mac survey',
+  url: 'https://www.freddiemac.com/pmms',
+};
 
 test('the shipped data file is usable', () => {
-  const data = JSON.parse(readFileSync(new URL('../site/data/rates.json', import.meta.url), 'utf8'));
+  const data = JSON.parse(
+    readFileSync(new URL('../site/data/rates.json', import.meta.url), 'utf8'),
+  );
   assert.ok(parseLiveRate(data));
 });
 
 test('a good record parses and bad ones are refused', () => {
   assert.equal(parseLiveRate(good).rate, 7.32);
-  for (const bad of [null, 'x', { ...good, rate: '7.3' }, { ...good, rate: -1 }, { ...good, rate: 99 }, { ...good, week: 'Oct 22' }, { ...good, url: 'javascript:alert(1)' }]) {
+  for (const bad of [
+    null,
+    'x',
+    { ...good, rate: '7.3' },
+    { ...good, rate: -1 },
+    { ...good, rate: 99 },
+    { ...good, week: 'Oct 22' },
+    { ...good, url: 'javascript:alert(1)' },
+  ]) {
     assert.equal(parseLiveRate(bad), null);
   }
 });

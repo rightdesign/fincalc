@@ -28,6 +28,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # `npm test` runs the format check (`npm run lint`) first.
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

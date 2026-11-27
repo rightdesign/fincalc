@@ -14,7 +14,8 @@ export function addScenario(list, name, values) {
   const i = list.findIndex((s) => s.name.toLowerCase() === trimmed.toLowerCase());
   const next = { name: trimmed, values: { ...values } };
   if (i >= 0) return list.map((s, k) => (k === i ? next : s));
-  if (list.length >= MAX_SCENARIOS) return { error: `You can keep up to ${MAX_SCENARIOS} scenarios. Remove one first.` };
+  if (list.length >= MAX_SCENARIOS)
+    return { error: `You can keep up to ${MAX_SCENARIOS} scenarios. Remove one first.` };
   return [...list, next];
 }
 
@@ -28,7 +29,10 @@ export function parseStored(text) {
     const data = JSON.parse(text);
     if (!Array.isArray(data)) return [];
     return data
-      .filter((s) => s && typeof s.name === 'string' && s.name && s.values && typeof s.values === 'object')
+      .filter(
+        (s) =>
+          s && typeof s.name === 'string' && s.name && s.values && typeof s.values === 'object',
+      )
       .slice(0, MAX_SCENARIOS);
   } catch {
     return [];
@@ -44,8 +48,17 @@ export function compareScenarios(list) {
   const last = (p) => p.rows[p.rows.length - 1];
   const lines = [
     ['Time horizon', (s, p) => `${s.values.horizon} years`],
-    ['Sell and invest pulls ahead', (s, p) => yearText(p.breakevenYear) + (p.breakevenTerminal ? ' (end-of-horizon sale only)' : '')],
-    ['Downsizing pulls ahead', (s, p) => yearText(p.downsizeBreakevenYear) + (p.downsizeBreakevenTerminal ? ' (end-of-horizon sale only)' : '')],
+    [
+      'Sell and invest pulls ahead',
+      (s, p) =>
+        yearText(p.breakevenYear) + (p.breakevenTerminal ? ' (end-of-horizon sale only)' : ''),
+    ],
+    [
+      'Downsizing pulls ahead',
+      (s, p) =>
+        yearText(p.downsizeBreakevenYear) +
+        (p.downsizeBreakevenTerminal ? ' (end-of-horizon sale only)' : ''),
+    ],
     ['Stay: net worth at end', (s, p) => formatMoney(last(p).stayNetWorth)],
     ['Sell (invested): net worth at end', (s, p) => formatMoney(last(p).investmentCapital)],
     ['Downsize: net worth at end', (s, p) => formatMoney(last(p).downsizeNetWorth)],

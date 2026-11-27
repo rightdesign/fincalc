@@ -17,7 +17,10 @@ for (const id of ['price', 'rent']) {
 
 test('the solved text names the price and the stay', () => {
   const v = { ...rentOwnDefaults(), years: 7 };
-  assert.match(solveText(v, 'price').text, /^Buying breaks even in 7 years at a home price of \$[\d,]+ \(you entered \$450,000\)\.$/);
+  assert.match(
+    solveText(v, 'price').text,
+    /^Buying breaks even in 7 years at a home price of \$[\d,]+ \(you entered \$450,000\)\.$/,
+  );
 });
 
 test('reports when no value breaks even', () => {

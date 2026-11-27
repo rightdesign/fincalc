@@ -1,7 +1,22 @@
-import { altFrequency, contribUnit, contributionPhrase, contributes, contributionMonths, frequencyLabel, inTodaysDollars, monthsText, simulateCompound as simulate, termMonths } from './compound.js';
+import {
+  altFrequency,
+  contribUnit,
+  contributionPhrase,
+  contributes,
+  contributionMonths,
+  frequencyLabel,
+  inTodaysDollars,
+  monthsText,
+  simulateCompound as simulate,
+  termMonths,
+} from './compound.js';
 
 // FAQ and sources for the compound interest page. Pure (no DOM). Each answer quotes the numbers on the page right now.
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const usd = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
 
 export function faqItems(v, r) {
@@ -15,9 +30,11 @@ export function faqItems(v, r) {
   return [
     {
       q: 'What is compound interest?',
-      a: `Interest earned on both your original money and the interest it has already earned. Over many years the interest on interest becomes the larger part of the total. ${out
-        ? `On this page you put in ${money(r.contributed)}, took out ${money(r.withdrawn)} and earned ${money(r.interest)} in interest, leaving ${money(r.futureValue)}${unit}.`
-        : `On this page it is ${money(r.interest)} of the ${money(r.futureValue)}${unit}.`}`,
+      a: `Interest earned on both your original money and the interest it has already earned. Over many years the interest on interest becomes the larger part of the total. ${
+        out
+          ? `On this page you put in ${money(r.contributed)}, took out ${money(r.withdrawn)} and earned ${money(r.interest)} in interest, leaving ${money(r.futureValue)}${unit}.`
+          : `On this page it is ${money(r.interest)} of the ${money(r.futureValue)}${unit}.`
+      }`,
     },
     {
       q: 'Is 7% a realistic return?',
@@ -25,17 +42,20 @@ export function faqItems(v, r) {
     },
     {
       q: 'Does compounding work with monthly contributions?',
-      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${contributionPhrase(v, money)} adds up to ${money(r.contributed - v.start)} over ${monthsText(termMonths(v))}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
-        ? `. You also take out ${money(r.withdrawn)}, so ${money(r.futureValue)}${unit} is left; the interest can be larger than that balance because withdrawals come out of it.`
-        : ` (${share}% of the ${money(r.futureValue)} total${unit}).`}`,
+      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${contributionPhrase(v, money)} adds up to ${money(r.contributed - v.start)} over ${monthsText(termMonths(v))}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${
+        out
+          ? `. You also take out ${money(r.withdrawn)}, so ${money(r.futureValue)}${unit} is left; the interest can be larger than that balance because withdrawals come out of it.`
+          : ` (${share}% of the ${money(r.futureValue)} total${unit}).`
+      }`,
     },
     {
       q: 'What about taxes and fees?',
-      a: v.accountType === 'free'
-        ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. ${feeSentence(v, unit)}`
-        : v.taxRate > 0
-          ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). ${feeSentence(v, unit)}`
-          : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. ${feeSentence(v, unit)}`,
+      a:
+        v.accountType === 'free'
+          ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. ${feeSentence(v, unit)}`
+          : v.taxRate > 0
+            ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). ${feeSentence(v, unit)}`
+            : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. ${feeSentence(v, unit)}`,
     },
     {
       q: 'What if I stop contributing?',
@@ -69,11 +89,14 @@ function stopAnswer(v, r, unit) {
   const term = termMonths(v);
   const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
   if (pay < term) {
-    const whole = restate(simulate({ ...v, contributeYears: v.years, contributeMonths: v.months ?? 0 }));
+    const whole = restate(
+      simulate({ ...v, contributeYears: v.years, contributeMonths: v.months ?? 0 }),
+    );
     return `Your contributions stop after ${monthsText(pay)} and the balance keeps compounding for the other ${monthsText(term - pay)}, ending at ${money(r.futureValue)}${unit} on ${money(r.contributed)} contributed. Contributing for all ${monthsText(termMonths(v))} would end at ${money(whole.futureValue)}${unit}, so stopping early costs ${money(whole.futureValue - r.futureValue)}${unit}.`;
   }
   const cut = Math.max(1, Math.round(term / 36));
-  if (term < 24 || !contributes(v)) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
+  if (term < 24 || !contributes(v))
+    return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
   const stopped = restate(simulate({ ...v, contributeYears: cut, contributeMonths: 0 }));
   return `Right now you contribute for all ${monthsText(termMonths(v))}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${monthsText(cut * 12)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
 }
@@ -81,7 +104,8 @@ function stopAnswer(v, r, unit) {
 // Quotes the page's plan against the same plan with a flat contribution (or, when the plan is flat, a 3% yearly increase).
 function increaseAnswer(v, r, unit) {
   const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
-  if (!(v.monthly > 0) || contributionMonths(v) < 12) return 'With no regular contribution there is nothing to increase. Enter a contribution amount, then use "Increase contribution each year (%)" to raise it every year.';
+  if (!(v.monthly > 0) || contributionMonths(v) < 12)
+    return 'With no regular contribution there is nothing to increase. Enter a contribution amount, then use "Increase contribution each year (%)" to raise it every year.';
   const step = v.stepUp ?? 0;
   if (step > 0) {
     const flat = restate(simulate({ ...v, stepUp: 0 }));
@@ -92,12 +116,17 @@ function increaseAnswer(v, r, unit) {
   return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} ${contribUnit(v)} for ${monthsText(contributionMonths(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
 }
 
-const accountText = (t) => ({ deferred: 'tax-deferred account (tax on the whole balance at the end)', stocks: 'taxable stock account (tax on yearly dividends and on the gain at the end)' })[t] ?? 'taxable interest account (each period\'s interest is taxed before it compounds)';
+const accountText = (t) =>
+  ({
+    deferred: 'tax-deferred account (tax on the whole balance at the end)',
+    stocks: 'taxable stock account (tax on yearly dividends and on the gain at the end)',
+  })[t] ?? "taxable interest account (each period's interest is taxed before it compounds)";
 
 // The same plan with no tax, in the dollars the page shows.
 // The fee half of the "taxes and fees" answer: what the fee input did, or how to try one.
 function feeSentence(v, unit) {
-  if (!(v.fee > 0)) return `Fees are not charged because Annual fees is 0%: enter your fund expense ratio plus any advisory fee under "Annual fees" to see what ${monthsText(termMonths(v))} of them cost.`;
+  if (!(v.fee > 0))
+    return `Fees are not charged because Annual fees is 0%: enter your fund expense ratio plus any advisory fee under "Annual fees" to see what ${monthsText(termMonths(v))} of them cost.`;
   const free = simulate({ ...v, fee: 0 });
   const base = v.basis === 'today' ? inTodaysDollars(free, v.inflation) : free;
   const mine = v.basis === 'today' ? inTodaysDollars(simulate(v), v.inflation) : simulate(v);
@@ -121,13 +150,29 @@ function simulateGap(v) {
 
 // References behind the rules the model uses. Dates say when the figures were last checked against them.
 export const FAQ_SOURCES = [
-  { name: 'S&P Dow Jones Indices, S&P 500 (long-run average return, about 10% nominal)', url: 'https://www.spglobal.com/spdji/en/indices/equity/sp-500/', asOf: 'November 2026' },
-  { name: 'Investor.gov (SEC), Compound Interest Calculator (the compounding formula)', url: 'https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator', asOf: 'November 2026' },
-  { name: 'IRS Topic No. 409, Capital Gains and Losses (taxes on investment gains and income)', url: 'https://www.irs.gov/taxtopics/tc409', asOf: 'November 2026' },
+  {
+    name: 'S&P Dow Jones Indices, S&P 500 (long-run average return, about 10% nominal)',
+    url: 'https://www.spglobal.com/spdji/en/indices/equity/sp-500/',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'Investor.gov (SEC), Compound Interest Calculator (the compounding formula)',
+    url: 'https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'IRS Topic No. 409, Capital Gains and Losses (taxes on investment gains and income)',
+    url: 'https://www.irs.gov/taxtopics/tc409',
+    asOf: 'November 2026',
+  },
 ];
 
 export function faqCard(v, r) {
-  const items = faqItems(v, r).map((i) => `<details><summary>${i.q}</summary><p>${i.a}</p></details>`).join('');
-  const sources = FAQ_SOURCES.map((s) => `<li><a href="${s.url}" rel="noopener">${s.name}</a>, as of ${s.asOf}</li>`).join('');
+  const items = faqItems(v, r)
+    .map((i) => `<details><summary>${i.q}</summary><p>${i.a}</p></details>`)
+    .join('');
+  const sources = FAQ_SOURCES.map(
+    (s) => `<li><a href="${s.url}" rel="noopener">${s.name}</a>, as of ${s.asOf}</li>`,
+  ).join('');
   return `<section class="m-card ro-faq" id="faq"><h2>Frequently asked questions</h2>${items}<h3>Sources</h3><ul>${sources}</ul></section>`;
 }

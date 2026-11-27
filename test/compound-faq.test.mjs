@@ -9,7 +9,13 @@ const r = simulateCompound(v);
 
 test('the four required questions are answered', () => {
   const qs = faqItems(v, r).map((i) => i.q);
-  for (const q of ['Is 7% a realistic return?', 'Does compounding work with monthly contributions?', 'What about taxes and fees?', 'What if I increase my contribution every year?']) assert.ok(qs.includes(q), q);
+  for (const q of [
+    'Is 7% a realistic return?',
+    'Does compounding work with monthly contributions?',
+    'What about taxes and fees?',
+    'What if I increase my contribution every year?',
+  ])
+    assert.ok(qs.includes(q), q);
 });
 
 test('the 7% answer cites the S&P 500 long-run average', () => {
@@ -21,20 +27,30 @@ test('the 7% answer cites the S&P 500 long-run average', () => {
 });
 
 test('answers quote the numbers on the page and follow the inputs', () => {
-  const text = faqItems(v, r).map((i) => i.a).join(' ');
+  const text = faqItems(v, r)
+    .map((i) => i.a)
+    .join(' ');
   assert.ok(text.includes('$190,000') && text.includes('$500 a month'));
   const w = { ...v, rate: 4, monthly: 250 };
-  const t2 = faqItems(w, simulateCompound(w)).map((i) => i.a).join(' ');
+  const t2 = faqItems(w, simulateCompound(w))
+    .map((i) => i.a)
+    .join(' ');
   assert.ok(t2.includes('4% a year') && t2.includes('$250 a month'));
 });
 
 test('taxes: described by the tax input; fees not modelled; yearly increase is described', () => {
   const items = faqItems(v, r);
-  assert.match(items.find((i) => i.q.startsWith('What about taxes')).a, /before tax.*Choose an account type.*Fees are not charged/);
+  assert.match(
+    items.find((i) => i.q.startsWith('What about taxes')).a,
+    /before tax.*Choose an account type.*Fees are not charged/,
+  );
   const w = { ...v, taxRate: 25 };
   const a = faqItems(w, simulateCompound(w)).find((i) => i.q.startsWith('What about taxes')).a;
   assert.match(a, /25% tax rate.*after tax/);
-  assert.match(items.find((i) => i.q.startsWith('What if I increase')).a, /Increase contribution each year/);
+  assert.match(
+    items.find((i) => i.q.startsWith('What if I increase')).a,
+    /Increase contribution each year/,
+  );
 });
 
 test('sources have links and dates, and the card renders them', () => {
@@ -46,9 +62,17 @@ test('sources have links and dates, and the card renders them', () => {
 
 test('page keeps the methodology formula and convention, and ends with the standard footer', () => {
   const page = readFileSync(new URL('../site/compound.html', import.meta.url), 'utf8');
-  assert.ok(page.includes('FV = S') && page.includes('Monthly compounding:') && page.includes('Annual compounding:'));
-  assert.match(page, /<p class="disclaimer"><strong>Not financial advice\.<\/strong>/);
-  assert.ok(readFileSync(new URL('../site/compound-app.js', import.meta.url), 'utf8').includes('faqCard(v, r)'));
+  assert.ok(
+    page.includes('FV = S') &&
+      page.includes('Monthly compounding:') &&
+      page.includes('Annual compounding:'),
+  );
+  assert.match(page, /<p class="disclaimer">\s*<strong>Not financial advice\.<\/strong>/);
+  assert.ok(
+    readFileSync(new URL('../site/compound-app.js', import.meta.url), 'utf8').includes(
+      'faqCard(v, r)',
+    ),
+  );
 });
 
 test("today's-dollars mode quotes the restated figures and says so", () => {
@@ -58,7 +82,10 @@ test("today's-dollars mode quotes the restated figures and says so", () => {
   const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
   const text = items.map((i) => i.a).join(' ');
   assert.ok(text.includes(money(shown.futureValue)) && text.includes(money(shown.interest)));
-  assert.match(items.find((i) => i.q.startsWith('Does compounding work')).a, /growth after inflation/);
+  assert.match(
+    items.find((i) => i.q.startsWith('Does compounding work')).a,
+    /growth after inflation/,
+  );
   assert.match(items.find((i) => i.q.startsWith('Does compounding work')).a, /today's dollars/);
   assert.match(items.find((i) => i.q.startsWith('Are the results')).a, /^Yes, right now/);
   assert.ok(!text.includes(money(simulateCompound(w).futureValue)));
@@ -66,8 +93,16 @@ test("today's-dollars mode quotes the restated figures and says so", () => {
 
 test("future-dollars mode says the results are not in today's dollars; earlier FAQ entries are kept", () => {
   const qs = faqItems(v, r).map((i) => i.q);
-  for (const q of ['What is compound interest?', 'What return should I use?', "Are the results in today's dollars?"]) assert.ok(qs.includes(q), q);
-  assert.match(faqItems(v, r).find((i) => i.q.startsWith('Are the results')).a, /^Not at the moment/);
+  for (const q of [
+    'What is compound interest?',
+    'What return should I use?',
+    "Are the results in today's dollars?",
+  ])
+    assert.ok(qs.includes(q), q);
+  assert.match(
+    faqItems(v, r).find((i) => i.q.startsWith('Are the results')).a,
+    /^Not at the moment/,
+  );
 });
 
 test('the stop-contributing FAQ quotes the live numbers', () => {
@@ -90,5 +125,8 @@ test('with a withdrawal the FAQ never quotes interest as a share of the balance 
   assert.doesNotMatch(first, /of the \$/);
   const monthly = items.find((i) => i.q === 'Does compounding work with monthly contributions?').a;
   assert.match(monthly, /take out \$/);
-  assert.match(items.find((i) => i.q === 'What if I stop contributing?').a, /same withdrawals are taken in both plans/);
+  assert.match(
+    items.find((i) => i.q === 'What if I stop contributing?').a,
+    /same withdrawals are taken in both plans/,
+  );
 });

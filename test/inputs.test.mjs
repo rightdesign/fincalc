@@ -3,11 +3,52 @@ import { test } from 'node:test';
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from '../site/inputs.js';
 
 const REQUIRED = [
-  'homeValue', 'costBasis', 'mortgageBalance', 'mortgageRate', 'mortgageTerm', 'propertyTax',
-  'insurancePct', 'maintenancePct', 'propertyTaxGrowth', 'insuranceGrowth', 'maintenanceGrowth', 'appreciation', 'sellingCostsPct', 'taxRate', 'exclusion',
-  'investmentGrowth', 'investmentWithdrawal', 'withdrawToCoverRent', 'rent', 'rentGrowth', 'rentersInsurance', 'horizon',
-  'marginalTaxRate', 'standardDeduction', 'saltCap', 'investmentTaxRate', 'withdrawalTaxRate', 'inflation', 'todaysDollars', 'hoaMonthly', 'hoaGrowth', 'movingCosts', 'rentalUpfront', 'useProceeds', 'proceedsMode', 'proceedsAmount', 'proceedsPercent',
-  'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'newMortgageRate', 'newMortgageTerm', 'newPropertyTax', 'newInsurancePct', 'newMaintenancePct', 'newHoaMonthly',
+  'homeValue',
+  'costBasis',
+  'mortgageBalance',
+  'mortgageRate',
+  'mortgageTerm',
+  'propertyTax',
+  'insurancePct',
+  'maintenancePct',
+  'propertyTaxGrowth',
+  'insuranceGrowth',
+  'maintenanceGrowth',
+  'appreciation',
+  'sellingCostsPct',
+  'taxRate',
+  'exclusion',
+  'investmentGrowth',
+  'investmentWithdrawal',
+  'withdrawToCoverRent',
+  'rent',
+  'rentGrowth',
+  'rentersInsurance',
+  'horizon',
+  'marginalTaxRate',
+  'standardDeduction',
+  'saltCap',
+  'investmentTaxRate',
+  'withdrawalTaxRate',
+  'inflation',
+  'todaysDollars',
+  'hoaMonthly',
+  'hoaGrowth',
+  'movingCosts',
+  'rentalUpfront',
+  'useProceeds',
+  'proceedsMode',
+  'proceedsAmount',
+  'proceedsPercent',
+  'newHomePrice',
+  'newBuyingCostsPct',
+  'newMortgageAmount',
+  'newMortgageRate',
+  'newMortgageTerm',
+  'newPropertyTax',
+  'newInsurancePct',
+  'newMaintenancePct',
+  'newHoaMonthly',
 ];
 
 test('every calculator variable has a field', () => {
@@ -39,12 +80,19 @@ test('parseValue reads numbers, rejects blank, negative and junk', () => {
 });
 
 test('every field has a hint describing it', () => {
-  for (const f of FIELDS) assert.ok(typeof f.hint === 'string' && f.hint.length > 20, `${f.id} has a hint`);
+  for (const f of FIELDS)
+    assert.ok(typeof f.hint === 'string' && f.hint.length > 20, `${f.id} has a hint`);
 });
 
 test('parseRepairs skips blank rows and rejects incomplete or invalid ones', () => {
   assert.deepEqual(parseRepairs([]), []);
-  assert.deepEqual(parseRepairs([{ year: '', amount: '' }, { year: '5', amount: '15000' }]), [{ year: 5, amount: 15000 }]);
+  assert.deepEqual(
+    parseRepairs([
+      { year: '', amount: '' },
+      { year: '5', amount: '15000' },
+    ]),
+    [{ year: 5, amount: 15000 }],
+  );
   assert.equal(parseRepairs([{ year: '5', amount: '' }]), null);
   assert.equal(parseRepairs([{ year: '', amount: '100' }]), null);
   assert.equal(parseRepairs([{ year: '0', amount: '100' }]), null);
@@ -54,10 +102,19 @@ test('parseRepairs skips blank rows and rejects incomplete or invalid ones', () 
 
 test('the key drivers carry a slider range that contains their default', () => {
   const sliders = FIELDS.filter((f) => f.slider);
-  assert.deepEqual(sliders.map((f) => f.id).sort(), ['appreciation', 'homeValue', 'investmentGrowth', 'rent', 'rentGrowth']);
+  assert.deepEqual(sliders.map((f) => f.id).sort(), [
+    'appreciation',
+    'homeValue',
+    'investmentGrowth',
+    'rent',
+    'rentGrowth',
+  ]);
   for (const f of sliders) {
     assert.ok(f.slider.min < f.slider.max && f.slider.step > 0, f.id);
-    assert.ok(f.default >= f.slider.min && f.default <= f.slider.max, `${f.id} default within range`);
+    assert.ok(
+      f.default >= f.slider.min && f.default <= f.slider.max,
+      `${f.id} default within range`,
+    );
     assert.equal(f.kind === 'choice', false);
   }
 });

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 
 const t0 = (extra) => ({ ...rentOwnDefaults(), price: 450000, down: 3, ...extra });
 const round = (n) => Math.round(n);
@@ -43,7 +49,9 @@ test('a financed fee raises the loan and leaves cash alone', () => {
   const financed = compareRentOwn(t0({ program: 1, feeFinanced: 1 }));
   assert.equal(financed.cash.fee, 0);
   assert.ok(financed.program.financed);
-  assert.ok(financed.firstOwnMonthly > compareRentOwn(t0({ program: 1, feeFinanced: 0 })).firstOwnMonthly);
+  assert.ok(
+    financed.firstOwnMonthly > compareRentOwn(t0({ program: 1, feeFinanced: 0 })).firstOwnMonthly,
+  );
 });
 
 test('VA has no monthly insurance and a funding fee by use and down payment', () => {
@@ -51,8 +59,14 @@ test('VA has no monthly insurance and a funding fee by use and down payment', ()
   assert.equal(first.firstPmi, 0);
   assert.equal(first.totalPmi, 0);
   assert.equal(round(first.program.fee), round(450000 * 0.0215));
-  assert.equal(round(compareRentOwn(t0({ program: 2, down: 0, vaRepeat: 1 })).program.fee), round(450000 * 0.033));
-  assert.equal(round(compareRentOwn(t0({ program: 2, down: 10 })).program.fee), round(405000 * 0.0125));
+  assert.equal(
+    round(compareRentOwn(t0({ program: 2, down: 0, vaRepeat: 1 })).program.fee),
+    round(450000 * 0.033),
+  );
+  assert.equal(
+    round(compareRentOwn(t0({ program: 2, down: 10 })).program.fee),
+    round(405000 * 0.0125),
+  );
 });
 
 test('the loan type and fee choices are valid inputs and survive a link', () => {
@@ -65,7 +79,11 @@ test('the loan type and fee choices are valid inputs and survive a link', () => 
 });
 
 test('the cost waterfall still adds up with an FHA or VA fee', () => {
-  for (const extra of [{ program: 1, feeFinanced: 0 }, { program: 1 }, { program: 2, down: 0, feeFinanced: 0 }]) {
+  for (const extra of [
+    { program: 1, feeFinanced: 0 },
+    { program: 1 },
+    { program: 2, down: 0, feeFinanced: 0 },
+  ]) {
     const r = compareRentOwn(t0(extra));
     assert.ok(Math.abs(r.waterfall.gap + r.final.difference) < 0.01, JSON.stringify(extra));
   }

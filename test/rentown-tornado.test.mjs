@@ -10,7 +10,13 @@ const v = rentOwnDefaults();
 test('five inputs, sorted by swing, one marked as moving the answer most', () => {
   const rows = tornadoRows(v);
   assert.equal(rows.length, 5);
-  assert.deepEqual(rows.map((r) => r.id).sort(), ['growth', 'investment', 'rate', 'rentGrowth', 'years']);
+  assert.deepEqual(rows.map((r) => r.id).sort(), [
+    'growth',
+    'investment',
+    'rate',
+    'rentGrowth',
+    'years',
+  ]);
   assert.ok(rows[0].swing >= rows[4].swing);
   assert.equal(rows.filter((r) => r.top).length, 1);
   assert.ok(rows[0].top);

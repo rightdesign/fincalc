@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 import { compareRentThenBuy } from '../site/rentown-later.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -33,7 +39,25 @@ test('a purchase after the stay never happens inside it', () => {
 });
 
 test('the later purchase is the same home at its appreciated price on the balance after the savings', () => {
-  const v = { ...base(), waitYears: 3, growth: 5, down: 10, closing: 2, tax: 0, insurance: 0, maintenance: 0, pmi: 0, selling: 0, investment: 0, investDrag: 0, capGains: 0, rent: 2000, rentGrowth: 0, renterInsurance: 0, exclusion: 0 };
+  const v = {
+    ...base(),
+    waitYears: 3,
+    growth: 5,
+    down: 10,
+    closing: 2,
+    tax: 0,
+    insurance: 0,
+    maintenance: 0,
+    pmi: 0,
+    selling: 0,
+    investment: 0,
+    investDrag: 0,
+    capGains: 0,
+    rent: 2000,
+    rentGrowth: 0,
+    renterInsurance: 0,
+    exclusion: 0,
+  };
   const l = compareRentThenBuy(v);
   const price = 450000 * 1.05 ** 3;
   const savings = 450000 * 0.12 + 36 * (compareRentOwn(v).series[0].own - 2000);
@@ -55,10 +79,15 @@ test('buying stops being the worst choice in the year after it last trails the o
   const last = worst.lastIndexOf(true);
   assert.equal(l.stopsBeingWorst, last === l.years.length - 1 ? null : l.years[last + 1].year);
   const never = compareRentThenBuy({ ...base(), growth: 12, years: 5 });
-  assert.equal(never.stopsBeingWorst, never.years[0].own < never.years[0].rent && never.years[0].own < never.years[0].later ? never.stopsBeingWorst : 1);
+  assert.equal(
+    never.stopsBeingWorst,
+    never.years[0].own < never.years[0].rent && never.years[0].own < never.years[0].later
+      ? never.stopsBeingWorst
+      : 1,
+  );
 });
 
-test('today\'s dollars are the nominal rows discounted by inflation', () => {
+test("today's dollars are the nominal rows discounted by inflation", () => {
   const l = compareRentThenBuy(base());
   near(l.real[4].later, l.years[4].later / 1.025 ** 5);
 });
@@ -67,7 +96,10 @@ test('the new inputs validate and round-trip through the link', () => {
   const v = { ...rentOwnDefaults(), waitYears: 5, waitRate: 5.5 };
   assert.deepEqual(invalidRentOwn(v), []);
   assert.deepEqual(decodeRentOwn(encodeRentOwn(v)), v);
-  assert.deepEqual(invalidRentOwn({ ...rentOwnDefaults(), waitYears: 2.5, waitRate: -1 }), ['Years you rent before buying', 'Mortgage rate when you buy later, optional']);
+  assert.deepEqual(invalidRentOwn({ ...rentOwnDefaults(), waitYears: 2.5, waitRate: -1 }), [
+    'Years you rent before buying',
+    'Mortgage rate when you buy later, optional',
+  ]);
   assert.equal(decodeRentOwn('').waitRate, null);
 });
 
@@ -78,19 +110,34 @@ test('the results show the rent-then-buy card and a third chart line', async () 
   assert.ok(html.includes('Rent 3 years, then buy'));
   assert.ok(html.includes('Rent, then buy</text>'));
   assert.ok(html.includes('You buy at the start of year 4'));
-  assert.ok(renderCards(buildContext({ ...rentOwnDefaults(), waitYears: 0 }, 'today')).includes('Buying immediately is the same as buying now.'));
+  assert.ok(
+    renderCards(buildContext({ ...rentOwnDefaults(), waitYears: 0 }, 'today')).includes(
+      'Buying immediately is the same as buying now.',
+    ),
+  );
 });
 
 test('the unrealized view applies to the rent-then-buy line too', () => {
   const v = { ...base(), view: 'unrealized', repairYear: 3, repairCost: 8000 };
   const r = compareRentOwn(v);
-  compareRentThenBuy({ ...v, waitYears: 0 }, r).chartYears.forEach((y, i) => near(y.later, r.chartYears[i].own));
+  compareRentThenBuy({ ...v, waitYears: 0 }, r).chartYears.forEach((y, i) =>
+    near(y.later, r.chartYears[i].own),
+  );
   const l = compareRentThenBuy({ ...v, waitYears: v.years }, r);
   l.years.forEach((y, i) => near(y.later, r.years[i].rent));
 });
 
 test('the renting years match rent forever exactly, tax refund included', () => {
-  const v = { ...base(), price: 2000000, down: 70, takeHome: 300000, marginalTaxRate: 38, rent: 9000, waitYears: 2, years: 10 };
+  const v = {
+    ...base(),
+    price: 2000000,
+    down: 70,
+    takeHome: 300000,
+    marginalTaxRate: 38,
+    rent: 9000,
+    waitYears: 2,
+    years: 10,
+  };
   const r = compareRentOwn(v);
   assert.ok(r.firstTaxBenefit > 0);
   const l = compareRentThenBuy(v, r);

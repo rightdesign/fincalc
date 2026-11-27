@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { affordability, compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  affordability,
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 import { affordCard } from '../site/rentown/afford.js';
 
 const base = () => rentOwnDefaults();
@@ -39,7 +46,9 @@ test('emergency savings are turned into months of payments', () => {
   assert.equal(affordability(rich, compareRentOwn(rich)).covered, true);
 });
 
-function near(a, b) { assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`); }
+function near(a, b) {
+  assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
+}
 
 test('the new fields are optional, validated and kept in the link', () => {
   assert.deepEqual(invalidRentOwn(base()), []);

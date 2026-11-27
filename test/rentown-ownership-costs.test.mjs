@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 import { rentOwnChart } from '../site/rentown-chart.js';
 
 const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -50,8 +56,11 @@ test('a major repair lowers only the Own net worth from its year on, by the cost
   for (const y of b.years) near(y.rent, a.years[y.year - 1].rent);
   const drop5 = a.years[4].own - b.years[4].own;
   assert.ok(drop5 >= 25000 && drop5 < 25000 * 1.05, `${drop5}`);
-  near(a.years[5].own - b.years[5].own, drop5 * 1.05 ** (1 / 1) , 25);
-  assert.deepEqual(b.years.map((y) => y.repair), [false, false, false, false, true, false, false]);
+  near(a.years[5].own - b.years[5].own, drop5 * 1.05 ** (1 / 1), 25);
+  assert.deepEqual(
+    b.years.map((y) => y.repair),
+    [false, false, false, false, true, false, false],
+  );
   assert.ok(b.breakEven == null || b.breakEven >= a.breakEven);
   assert.ok(rentOwnChart(b.years, b.breakEven, String).svg.includes('Major repair: year 5'));
   assert.ok(!rentOwnChart(a.years, a.breakEven, String).svg.includes('Major repair'));
@@ -59,6 +68,12 @@ test('a major repair lowers only the Own net worth from its year on, by the cost
 
 test('a repair after the stay has no effect, and the repair inputs are validated', () => {
   const a = compareRentOwn(base());
-  assert.deepEqual(compareRentOwn({ ...base(), repairYear: 9, repairCost: 5000 }).years.map((y) => y.own), a.years.map((y) => y.own));
-  assert.deepEqual(invalidRentOwn({ ...base(), repairYear: 2.5, repairCost: -1 }), ['Major repair in year', 'Major repair cost']);
+  assert.deepEqual(
+    compareRentOwn({ ...base(), repairYear: 9, repairCost: 5000 }).years.map((y) => y.own),
+    a.years.map((y) => y.own),
+  );
+  assert.deepEqual(invalidRentOwn({ ...base(), repairYear: 2.5, repairCost: -1 }), [
+    'Major repair in year',
+    'Major repair cost',
+  ]);
 });

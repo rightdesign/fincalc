@@ -5,7 +5,15 @@ import { buildResults } from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('money cells become plain numbers and other text is kept', () => {
-  const csv = tableCsv({ id: 'x', columns: ['Year', 'Stay'], rows: [['1', '$1,234'], ['2', '-$56'], ['3', '$0']] });
+  const csv = tableCsv({
+    id: 'x',
+    columns: ['Year', 'Stay'],
+    rows: [
+      ['1', '$1,234'],
+      ['2', '-$56'],
+      ['3', '$0'],
+    ],
+  });
   assert.equal(csv, 'Year,Stay\r\n1,1234\r\n2,-56\r\n3,0\r\n');
 });
 

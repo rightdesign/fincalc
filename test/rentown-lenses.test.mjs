@@ -31,7 +31,19 @@ test('the pure renter pays the same tax drag and capital gains tax as the equal-
 });
 
 test('with identical monthly costs the two lenses agree', () => {
-  const v = { ...base(), down: 100, rate: 0, closing: 0, tax: 0, insurance: 0, maintenance: 0, rent: 0, rentGrowth: 0, renterInsurance: 0, years: 3 };
+  const v = {
+    ...base(),
+    down: 100,
+    rate: 0,
+    closing: 0,
+    tax: 0,
+    insurance: 0,
+    maintenance: 0,
+    rent: 0,
+    rentGrowth: 0,
+    renterInsurance: 0,
+    years: 3,
+  };
   const r = compareRentOwn(v);
   near(r.final.rent, r.final.pureRent, 0.05);
 });
@@ -44,7 +56,13 @@ test('the chart draws the pure renter line when the years carry it', () => {
 test('the pure net worth card says it leans toward owning because principal paid is not charged to the owner', async () => {
   const { lensesCard } = await import('../site/rentown/lenses.js');
   const r = compareRentOwn(base());
-  const html = lensesCard({ r, final: r.final, label: 'in future dollars', span: '10 years', view: 'realized' });
+  const html = lensesCard({
+    r,
+    final: r.final,
+    label: 'in future dollars',
+    span: '10 years',
+    view: 'realized',
+  });
   assert.match(html, /home equity against starting cash only/);
   assert.match(html, /leans toward owning/);
   assert.match(html, /principal you pay each month/);

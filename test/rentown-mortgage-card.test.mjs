@@ -34,10 +34,16 @@ test('a loan paid off before the stay ends shows paid-off rows', () => {
 });
 
 test('an ARM payment changes at a reset; a 1-year stay gives one row', () => {
-  const arm = buildContext({ ...rentOwnDefaults(), arm: 1, armFixedMonths: 24, armIndexChange: 1, years: 5 }, 'future');
+  const arm = buildContext(
+    { ...rentOwnDefaults(), arm: 1, armFixedMonths: 24, armIndexChange: 1, years: 5 },
+    'future',
+  );
   const rows = mortgageRows(arm.r);
   assert.notEqual(rows[0].payment, rows[4].payment);
-  assert.equal(mortgageRows(buildContext({ ...rentOwnDefaults(), years: 1 }, 'future').r).length, 1);
+  assert.equal(
+    mortgageRows(buildContext({ ...rentOwnDefaults(), years: 1 }, 'future').r).length,
+    1,
+  );
 });
 
 test('filing status maps to the home-sale exclusion and defaults to married', () => {
@@ -45,11 +51,36 @@ test('filing status maps to the home-sale exclusion and defaults to married', ()
   assert.equal(EXCLUSION_BY_FILING[2], 500000);
   const d = rentOwnDefaults();
   assert.equal(d.filing, 2);
-  assert.equal(d.exclusion, 250000, 'the stored default is unchanged so old shared links keep their number');
+  assert.equal(
+    d.exclusion,
+    250000,
+    'the stored default is unchanged so old shared links keep their number',
+  );
 });
 
 test('a fixed-rate payment shows the same rounded amount every year', () => {
-  const v = { ...rentOwnDefaults(), price: 2000000, down: 70, closing: 2, moving: 20000, takeHome: 300000, insurance: 0.14, pmi: 0, maintenance: 0.25, income: 50000, growth: 4.7, rent: 9000, renterInsurance: 1000, years: 20, waitYears: 0, selling: 6.5, exclusion: 500000, investment: 10, marginalTaxRate: 38, capGains: 30 };
+  const v = {
+    ...rentOwnDefaults(),
+    price: 2000000,
+    down: 70,
+    closing: 2,
+    moving: 20000,
+    takeHome: 300000,
+    insurance: 0.14,
+    pmi: 0,
+    maintenance: 0.25,
+    income: 50000,
+    growth: 4.7,
+    rent: 9000,
+    renterInsurance: 1000,
+    years: 20,
+    waitYears: 0,
+    selling: 6.5,
+    exclusion: 500000,
+    investment: 10,
+    marginalTaxRate: 38,
+    capGains: 30,
+  };
   const rows = mortgageRows(buildContext(v, 'future').r);
   assert.equal(new Set(rows.map((x) => x.payment)).size, 1);
   for (const x of rows) assert.equal(x.payment, x.interest + x.principal);

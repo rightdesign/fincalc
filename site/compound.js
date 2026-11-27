@@ -4,9 +4,30 @@ export const COMPOUND_INPUTS_KEY = 'fincalc.compound';
 export const MAX_YEARS = 100;
 
 // How often the regular contribution is made: times per year, and the words that name it.
-export const CONTRIB_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12, quarterly: 4, annually: 1 };
-const CONTRIB_OPTIONS = [{ value: 'weekly', label: 'Weekly' }, { value: 'biweekly', label: 'Biweekly' }, { value: 'semimonthly', label: 'Semimonthly' }, { value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'annually', label: 'Annually' }];
-const CONTRIB_UNIT = { weekly: 'a week', biweekly: 'every two weeks', semimonthly: 'twice a month', monthly: 'a month', quarterly: 'a quarter', annually: 'a year' };
+export const CONTRIB_PERIODS = {
+  weekly: 52,
+  biweekly: 26,
+  semimonthly: 24,
+  monthly: 12,
+  quarterly: 4,
+  annually: 1,
+};
+const CONTRIB_OPTIONS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+  { value: 'semimonthly', label: 'Semimonthly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+];
+const CONTRIB_UNIT = {
+  weekly: 'a week',
+  biweekly: 'every two weeks',
+  semimonthly: 'twice a month',
+  monthly: 'a month',
+  quarterly: 'a quarter',
+  annually: 'a year',
+};
 // What you put in, as a phrase: "$500 a month", or "$100 a week plus $5,000 a year" with an annual lump sum.
 export function contributionPhrase(v, fmt) {
   const parts = [];
@@ -15,7 +36,14 @@ export function contributionPhrase(v, fmt) {
   return parts.join(' plus ');
 }
 // The year-by-year table's caption: when in each contribution period the money goes in.
-const CONTRIB_PERIOD_NAME = { weekly: 'week', biweekly: 'two-week period', semimonthly: 'half-month', monthly: 'month', quarterly: 'quarter', annually: 'year' };
+const CONTRIB_PERIOD_NAME = {
+  weekly: 'week',
+  biweekly: 'two-week period',
+  semimonthly: 'half-month',
+  monthly: 'month',
+  quarterly: 'quarter',
+  annually: 'year',
+};
 export function yearsCaption(v) {
   const when = v.timing === 'start' ? 'beginning' : 'end';
   const period = CONTRIB_PERIOD_NAME[v.contribFrequency] ?? CONTRIB_PERIOD_NAME.monthly;
@@ -50,72 +78,295 @@ export const DIVIDEND_YIELD = 2;
 // slider.curve: 2 makes the slider non-linear (finer at the low end) so a wide range stays usable.
 // kind: 'money' ($), 'percent' (%), 'years', 'months' (0-11), 'choice'. slider adds a range input beside the box.
 export const COMPOUND_FIELDS = [
-  { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 10000000, step: 1000, curve: 2 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
-  { id: 'monthly', label: 'Contribution', kind: 'money', default: 500, slider: { min: 0, max: 100000, step: 50, curve: 2 }, hint: 'What you add each time you contribute, as often as Contribution frequency says (monthly unless you change it; end or beginning of the period, set below). Enter 0 for a one-time lump sum.' },
-  { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: `How long the money stays invested, in whole years (0–${MAX_YEARS}). Add Months for a term that is not a whole number of years; the year-by-year table then ends with a partial final year. The term must be at least 1 month.` },
-  { id: 'months', label: 'Months', kind: 'months', default: 0, hint: 'Extra months on top of Years, 0–11. 18 months is 1 year and 6 months.' },
   {
-    id: 'contribFrequency', advanced: true, label: 'Contribution frequency', kind: 'choice', default: 'monthly',
+    id: 'start',
+    label: 'Starting balance',
+    kind: 'money',
+    default: 10000,
+    slider: { min: 0, max: 10000000, step: 1000, curve: 2 },
+    hint: 'What you have invested today. Enter 0 if you are starting from nothing.',
+  },
+  {
+    id: 'monthly',
+    label: 'Contribution',
+    kind: 'money',
+    default: 500,
+    slider: { min: 0, max: 100000, step: 50, curve: 2 },
+    hint: 'What you add each time you contribute, as often as Contribution frequency says (monthly unless you change it; end or beginning of the period, set below). Enter 0 for a one-time lump sum.',
+  },
+  {
+    id: 'years',
+    label: 'Years',
+    kind: 'years',
+    default: 30,
+    slider: { min: 0, max: MAX_YEARS, step: 1 },
+    hint: `How long the money stays invested, in whole years (0–${MAX_YEARS}). Add Months for a term that is not a whole number of years; the year-by-year table then ends with a partial final year. The term must be at least 1 month.`,
+  },
+  {
+    id: 'months',
+    label: 'Months',
+    kind: 'months',
+    default: 0,
+    hint: 'Extra months on top of Years, 0–11. 18 months is 1 year and 6 months.',
+  },
+  {
+    id: 'contribFrequency',
+    advanced: true,
+    label: 'Contribution frequency',
+    kind: 'choice',
+    default: 'monthly',
     hint: 'How often the contribution above is made. Weekly is 52 times a year, biweekly 26 (every two weeks), semimonthly 24 (twice a month), quarterly 4 and annually once. Each deposit is placed at its real time in the year, so a weekly saver earns a little more than the same yearly total added monthly.',
     options: CONTRIB_OPTIONS,
   },
-  { id: 'annual', advanced: true, label: 'Annual lump sum', kind: 'money', default: 0, slider: { min: 0, max: 1000000, step: 500, curve: 2 }, hint: 'Optional. A separate amount you add once a year on top of the regular contribution, like an IRA deposit or a bonus. It lands at the start of each year when contributions are made at the beginning of the period, and at the end of each year otherwise. 0 means none.' },
-  { id: 'annualStepUp', advanced: true, label: 'Increase annual lump sum each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the annual lump sum by this percent each year after the first. 0 keeps it flat. It only applies while you are still contributing.' },
-  { id: 'contributeYears', advanced: true, label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the contribution and the annual lump sum. After that the balance keeps compounding, with no new money, until the end of the term. It follows the term (Years and Months) unless you change it, and cannot be longer than it.' },
-  { id: 'contributeMonths', advanced: true, label: 'Contribute for (months)', kind: 'months', default: 0, hint: 'Extra months of contributions on top of Contribute for (years), 0–11.' },
-  { id: 'stepUp', advanced: true, label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the regular contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
   {
-    id: 'withdrawMode', advanced: true, label: 'Withdraw', kind: 'choice', default: 'amount',
+    id: 'annual',
+    advanced: true,
+    label: 'Annual lump sum',
+    kind: 'money',
+    default: 0,
+    slider: { min: 0, max: 1000000, step: 500, curve: 2 },
+    hint: 'Optional. A separate amount you add once a year on top of the regular contribution, like an IRA deposit or a bonus. It lands at the start of each year when contributions are made at the beginning of the period, and at the end of each year otherwise. 0 means none.',
+  },
+  {
+    id: 'annualStepUp',
+    advanced: true,
+    label: 'Increase annual lump sum each year (%)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 10, step: 0.5 },
+    hint: 'Raises the annual lump sum by this percent each year after the first. 0 keeps it flat. It only applies while you are still contributing.',
+  },
+  {
+    id: 'contributeYears',
+    advanced: true,
+    label: 'Contribute for (years)',
+    kind: 'years',
+    default: 30,
+    slider: { min: 0, max: MAX_YEARS, step: 1 },
+    hint: 'How many years you keep adding the contribution and the annual lump sum. After that the balance keeps compounding, with no new money, until the end of the term. It follows the term (Years and Months) unless you change it, and cannot be longer than it.',
+  },
+  {
+    id: 'contributeMonths',
+    advanced: true,
+    label: 'Contribute for (months)',
+    kind: 'months',
+    default: 0,
+    hint: 'Extra months of contributions on top of Contribute for (years), 0–11.',
+  },
+  {
+    id: 'stepUp',
+    advanced: true,
+    label: 'Increase contribution each year (%)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 10, step: 0.5 },
+    hint: 'Raises the regular contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.',
+  },
+  {
+    id: 'withdrawMode',
+    advanced: true,
+    label: 'Withdraw',
+    kind: 'choice',
+    default: 'amount',
     hint: 'A fixed dollar amount each time, a percent of the balance at the moment of each withdrawal, or a percent of the interest earned since the previous withdrawal (nothing is taken if that interest is negative). The amount below is used for the fixed mode; the percent below for the other two.',
-    options: [{ value: 'amount', label: 'A fixed amount' }, { value: 'percentBalance', label: 'A percent of the balance' }, { value: 'percentEarnings', label: 'A percent of the earnings' }],
+    options: [
+      { value: 'amount', label: 'A fixed amount' },
+      { value: 'percentBalance', label: 'A percent of the balance' },
+      { value: 'percentEarnings', label: 'A percent of the earnings' },
+    ],
   },
-  { id: 'withdrawal', advanced: true, label: 'Withdrawal amount', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. The fixed amount you take out each time, at the same point in the month as contributions (set below). How often is set by Withdraw every. Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match. Only used when Withdraw is a fixed amount.' },
-  { id: 'withdrawPercent', advanced: true, label: 'Withdrawal percent (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.1 }, hint: 'The percent taken each time when Withdraw is a percent of the balance or of the earnings (0-100). Remember it applies to every withdrawal, so 1% a month is far more than 1% a year. Only used for those two modes.' },
   {
-    id: 'withdrawFreq', advanced: true, label: 'Withdraw every', kind: 'choice', default: 'monthly',
+    id: 'withdrawal',
+    advanced: true,
+    label: 'Withdrawal amount',
+    kind: 'money',
+    default: 0,
+    slider: { min: 0, max: 5000, step: 50 },
+    hint: 'Optional. The fixed amount you take out each time, at the same point in the month as contributions (set below). How often is set by Withdraw every. Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match. Only used when Withdraw is a fixed amount.',
+  },
+  {
+    id: 'withdrawPercent',
+    advanced: true,
+    label: 'Withdrawal percent (%)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 10, step: 0.1 },
+    hint: 'The percent taken each time when Withdraw is a percent of the balance or of the earnings (0-100). Remember it applies to every withdrawal, so 1% a month is far more than 1% a year. Only used for those two modes.',
+  },
+  {
+    id: 'withdrawFreq',
+    advanced: true,
+    label: 'Withdraw every',
+    kind: 'choice',
+    default: 'monthly',
     hint: 'How often the withdrawal is taken. Quarterly, half-yearly and yearly withdrawals happen in the last month of each 3, 6 or 12 months (the first month of each when contributions are at the beginning of the month), counted from the start of year 1, and a withdrawal only happens once the start year is reached.',
-    options: [{ value: 'monthly', label: 'Month' }, { value: 'quarterly', label: 'Quarter' }, { value: 'semiannually', label: 'Half year' }, { value: 'yearly', label: 'Year' }],
+    options: [
+      { value: 'monthly', label: 'Month' },
+      { value: 'quarterly', label: 'Quarter' },
+      { value: 'semiannually', label: 'Half year' },
+      { value: 'yearly', label: 'Year' },
+    ],
   },
-  { id: 'withdrawFrom', advanced: true, label: 'Start withdrawing in year', kind: 'years', default: 1, slider: { min: 1, max: 60, step: 1 }, hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.' },
-  { id: 'withdrawStep', advanced: true, label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises a fixed withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat. Not used for the percent modes.' },
-  { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
-    id: 'rateBasis', advanced: true, label: 'Return is quoted as', kind: 'choice', default: 'effective',
+    id: 'withdrawFrom',
+    advanced: true,
+    label: 'Start withdrawing in year',
+    kind: 'years',
+    default: 1,
+    slider: { min: 1, max: 60, step: 1 },
+    hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.',
+  },
+  {
+    id: 'withdrawStep',
+    advanced: true,
+    label: 'Increase withdrawal each year (%)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 10, step: 0.5 },
+    hint: 'Raises a fixed withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat. Not used for the percent modes.',
+  },
+  {
+    id: 'rate',
+    label: 'Annual return (%)',
+    kind: 'percent',
+    default: 7,
+    slider: { min: 0, max: 15, step: 0.1 },
+    hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.',
+  },
+  {
+    id: 'rateBasis',
+    advanced: true,
+    label: 'Return is quoted as',
+    kind: 'choice',
+    default: 'effective',
     hint: 'Effective means the balance grows by exactly this percent over a year, however often interest is added: 9% turns $100 into $109. This is how long-run market returns are quoted. Nominal (APR) is the rate before compounding, as loans and CDs quote it: 9% compounded monthly adds 0.75% a month and grows 9.38% a year.',
-    options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
+    options: [
+      { value: 'effective', label: 'Effective annual rate (APY)' },
+      { value: 'nominal', label: 'Nominal rate (APR)' },
+    ],
   },
-  { id: 'variance', advanced: true, label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
-  { id: 'volatility', advanced: true, label: 'Volatility (std. deviation, % per year)', kind: 'percent', default: 0, slider: { min: 0, max: 30, step: 1 }, hint: 'Optional. How much the return swings from year to year (about 15 for a stock-heavy mix, 5 for bonds). Above 0, the page runs 2,000 simulated market histories and shades the 10th to 90th percentile range of balances on the chart. 0 turns it off.' },
-  { id: 'target', advanced: true, label: 'Target balance (optional)', kind: 'money', default: 0, slider: { min: 0, max: 5000000, step: 50000 }, hint: "A balance you want to reach by the end of Years, in the dollars the results are shown in (set Show results in to Today's dollars to name a goal in today's buying power). Leave at 0 to skip it. When set, the page shows the contribution, the years and the return needed to reach it, changing one thing at a time, and marks the target on the chart." },
   {
-    id: 'frequency', advanced: true, label: 'Compounding', kind: 'choice', default: 'monthly',
+    id: 'variance',
+    advanced: true,
+    label: 'Return range (± percentage points)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 5, step: 0.5 },
+    hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.',
+  },
+  {
+    id: 'volatility',
+    advanced: true,
+    label: 'Volatility (std. deviation, % per year)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 30, step: 1 },
+    hint: 'Optional. How much the return swings from year to year (about 15 for a stock-heavy mix, 5 for bonds). Above 0, the page runs 2,000 simulated market histories and shades the 10th to 90th percentile range of balances on the chart. 0 turns it off.',
+  },
+  {
+    id: 'target',
+    advanced: true,
+    label: 'Target balance (optional)',
+    kind: 'money',
+    default: 0,
+    slider: { min: 0, max: 5000000, step: 50000 },
+    hint: "A balance you want to reach by the end of Years, in the dollars the results are shown in (set Show results in to Today's dollars to name a goal in today's buying power). Leave at 0 to skip it. When set, the page shows the contribution, the years and the return needed to reach it, changing one thing at a time, and marks the target on the chart.",
+  },
+  {
+    id: 'frequency',
+    advanced: true,
+    label: 'Compounding',
+    kind: 'choice',
+    default: 'monthly',
     hint: 'How often interest is added to the balance. An effective annual return grows by that percent over a year whatever you pick here; with a nominal rate, monthly adds one twelfth of the rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
-    options: [{ value: 'annually', label: 'Annually' }, { value: 'semiannually', label: 'Semiannually' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'monthly', label: 'Monthly' }, { value: 'daily', label: 'Daily' }, { value: 'continuous', label: 'Continuously' }],
+    options: [
+      { value: 'annually', label: 'Annually' },
+      { value: 'semiannually', label: 'Semiannually' },
+      { value: 'quarterly', label: 'Quarterly' },
+      { value: 'monthly', label: 'Monthly' },
+      { value: 'daily', label: 'Daily' },
+      { value: 'continuous', label: 'Continuously' },
+    ],
   },
   {
-    id: 'timing', advanced: true, label: 'Contributions made', kind: 'choice', default: 'end',
-    hint: 'End of period: each contribution lands after that period\'s interest, so it starts earning the next period. Beginning of period: it lands first and earns interest for the whole period (a week, a month, a quarter or a year, as the frequency says), worth about one extra period of growth per contribution.',
-    options: [{ value: 'end', label: 'End of period' }, { value: 'start', label: 'Beginning of period' }],
+    id: 'timing',
+    advanced: true,
+    label: 'Contributions made',
+    kind: 'choice',
+    default: 'end',
+    hint: "End of period: each contribution lands after that period's interest, so it starts earning the next period. Beginning of period: it lands first and earns interest for the whole period (a week, a month, a quarter or a year, as the frequency says), worth about one extra period of growth per contribution.",
+    options: [
+      { value: 'end', label: 'End of period' },
+      { value: 'start', label: 'Beginning of period' },
+    ],
   },
   {
-    id: 'accountType', advanced: true, label: 'Account type', kind: 'choice', default: 'interest',
-    hint: 'How the money is taxed. Taxable, interest: each period\'s interest is taxed as it is earned (a savings account, CD or bonds). Tax-free: nothing is taxed (a Roth IRA). Tax-deferred: nothing is taxed until you withdraw, so the whole balance is taxed at the end (a 401(k) or traditional IRA). Taxable, stocks: a small yearly dividend (' + DIVIDEND_YIELD + '% of the balance) is taxed each year and the rest of the gain is taxed when you sell at the end. Results are the after-tax balance.',
-    options: [{ value: 'interest', label: 'Taxable: interest' }, { value: 'stocks', label: 'Taxable: stocks' }, { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' }, { value: 'free', label: 'Tax-free (Roth)' }],
+    id: 'accountType',
+    advanced: true,
+    label: 'Account type',
+    kind: 'choice',
+    default: 'interest',
+    hint:
+      "How the money is taxed. Taxable, interest: each period's interest is taxed as it is earned (a savings account, CD or bonds). Tax-free: nothing is taxed (a Roth IRA). Tax-deferred: nothing is taxed until you withdraw, so the whole balance is taxed at the end (a 401(k) or traditional IRA). Taxable, stocks: a small yearly dividend (" +
+      DIVIDEND_YIELD +
+      '% of the balance) is taxed each year and the rest of the gain is taxed when you sell at the end. Results are the after-tax balance.',
+    options: [
+      { value: 'interest', label: 'Taxable: interest' },
+      { value: 'stocks', label: 'Taxable: stocks' },
+      { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' },
+      { value: 'free', label: 'Tax-free (Roth)' },
+    ],
   },
-  { id: 'taxRate', advanced: true, label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
-  { id: 'fee', advanced: true, label: 'Annual fees (% of balance)', kind: 'percent', default: 0, slider: { min: 0, max: 3, step: 0.05 }, hint: 'Optional. Fund expense ratio plus any advisory fee, as a percent of the balance per year. It is charged monthly (a twelfth each month) on the whole balance, so it comes out of the growth and reduces what compounds. 0 ignores fees. 0–10%.' },
-  { id: 'inflation', advanced: true, label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Shown next to the result as the balance in today's dollars, and used for the tables and chart when Show results in is Today's dollars: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
-    id: 'basis', advanced: true, label: 'Show results in', kind: 'choice', default: 'future',
+    id: 'taxRate',
+    advanced: true,
+    label: 'Tax rate (%)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 50, step: 1 },
+    hint: "Your tax rate for the account type above: on each period's interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.",
+  },
+  {
+    id: 'fee',
+    advanced: true,
+    label: 'Annual fees (% of balance)',
+    kind: 'percent',
+    default: 0,
+    slider: { min: 0, max: 3, step: 0.05 },
+    hint: 'Optional. Fund expense ratio plus any advisory fee, as a percent of the balance per year. It is charged monthly (a twelfth each month) on the whole balance, so it comes out of the growth and reduces what compounds. 0 ignores fees. 0–10%.',
+  },
+  {
+    id: 'inflation',
+    advanced: true,
+    label: 'Inflation (% per year)',
+    kind: 'percent',
+    default: 3,
+    slider: { min: 0, max: 10, step: 0.1 },
+    hint: "Shown next to the result as the balance in today's dollars, and used for the tables and chart when Show results in is Today's dollars: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30).",
+  },
+  {
+    id: 'basis',
+    advanced: true,
+    label: 'Show results in',
+    kind: 'choice',
+    default: 'future',
     hint: "Future dollars are the plain amounts you will see on the statement. Today's dollars restate the balance in what it could buy at today's prices.",
-    options: [{ value: 'future', label: 'Future dollars' }, { value: 'today', label: "Today's dollars" }],
+    options: [
+      { value: 'future', label: 'Future dollars' },
+      { value: 'today', label: "Today's dollars" },
+    ],
   },
 ];
 
 // The Advanced inputs whose value differs from its default (Contribute for is measured against the term,
 // which it follows), so the page can badge the disclosure when something hidden is changing the result.
 export function advancedChanged(v) {
-  return COMPOUND_FIELDS.filter((f) => f.advanced && v[f.id] !== (f.id === 'contributeYears' ? v.years : f.id === 'contributeMonths' ? v.months : f.default)).map((f) => f.label);
+  return COMPOUND_FIELDS.filter(
+    (f) =>
+      f.advanced &&
+      v[f.id] !==
+        (f.id === 'contributeYears' ? v.years : f.id === 'contributeMonths' ? v.months : f.default),
+  ).map((f) => f.label);
 }
 
 // A curved slider is positions 0..SLIDER_STEPS mapped to min..max along a power curve.
@@ -135,10 +386,26 @@ export function sliderPos(f, n) {
 
 // A preset sets only the inputs it names (its label spells them out) and leaves the rest as the user had them.
 export const COMPOUND_PRESETS = [
-  { id: 'retirement', label: 'Retirement saver: $500/month, 7%, 30 years', values: { monthly: 500, rate: 7, years: 30 } },
-  { id: 'first100k', label: 'First $100K: $250/month, 7%, 15 years', values: { monthly: 250, rate: 7, years: 15 } },
-  { id: 'college', label: 'College fund: $300/month, 6%, 18 years', values: { monthly: 300, rate: 6, years: 18 } },
-  { id: 'stopearly', label: 'Contribute, then let it grow: $500/month, 7%, contribute 20 years, 30 years', values: { monthly: 500, rate: 7, contributeYears: 20, years: 30 } },
+  {
+    id: 'retirement',
+    label: 'Retirement saver: $500/month, 7%, 30 years',
+    values: { monthly: 500, rate: 7, years: 30 },
+  },
+  {
+    id: 'first100k',
+    label: 'First $100K: $250/month, 7%, 15 years',
+    values: { monthly: 250, rate: 7, years: 15 },
+  },
+  {
+    id: 'college',
+    label: 'College fund: $300/month, 6%, 18 years',
+    values: { monthly: 300, rate: 6, years: 18 },
+  },
+  {
+    id: 'stopearly',
+    label: 'Contribute, then let it grow: $500/month, 7%, contribute 20 years, 30 years',
+    values: { monthly: 500, rate: 7, contributeYears: 20, years: 30 },
+  },
 ];
 
 export function compoundDefaults() {
@@ -158,13 +425,24 @@ export function invalidCompound(v) {
   const bad = [];
   for (const f of COMPOUND_FIELDS) {
     const x = v[f.id];
-    if (f.kind === 'choice') { if (!f.options.some((o) => o.value === x)) bad.push(f.label); continue; }
+    if (f.kind === 'choice') {
+      if (!f.options.some((o) => o.value === x)) bad.push(f.label);
+      continue;
+    }
     const lim = LIMITS[f.id];
     if (!Number.isFinite(x) || x < (lim ? lim.min : 0) || (lim && x > lim.max)) bad.push(f.label);
     else if (f.id === 'taxRate' && x > 100) bad.push(f.label);
-    else if (f.id === 'years' && (!Number.isInteger(x) || x > MAX_YEARS || !(termMonths(v) >= 1 && termMonths(v) <= MAX_YEARS * 12))) bad.push(f.label);
-    else if (f.id === 'withdrawFrom' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS)) bad.push(f.label);
-    else if ((f.id === 'months' || f.id === 'contributeMonths') && (!Number.isInteger(x) || x > 11)) bad.push(f.label);
+    else if (
+      f.id === 'years' &&
+      (!Number.isInteger(x) ||
+        x > MAX_YEARS ||
+        !(termMonths(v) >= 1 && termMonths(v) <= MAX_YEARS * 12))
+    )
+      bad.push(f.label);
+    else if (f.id === 'withdrawFrom' && (!Number.isInteger(x) || x < 1 || x > MAX_YEARS))
+      bad.push(f.label);
+    else if ((f.id === 'months' || f.id === 'contributeMonths') && (!Number.isInteger(x) || x > 11))
+      bad.push(f.label);
     else if (f.id === 'contributeYears' && !Number.isInteger(x)) bad.push(f.label);
   }
   return bad;
@@ -174,35 +452,58 @@ export function invalidCompound(v) {
 export const WITHDRAW_MONTHS = { monthly: 1, quarterly: 3, semiannually: 6, yearly: 12 };
 
 // Whether the plan takes money out at all: a fixed amount above 0, or a percent above 0 in the percent modes.
-export const withdrawsOn = (v) => ((v.withdrawMode ?? 'amount') === 'amount' ? v.withdrawal > 0 : v.withdrawPercent > 0);
+export const withdrawsOn = (v) =>
+  (v.withdrawMode ?? 'amount') === 'amount' ? v.withdrawal > 0 : v.withdrawPercent > 0;
 
 // The whole term in months: Years plus Months.
 export const termMonths = (v) => v.years * 12 + (Number.isFinite(v.months) ? v.months : 0);
 
 // The same plan with a different term, in months.
-export const withTerm = (v, months) => ({ ...v, years: Math.floor(months / 12), months: months % 12 });
+export const withTerm = (v, months) => ({
+  ...v,
+  years: Math.floor(months / 12),
+  months: months % 12,
+});
 
 // How many months the contributions run: never more than the term, and all of it when unset.
-export const contributionMonths = (v) => (v.contributeYears == null ? termMonths(v) : Math.min(v.contributeYears * 12 + (v.contributeMonths ?? 0), termMonths(v)));
+export const contributionMonths = (v) =>
+  v.contributeYears == null
+    ? termMonths(v)
+    : Math.min(v.contributeYears * 12 + (v.contributeMonths ?? 0), termMonths(v));
 
 // Months as plain words: 18 -> "1 year 6 months", 360 -> "30 years".
 export function monthsText(n) {
   const y = Math.floor(n / 12);
   const m = n % 12;
-  return [y > 0 && `${y} year${y === 1 ? '' : 's'}`, (m > 0 || y === 0) && `${m} month${m === 1 ? '' : 's'}`].filter(Boolean).join(' ');
+  return [
+    y > 0 && `${y} year${y === 1 ? '' : 's'}`,
+    (m > 0 || y === 0) && `${m} month${m === 1 ? '' : 's'}`,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 // A table or chart year (whole, or fractional on a partial final year) as words: 1.5 -> "1 yr 6 mo", 0.5 -> "6 mo", 3 -> "3".
 export function yearLabel(year) {
   const months = Math.round(year * 12);
   if (months % 12 === 0) return String(months / 12);
-  return [months >= 12 && `${Math.floor(months / 12)} yr`, `${months % 12} mo`].filter(Boolean).join(' ');
+  return [months >= 12 && `${Math.floor(months / 12)} yr`, `${months % 12} mo`]
+    .filter(Boolean)
+    .join(' ');
 }
 
 // Compounding periods per year for each frequency choice.
-export const PERIODS_PER_YEAR = { annually: 1, semiannually: 2, quarterly: 4, monthly: 12, daily: 365, continuous: Infinity };
+export const PERIODS_PER_YEAR = {
+  annually: 1,
+  semiannually: 2,
+  quarterly: 4,
+  monthly: 12,
+  daily: 365,
+  continuous: Infinity,
+};
 
-export const frequencyLabel = (f) => COMPOUND_FIELDS.find((x) => x.id === 'frequency').options.find((o) => o.value === f).label;
+export const frequencyLabel = (f) =>
+  COMPOUND_FIELDS.find((x) => x.id === 'frequency').options.find((o) => o.value === f).label;
 
 // The frequency the "other choice" comparison uses: annually against monthly, everything else against monthly.
 export const altFrequency = (f) => (f === 'monthly' ? 'annually' : 'monthly');
@@ -222,7 +523,8 @@ export function effectiveAnnualRate(v) {
 }
 
 // The percent of each period's interest taken as tax: only a taxable interest account is taxed as it grows.
-export const interestTax = (v) => ((v.accountType ?? 'interest') === 'interest' ? (v.taxRate ?? 0) : 0);
+export const interestTax = (v) =>
+  (v.accountType ?? 'interest') === 'interest' ? (v.taxRate ?? 0) : 0;
 
 // The yearly growth money really gets, as percents: the effective rate, then after tax on the
 // interest, then (only in today's dollars) after inflation too. `net` is the last one that applies.
@@ -230,8 +532,10 @@ export function growthRates(v) {
   const effective = effectiveAnnualRate(v);
   const afterTax = effective * (1 - interestTax(v) / 100);
   // The monthly fee comes off the balance, so it takes a twelfth of the percent twelve times over.
-  const afterFees = v.fee > 0 ? (1 + afterTax / 100) * (1 - v.fee / 1200) ** 12 * 100 - 100 : afterTax;
-  const real = v.basis === 'today' ? ((1 + afterFees / 100) / (1 + (v.inflation ?? 0) / 100) - 1) * 100 : null;
+  const afterFees =
+    v.fee > 0 ? (1 + afterTax / 100) * (1 - v.fee / 1200) ** 12 * 100 - 100 : afterTax;
+  const real =
+    v.basis === 'today' ? ((1 + afterFees / 100) / (1 + (v.inflation ?? 0) / 100) - 1) * 100 : null;
   return { effective, afterTax, afterFees, real, net: real ?? afterFees };
 }
 
@@ -245,12 +549,21 @@ export function yearsToDouble(v) {
 // Text for the "Time to double" tile: the big value and its caption.
 export function doubleTileText(v) {
   const years = yearsToDouble(v);
-  const adjusts = [interestTax(v) > 0 && 'tax', v.fee > 0 && 'fees', v.basis === 'today' && 'inflation'].filter(Boolean).join(' and ');
-  if (years === null) return { value: 'Never', caption: `Needs a positive return after ${adjusts || 'tax'}` };
+  const adjusts = [
+    interestTax(v) > 0 && 'tax',
+    v.fee > 0 && 'fees',
+    v.basis === 'today' && 'inflation',
+  ]
+    .filter(Boolean)
+    .join(' and ');
+  if (years === null)
+    return { value: 'Never', caption: `Needs a positive return after ${adjusts || 'tax'}` };
   const rate = growthRates(v).net;
   return {
     value: `${years < 10 ? years.toFixed(1) : Math.round(years)} years`,
-    caption: adjusts ? `Money growing ${rate.toFixed(2)}% a year, after ${adjusts}` : `Money invested at the ${rate.toFixed(2)}% effective rate`,
+    caption: adjusts
+      ? `Money growing ${rate.toFixed(2)}% a year, after ${adjusts}`
+      : `Money invested at the ${rate.toFixed(2)}% effective rate`,
   };
 }
 
@@ -277,7 +590,12 @@ export function simulateCompound(v, rateAt = null) {
   const t = (v.taxRate ?? 0) / 100;
   const div = type === 'stocks' ? DIVIDEND_YIELD / 100 : 0;
   // Value after the tax a sale or withdrawal would trigger; basis is what has been paid in (plus reinvested dividends).
-  const after = (bal, basis) => (type === 'deferred' ? bal * (1 - t) : type === 'stocks' ? bal - t * Math.max(0, bal - basis) : bal);
+  const after = (bal, basis) =>
+    type === 'deferred'
+      ? bal * (1 - t)
+      : type === 'stocks'
+        ? bal - t * Math.max(0, bal - basis)
+        : bal;
   let basis = v.start;
   let shown = after(v.start, basis);
   const early = v.timing === 'start';
@@ -287,19 +605,27 @@ export function simulateCompound(v, rateAt = null) {
   // Interest rate earned over one month when compounding at least monthly.
   // The tax comes off each period's interest, so for k >= 12 it scales the rate itself.
   let rm = r * keep;
-  let monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
+  let monthRate =
+    k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
   const slots = k >= 12 ? 12 : k;
   // Where a deposit at fraction t of the year falls: its slot, and how far into it (0..1).
   const place = (t) => {
     const pos = t * slots;
-    const slot = Math.min(slots - 1, Math.max(0, early ? Math.floor(pos + 1e-9) : Math.ceil(pos - 1e-9) - 1));
+    const slot = Math.min(
+      slots - 1,
+      Math.max(0, early ? Math.floor(pos + 1e-9) : Math.ceil(pos - 1e-9) - 1),
+    );
     return { slot, tau: Math.min(1, Math.max(0, pos - slot)) };
   };
   const regular = Array.from({ length: n }, (_, i) => place((early ? i : i + 1) / n));
   const lump = place(early ? 0 : 1);
   const span = 12 / k;
   // The month of its period (1..span) a deposit at fraction tau of the period falls in.
-  const monthIn = (tau) => Math.min(span, Math.max(1, early ? Math.floor(tau * span + 1e-9) + 1 : Math.ceil(tau * span - 1e-9)));
+  const monthIn = (tau) =>
+    Math.min(
+      span,
+      Math.max(1, early ? Math.floor(tau * span + 1e-9) + 1 : Math.ceil(tau * span - 1e-9)),
+    );
   // The month of the year (1..12) a deposit in slot s at fraction tau falls in.
   const depMonth = (s, tau) => (k >= 12 ? s + 1 : s * span + monthIn(tau));
   const wStart = v.withdrawFrom ?? 1;
@@ -320,13 +646,25 @@ export function simulateCompound(v, rateAt = null) {
   // The same run month by month (for the monthly schedule). Below monthly compounding, interest
   // joins the balance only when its period ends, so it shows up in that period's last month.
   const months = [];
-  const pushMonth = (y, m, contributions, withdrawals, interest, bal, paid, paidOut) => months.push({ month: (y - 1) * 12 + m, year: y, contributions, withdrawals, interest, balance: bal, totalContributed: paid, totalWithdrawn: paidOut, totalInterest: bal - paid + paidOut });
+  const pushMonth = (y, m, contributions, withdrawals, interest, bal, paid, paidOut) =>
+    months.push({
+      month: (y - 1) * 12 + m,
+      year: y,
+      contributions,
+      withdrawals,
+      interest,
+      balance: bal,
+      totalContributed: paid,
+      totalWithdrawn: paidOut,
+      totalInterest: bal - paid + paidOut,
+    });
   const rows = Math.ceil(term / 12);
   for (let y = 1; y <= rows; y++) {
     if (rateAt) {
       r = nominalRate(rateAt(y) / 100, k, v.rateBasis);
       rm = r * keep;
-      monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
+      monthRate =
+        k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
     }
     let interest = 0;
     let added = 0;
@@ -342,23 +680,39 @@ export function simulateCompound(v, rateAt = null) {
     const wantAt = (m, cash) => {
       const abs = (y - 1) * 12 + m;
       if (y < wStart || (early ? (abs - 1) % wEvery : abs % wEvery) !== 0) return 0;
-      return mode === 'amount' ? yearAmount : mode === 'percentBalance' ? Math.max(cash, 0) * wPct : Math.max(earned, 0) * wPct;
+      return mode === 'amount'
+        ? yearAmount
+        : mode === 'percentBalance'
+          ? Math.max(cash, 0) * wPct
+          : Math.max(earned, 0) * wPct;
     };
     // After a month's interest and withdrawal: a withdrawal month restarts the earnings count, as does any month before withdrawals begin.
-    const settle = (m) => { if (y < wStart || (early ? ((y - 1) * 12 + m - 1) % wEvery : ((y - 1) * 12 + m) % wEvery) === 0) earned = 0; };
+    const settle = (m) => {
+      if (
+        y < wStart ||
+        (early ? ((y - 1) * 12 + m - 1) % wEvery : ((y - 1) * 12 + m) % wEvery) === 0
+      )
+        earned = 0;
+    };
     // Money landing in each slot as [amount, tau] pairs.
     const deposits = Array.from({ length: slots }, () => []);
     // A deposit is made only while contributing and before the term ends.
-    const due = (s, tau) => { const m = depMonth(s, tau); return m <= nm && 12 * (y - 1) + m <= payMonths; };
+    const due = (s, tau) => {
+      const m = depMonth(s, tau);
+      return m <= nm && 12 * (y - 1) + m <= payMonths;
+    };
     for (const d of regular) if (due(d.slot, d.tau)) deposits[d.slot].push([amount, d.tau]);
     if (lumpSum > 0 && due(lump.slot, lump.tau)) deposits[lump.slot].push([lumpSum, lump.tau]);
     for (let s = 0; k >= 12 ? s < nm : s * span < nm; s++) {
       const paid = deposits[s].reduce((sum, [a]) => sum + a, 0);
       // Cash on hand for a withdrawal at fraction tauW of the slot: the deposits made by then (the balance is added by the caller).
-      const landed = (tauW) => deposits[s].reduce((sum, [a, tau]) => sum + (tau <= tauW + 1e-9 ? a : 0), 0);
+      const landed = (tauW) =>
+        deposits[s].reduce((sum, [a, tau]) => sum + (tau <= tauW + 1e-9 ? a : 0), 0);
       if (k >= 12) {
         // Deposits at the slot start join the balance before its interest; the rest earn simple interest for what remains.
-        let i = balance * monthRate + deposits[s].reduce((sum, [a, tau]) => sum + a * (1 - tau) * monthRate, 0);
+        let i =
+          balance * monthRate +
+          deposits[s].reduce((sum, [a, tau]) => sum + a * (1 - tau) * monthRate, 0);
         // The withdrawal is taken at the same point in the month as contributions and never exceeds the cash on hand.
         const tauW = early ? 0 : 1;
         if (!early) earned += i;
@@ -382,7 +736,9 @@ export function simulateCompound(v, rateAt = null) {
         // A period cut short by the end of the term earns only for the months it has; later dates earn nothing.
         const len = Math.min(span, nm - s * span);
         const left = (x) => Math.max(0, x - (1 - len / span));
-        let periodInterest = balance * (r / k) * (len / span) + deposits[s].reduce((sum, [a, tau]) => sum + a * (r / k) * left(1 - tau), 0);
+        let periodInterest =
+          balance * (r / k) * (len / span) +
+          deposits[s].reduce((sum, [a, tau]) => sum + a * (r / k) * left(1 - tau), 0);
         let periodTaken = 0;
         const gots = [];
         for (let j = 1; j <= len; j++) {
@@ -390,10 +746,10 @@ export function simulateCompound(v, rateAt = null) {
           // (the opening balance plus deposits made by then, less what was already taken) and never drives the interest below zero.
           const tauW = (early ? j - 1 : j) / span;
           const cash = periodOpen + landed(tauW) - periodTaken;
-          earned += periodOpen * (r / k) * keep / span;
-          const want = wantAt((s * span) + j, cash);
+          earned += (periodOpen * (r / k) * keep) / span;
+          const want = wantAt(s * span + j, cash);
           const got = want > 0 ? Math.min(want, Math.max(cash, 0)) : 0;
-          settle((s * span) + j);
+          settle(s * span + j);
           if (got < want && !runsOut) runsOut = { year: y, month: (y - 1) * 12 + s * span + j };
           periodInterest -= got * (r / k) * left(1 - tauW);
           periodTaken += got;
@@ -423,7 +779,16 @@ export function simulateCompound(v, rateAt = null) {
           const w = (gots[j - 1] ?? 0) * scale;
           cumPaid += paidIn[j - 1];
           cumTaken += w;
-          pushMonth(y, s * span + j, paidIn[j - 1], w, j === len ? periodInterest - fee : 0, periodOpen + cumPaid - cumTaken + (j === len ? periodInterest - fee : 0), contributed + added + cumPaid, withdrawn + taken + cumTaken);
+          pushMonth(
+            y,
+            s * span + j,
+            paidIn[j - 1],
+            w,
+            j === len ? periodInterest - fee : 0,
+            periodOpen + cumPaid - cumTaken + (j === len ? periodInterest - fee : 0),
+            contributed + added + cumPaid,
+            withdrawn + taken + cumTaken,
+          );
         }
         interest += periodInterest;
         taken += periodTaken;
@@ -444,10 +809,30 @@ export function simulateCompound(v, rateAt = null) {
     else interest -= fees;
     shown = value;
     totalFees += fees;
-    years.push({ year: y === rows ? term / 12 : y, contributions: added, withdrawals: taken, interest, fees, balance: value, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: value - contributed + withdrawn });
+    years.push({
+      year: y === rows ? term / 12 : y,
+      contributions: added,
+      withdrawals: taken,
+      interest,
+      fees,
+      balance: value,
+      totalContributed: contributed,
+      totalWithdrawn: withdrawn,
+      totalInterest: value - contributed + withdrawn,
+    });
   }
   const last = years[years.length - 1];
-  return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest, fees: totalFees };
+  return {
+    years,
+    months,
+    start: v.start,
+    futureValue: last.balance,
+    contributed: last.totalContributed,
+    withdrawn,
+    runsOut,
+    interest: last.totalInterest,
+    fees: totalFees,
+  };
 }
 
 // Goal seek: what it would take to end at v.target (in the dollars the results are shown in), changing
@@ -456,11 +841,21 @@ export function simulateCompound(v, rateAt = null) {
 // (rate), or 'none' when no value in range can. Null when no target is set.
 export function solveGoal(v) {
   if (!(v.target > 0)) return null;
-  const show = (x) => { const r = simulateCompound(x); return x.basis === 'today' ? inTodaysDollars(r, x.inflation) : r; };
+  const show = (x) => {
+    const r = simulateCompound(x);
+    return x.basis === 'today' ? inTodaysDollars(r, x.inflation) : r;
+  };
   const balance = (x) => show(x).futureValue;
   const goal = v.target;
   const current = balance(v);
-  const bisect = (lo, hi, at) => { for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (at(m) >= goal) hi = m; else lo = m; } return hi; };
+  const bisect = (lo, hi, at) => {
+    for (let k = 0; k < 60; k++) {
+      const m = (lo + hi) / 2;
+      if (at(m) >= goal) hi = m;
+      else lo = m;
+    }
+    return hi;
+  };
 
   let monthly;
   const withMonthly = (x) => balance({ ...v, monthly: x });
@@ -468,12 +863,20 @@ export function solveGoal(v) {
   else {
     let hi = Math.max(v.monthly, 100);
     while (hi < 1e9 && withMonthly(hi) < goal) hi *= 2;
-    monthly = withMonthly(hi) >= goal ? { status: 'ok', value: Math.ceil(bisect(0, hi, withMonthly) * 100) / 100 } : { status: 'none' };
+    monthly =
+      withMonthly(hi) >= goal
+        ? { status: 'ok', value: Math.ceil(bisect(0, hi, withMonthly) * 100) / 100 }
+        : { status: 'none' };
   }
 
   // Whole years, up to MAX_YEARS (any extra months are dropped). Contributions keep going to the end unless Contribute for was cut short.
   const toEnd = contributionMonths(v) === termMonths(v);
-  const run = show({ ...v, years: MAX_YEARS, months: 0, ...(toEnd && { contributeYears: MAX_YEARS, contributeMonths: 0 }) });
+  const run = show({
+    ...v,
+    years: MAX_YEARS,
+    months: 0,
+    ...(toEnd && { contributeYears: MAX_YEARS, contributeMonths: 0 }),
+  });
   const hit = run.years.find((y) => y.balance >= goal);
   const years = hit ? { status: 'ok', value: hit.year } : { status: 'none' };
 
@@ -481,7 +884,11 @@ export function solveGoal(v) {
   const withRate = (x) => balance({ ...v, rate: x });
   if (withRate(LIMITS.rate.min) >= goal) rate = { status: 'already', value: LIMITS.rate.min };
   else if (withRate(LIMITS.rate.max) < goal) rate = { status: 'none' };
-  else rate = { status: 'ok', value: Math.ceil(bisect(LIMITS.rate.min, LIMITS.rate.max, withRate) * 100) / 100 };
+  else
+    rate = {
+      status: 'ok',
+      value: Math.ceil(bisect(LIMITS.rate.min, LIMITS.rate.max, withRate) * 100) / 100,
+    };
 
   return { target: goal, current, met: current >= goal, monthly, years, rate };
 }
@@ -534,7 +941,8 @@ export function marketSimulation(v, runs = SIM_RUNS) {
   for (let i = 0; i < runs; i++) {
     const rates = [];
     const r = simulateCompound(v, (y) => {
-      while (rates.length < y) rates.push(100 * ((1 + v.rate / 100) * Math.exp(sigma * draw() - (sigma * sigma) / 2) - 1));
+      while (rates.length < y)
+        rates.push(100 * ((1 + v.rate / 100) * Math.exp(sigma * draw() - (sigma * sigma) / 2) - 1));
       return rates[y - 1];
     });
     paths.push((today ? inTodaysDollars(r, v.inflation) : r).years.map((y) => y.balance));
@@ -547,9 +955,20 @@ export function marketSimulation(v, runs = SIM_RUNS) {
   };
   const plain = simulateCompound(v);
   const base = today ? inTodaysDollars(plain, v.inflation) : plain;
-  const shape = (balances) => ({ years: base.years.map((row, i) => ({ ...row, balance: balances[i] })) });
+  const shape = (balances) => ({
+    years: base.years.map((row, i) => ({ ...row, balance: balances[i] })),
+  });
   const [low, mid, high] = SIM_PERCENTILES.map((p) => pick(p));
-  return { runs, volatility: v.volatility, low: shape(low), mid: shape(mid), high: shape(high), lowBalance: low[low.length - 1], midBalance: mid[mid.length - 1], highBalance: high[high.length - 1] };
+  return {
+    runs,
+    volatility: v.volatility,
+    low: shape(low),
+    mid: shape(mid),
+    high: shape(high),
+    lowBalance: low[low.length - 1],
+    midBalance: mid[mid.length - 1],
+    highBalance: high[high.length - 1],
+  };
 }
 
 export const WAIT_YEARS = 10;
@@ -566,7 +985,13 @@ export function compareStartingLater(v) {
   const deflate = v.basis === 'today' ? (1 + v.inflation / 100) ** (termMonths(v) / 12) : 1;
   const today = v.basis === 'today';
   // Dollars paid at calendar year t are divided by (1 + inflation)^t; the later plan's year 1 is year WAIT_YEARS + 1.
-  const paid = (r, offset) => (today ? r.years.reduce((sum, y) => sum + y.contributions / (1 + v.inflation / 100) ** (y.year + offset), r.start / (1 + v.inflation / 100) ** offset) : r.contributed);
+  const paid = (r, offset) =>
+    today
+      ? r.years.reduce(
+          (sum, y) => sum + y.contributions / (1 + v.inflation / 100) ** (y.year + offset),
+          r.start / (1 + v.inflation / 100) ** offset,
+        )
+      : r.contributed;
   const nowContributed = paid(now, 0);
   const laterContributed = paid(later, WAIT_YEARS);
   const nowBalance = now.futureValue / deflate;
@@ -602,7 +1027,17 @@ export function inTodaysDollars(r, inflation) {
     prevContributed = totalContributed;
     prevWithdrawn = totalWithdrawn;
     totalFees += (y.fees ?? 0) / f;
-    return { ...y, contributions, withdrawals, interest, fees: (y.fees ?? 0) / f, balance, totalContributed, totalWithdrawn, totalInterest: balance - totalContributed + totalWithdrawn };
+    return {
+      ...y,
+      contributions,
+      withdrawals,
+      interest,
+      fees: (y.fees ?? 0) / f,
+      balance,
+      totalContributed,
+      totalWithdrawn,
+      totalInterest: balance - totalContributed + totalWithdrawn,
+    };
   });
   // Months are restated to match: balances at (1 + inflation)^(month / 12), contributions at their year's factor as above,
   // so each December equals its year row.
@@ -617,10 +1052,28 @@ export function inTodaysDollars(r, inflation) {
     outM += withdrawals;
     const interest = balance - prevM - contributions + withdrawals;
     prevM = balance;
-    return { ...m, balance, contributions, withdrawals, interest, totalContributed: paidM, totalWithdrawn: outM, totalInterest: balance - paidM + outM };
+    return {
+      ...m,
+      balance,
+      contributions,
+      withdrawals,
+      interest,
+      totalContributed: paidM,
+      totalWithdrawn: outM,
+      totalInterest: balance - paidM + outM,
+    };
   });
   const last = years[years.length - 1];
-  return { ...r, years, months, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest, fees: totalFees };
+  return {
+    ...r,
+    years,
+    months,
+    futureValue: last.balance,
+    contributed: last.totalContributed,
+    withdrawn: last.totalWithdrawn,
+    interest: last.totalInterest,
+    fees: totalFees,
+  };
 }
 
 // The final balance split four ways: the starting balance, the contributions, and the interest each earned.
@@ -628,14 +1081,24 @@ export function inTodaysDollars(r, inflation) {
 // balance, and the starting balance's share is the rest. inflation (percent) restates every part in today's
 // dollars at the horizon; null leaves them nominal. An interest part is negative when inflation outruns the return.
 export function balanceBreakdown(v, inflation = null) {
-  const run = (plan) => { const r = simulateCompound(plan); return inflation == null ? r : inTodaysDollars(r, inflation); };
+  const run = (plan) => {
+    const r = simulateCompound(plan);
+    return inflation == null ? r : inTodaysDollars(r, inflation);
+  };
   const whole = run(v);
   const added = run({ ...v, start: 0 });
   // Withdrawals come out of the same pot as contributions, so the contributions' part is net of them.
   const put = whole.contributed - v.start - (whole.withdrawn ?? 0);
   const fromContributions = added.futureValue;
   const fromStart = whole.futureValue - fromContributions;
-  return { start: v.start, contributions: put, startInterest: fromStart - v.start, contributionInterest: fromContributions - put, total: whole.futureValue, withdrawn: whole.withdrawn ?? 0 };
+  return {
+    start: v.start,
+    contributions: put,
+    startInterest: fromStart - v.start,
+    contributionInterest: fromContributions - put,
+    total: whole.futureValue,
+    withdrawn: whole.withdrawn ?? 0,
+  };
 }
 
 // What each choice is worth: the same plan with the other compounding frequency, and with the other
@@ -647,8 +1110,14 @@ export function choiceEffects(v, r, inflation) {
     return { futureValue: f, gap: r.futureValue - f };
   };
   return {
-    frequency: { ...flip({ frequency: altFrequency(v.frequency) }), alt: altFrequency(v.frequency) },
-    timing: { ...flip({ timing: v.timing === 'end' ? 'start' : 'end' }), alt: v.timing === 'end' ? 'start' : 'end' },
+    frequency: {
+      ...flip({ frequency: altFrequency(v.frequency) }),
+      alt: altFrequency(v.frequency),
+    },
+    timing: {
+      ...flip({ timing: v.timing === 'end' ? 'start' : 'end' }),
+      alt: v.timing === 'end' ? 'start' : 'end',
+    },
   };
 }
 
@@ -677,18 +1146,48 @@ export function leverTable(v) {
   const baseContributed = simulateCompound(v).contributed;
   const extraYears = Math.min(LEVER_STEPS.years, Math.floor((MAX_YEARS * 12 - termMonths(v)) / 12));
   const levers = [
-    { id: 'monthly', label: `+${usd.format(LEVER_STEPS.monthly)} ${contribUnit(v)}`, values: { ...v, monthly: v.monthly + LEVER_STEPS.monthly } },
-    { id: 'rate', label: `+${LEVER_STEPS.rate} point of annual return`, values: { ...v, rate: v.rate + LEVER_STEPS.rate } },
+    {
+      id: 'monthly',
+      label: `+${usd.format(LEVER_STEPS.monthly)} ${contribUnit(v)}`,
+      values: { ...v, monthly: v.monthly + LEVER_STEPS.monthly },
+    },
+    {
+      id: 'rate',
+      label: `+${LEVER_STEPS.rate} point of annual return`,
+      values: { ...v, rate: v.rate + LEVER_STEPS.rate },
+    },
   ];
-  if (extraYears > 0) levers.push({ id: 'years', label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`, values: { ...v, years: v.years + extraYears, ...(contributionMonths(v) === termMonths(v) && { contributeYears: v.years + extraYears, contributeMonths: v.months ?? 0 }) } });
+  if (extraYears > 0)
+    levers.push({
+      id: 'years',
+      label: `+${extraYears} year${extraYears === 1 ? '' : 's'}`,
+      values: {
+        ...v,
+        years: v.years + extraYears,
+        ...(contributionMonths(v) === termMonths(v) && {
+          contributeYears: v.years + extraYears,
+          contributeMonths: v.months ?? 0,
+        }),
+      },
+    });
   const rows = levers.map((l) => {
     const balance = finalBalance(l.values);
-    return { id: l.id, label: l.label, balance, gain: balance - base, extra: simulateCompound(l.values).contributed - baseContributed };
+    return {
+      id: l.id,
+      label: l.label,
+      balance,
+      gain: balance - base,
+      extra: simulateCompound(l.values).contributed - baseContributed,
+    };
   });
   return { base, rows };
 }
 
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const usd = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 
 // "About" amounts round to the nearest thousand when large, the nearest hundred otherwise.
 export function roundedMoney(n) {
@@ -700,7 +1199,9 @@ export function roundedMoney(n) {
 function stopNote(v) {
   const pay = contributionMonths(v);
   if (!contributes(v) || pay >= termMonths(v)) return '';
-  return pay === 0 ? `you made no ${v.contribFrequency === 'monthly' && !(v.annual > 0) ? 'monthly ' : ''}contributions, so only your starting balance grew` : `you contributed for the first ${pay === 12 ? 'year' : monthsText(pay)}, then let it grow`;
+  return pay === 0
+    ? `you made no ${v.contribFrequency === 'monthly' && !(v.annual > 0) ? 'monthly ' : ''}contributions, so only your starting balance grew`
+    : `you contributed for the first ${pay === 12 ? 'year' : monthsText(pay)}, then let it grow`;
 }
 
 export function headline(v, r) {
@@ -708,11 +1209,16 @@ export function headline(v, r) {
   if (r.contributed === 0) return `After ${yrs}, nothing has been invested yet.`;
   if (r.withdrawn > 0) {
     const today = v.basis === 'today' ? " in today's dollars" : '';
-    const end = r.runsOut ? `the money runs out in year ${r.runsOut.year}` : `${roundedMoney(r.futureValue)} is left${today}`;
+    const end = r.runsOut
+      ? `the money runs out in year ${r.runsOut.year}`
+      : `${roundedMoney(r.futureValue)} is left${today}`;
     return `After ${yrs}, you put in ${usd.format(r.contributed)} and took out ${usd.format(r.withdrawn)}${today}; ${end}.`;
   }
   if (v.basis === 'today') {
-    const gap = r.interest >= 0 ? `about ${roundedMoney(r.interest)} more than you put in` : `about ${roundedMoney(-r.interest)} less than you put in`;
+    const gap =
+      r.interest >= 0
+        ? `about ${roundedMoney(r.interest)} more than you put in`
+        : `about ${roundedMoney(-r.interest)} less than you put in`;
     return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} in today's dollars — ${stopNote(v) || gap}.`;
   }
   return `After ${yrs}, your ${usd.format(r.contributed)} becomes about ${roundedMoney(r.futureValue)} — ${stopNote(v) || `about ${roundedMoney(r.interest)} of it is interest`}.`;
@@ -749,18 +1255,28 @@ export function compoundingExplainer(v, r) {
   points.push({
     id: 'interest-on-interest',
     title: 'Interest earns interest',
-    text: v.rate > 0
-      ? `In year 1 your money earns ${roundedMoney(first.interest)}. By year ${yearLabel(last.year)} it earns ${roundedMoney(last.interest)} in a single year, because it is paid on a much bigger balance. Each year's growth is paid on everything that came before, so growth speeds up instead of staying level.`
-      : 'At a 0% return nothing grows on its own: your balance is only what you put in. Raise the return to see interest start earning interest.',
+    text:
+      v.rate > 0
+        ? `In year 1 your money earns ${roundedMoney(first.interest)}. By year ${yearLabel(last.year)} it earns ${roundedMoney(last.interest)} in a single year, because it is paid on a much bigger balance. Each year's growth is paid on everything that came before, so growth speeds up instead of staying level.`
+        : 'At a 0% return nothing grows on its own: your balance is only what you put in. Raise the return to see interest start earning interest.',
   });
   if (v.rate > 0) {
     // The rate the model actually compounds at: after tax, and after inflation in today's dollars.
     const afterTax = v.rate * (1 - interestTax(v) / 100) - (v.fee ?? 0);
-    const eff = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + v.inflation / 100) - 1) * 100 : afterTax;
+    const eff =
+      v.basis === 'today' ? ((1 + afterTax / 100) / (1 + v.inflation / 100) - 1) * 100 : afterTax;
     const pct = (n) => String(Math.round(n * 100) / 100);
-    const adjusts = [interestTax(v) > 0 && 'tax', v.fee > 0 && 'fees', v.basis === 'today' && 'inflation'].filter(Boolean);
-    const used = eff === v.rate ? `${pct(v.rate)}%` : `${pct(eff)}% (your ${pct(v.rate)}% return after ${adjusts.join(' and ')})`;
-    const intro = 'Divide 72 by the return and you get roughly how many years it takes money to double';
+    const adjusts = [
+      interestTax(v) > 0 && 'tax',
+      v.fee > 0 && 'fees',
+      v.basis === 'today' && 'inflation',
+    ].filter(Boolean);
+    const used =
+      eff === v.rate
+        ? `${pct(v.rate)}%`
+        : `${pct(eff)}% (your ${pct(v.rate)}% return after ${adjusts.join(' and ')})`;
+    const intro =
+      'Divide 72 by the return and you get roughly how many years it takes money to double';
     if (eff > 0) {
       const doubling = 72 / eff;
       const shown = doubling >= 10 ? String(Math.round(doubling)) : doubling.toFixed(1);
@@ -784,7 +1300,8 @@ export function compoundingExplainer(v, r) {
     const lastSpan = termMonths(v) - 12 * firstN;
     const early = balanceAt(v, r, firstN);
     const late = last.balance - early;
-    const lateStop = contributionMonths(v) <= 12 * firstN && contributes(v) ? ' with no new contributions' : '';
+    const lateStop =
+      contributionMonths(v) <= 12 * firstN && contributes(v) ? ' with no new contributions' : '';
     points.push({
       id: 'back-loaded',
       title: 'The payoff comes late',
@@ -794,7 +1311,10 @@ export function compoundingExplainer(v, r) {
   const milestones = doublingMilestones(v, r);
   if (milestones.length > 1) {
     const faster = milestones.slice(1).every((m, i) => m.after < milestones[i].after);
-    const steps = milestones.map((m, i) => `${roundedMoney(m.amount)} in year ${m.year}${i > 0 ? ` (${plural(m.after, 'year')} after the last)` : v.start > 0 ? ` (${plural(m.after, 'year')} from your ${roundedMoney(v.start)} start)` : ''}`);
+    const steps = milestones.map(
+      (m, i) =>
+        `${roundedMoney(m.amount)} in year ${m.year}${i > 0 ? ` (${plural(m.after, 'year')} after the last)` : v.start > 0 ? ` (${plural(m.after, 'year')} from your ${roundedMoney(v.start)} start)` : ''}`,
+    );
     points.push({
       id: 'milestones',
       title: faster ? 'Each doubling comes faster' : 'When your balance doubles',
@@ -813,7 +1333,10 @@ export function encodeCompound(v) {
     if (f.id === 'contributeMonths') continue;
     if (f.id === 'contributeYears') {
       const held = contributionMonths(v);
-      if (held !== d.contributeYears * 12 + d.contributeMonths || termMonths(v) !== termMonths(d)) { p.set(f.id, String(Math.floor(held / 12))); if (held % 12) p.set('contributeMonths', String(held % 12)); }
+      if (held !== d.contributeYears * 12 + d.contributeMonths || termMonths(v) !== termMonths(d)) {
+        p.set(f.id, String(Math.floor(held / 12)));
+        if (held % 12) p.set('contributeMonths', String(held % 12));
+      }
       continue;
     }
     if (v[f.id] !== d[f.id]) p.set(f.id, String(v[f.id]));
@@ -825,22 +1348,36 @@ export function encodeCompound(v) {
 export function decodeCompound(text) {
   const v = compoundDefaults();
   let p;
-  try { p = new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')); } catch { return v; }
+  try {
+    p = new URLSearchParams(String(text ?? '').replace(/^[#?]/, ''));
+  } catch {
+    return v;
+  }
   for (const f of COMPOUND_FIELDS) {
     if (!p.has(f.id) || f.id === 'contributeYears' || f.id === 'contributeMonths') continue;
     const raw = p.get(f.id);
-    if (f.kind === 'choice') { if (f.options.some((o) => o.value === raw)) v[f.id] = raw; continue; }
+    if (f.kind === 'choice') {
+      if (f.options.some((o) => o.value === raw)) v[f.id] = raw;
+      continue;
+    }
     const n = parseNumber(raw);
     const lim = LIMITS[f.id];
     if (f.id === 'months' && !(Number.isInteger(n) && n <= 11)) continue;
     if (Number.isFinite(n) && n >= (lim ? lim.min : 0) && !(lim && n > lim.max)) v[f.id] = n;
   }
   // A term of zero has nothing to calculate; fall back to the default term.
-  if (termMonths(v) < 1) { v.years = compoundDefaults().years; v.months = 0; }
+  if (termMonths(v) < 1) {
+    v.years = compoundDefaults().years;
+    v.months = 0;
+  }
   // Absent means "as long as the term"; a value past it is held to it.
   const given = parseNumber(p.get('contributeYears'));
   const givenMonths = parseNumber(p.get('contributeMonths'));
-  const pay = Number.isInteger(given) && given >= 0 ? given * 12 + (Number.isInteger(givenMonths) && givenMonths >= 0 && givenMonths <= 11 ? givenMonths : 0) : Infinity;
+  const pay =
+    Number.isInteger(given) && given >= 0
+      ? given * 12 +
+        (Number.isInteger(givenMonths) && givenMonths >= 0 && givenMonths <= 11 ? givenMonths : 0)
+      : Infinity;
   const held = Math.min(pay, termMonths(v));
   v.contributeYears = Math.floor(held / 12);
   v.contributeMonths = held % 12;

@@ -21,7 +21,12 @@ const STEPS = 200;
 // so they follow the "Use the proceeds" setting like the charts do.
 const PATHS = {
   sell: { name: 'Selling', gap: 'netWorthGainLoss', drivers: DRIVERS, idPrefix: '' },
-  downsize: { name: 'Downsizing', gap: 'downsizeGainLoss', drivers: DOWNSIZE_DRIVERS, idPrefix: 'downsize-' },
+  downsize: {
+    name: 'Downsizing',
+    gap: 'downsizeGainLoss',
+    drivers: DOWNSIZE_DRIVERS,
+    idPrefix: 'downsize-',
+  },
 };
 
 const marginFor = (path) => (values) => {
@@ -40,7 +45,7 @@ export function flipPoint(values, driver, path = 'sell') {
   const ms = xs.map(at);
   let best = null;
   for (let i = 0; i < STEPS; i++) {
-    if ((ms[i] >= 0) === (ms[i + 1] >= 0)) continue;
+    if (ms[i] >= 0 === ms[i + 1] >= 0) continue;
     const mid = (xs[i] + xs[i + 1]) / 2;
     if (best == null || Math.abs(mid - current) < Math.abs(best.mid - current)) best = { i, mid };
   }
@@ -50,7 +55,8 @@ export function flipPoint(values, driver, path = 'sell') {
   const loPositive = ms[best.i] >= 0;
   for (let k = 0; k < 40; k++) {
     const m = (lo + hi) / 2;
-    if ((at(m) >= 0) === loPositive) lo = m; else hi = m;
+    if (at(m) >= 0 === loPositive) lo = m;
+    else hi = m;
   }
   return (lo + hi) / 2;
 }
@@ -69,16 +75,32 @@ function pathLines(values, path) {
     const flip = flipPoint(values, d, path);
     if (flip == null) {
       const verdict = margin(values) >= 0 ? lower : 'staying';
-      return { id, path, label: d.label, flip: null, text: `${d.label}: ${verdict} wins across 0–${d.max}%; this assumption does not change the verdict.` };
+      return {
+        id,
+        path,
+        label: d.label,
+        flip: null,
+        text: `${d.label}: ${verdict} wins across 0–${d.max}%; this assumption does not change the verdict.`,
+      };
     }
     const winsAbove = margin({ ...values, [d.id]: Math.min(d.max, flip + 0.05) }) >= 0;
     const winsWhen = winsAbove ? 'above' : 'below';
     const stayWhen = winsAbove ? 'below' : 'above';
-    return { id, path, label: d.label, flip, text: `${d.label}: ${lower} wins if it is ${winsWhen} ${fmt(flip)}; staying wins if it is ${stayWhen} (you entered ${fmt(values[d.id])}).` };
+    return {
+      id,
+      path,
+      label: d.label,
+      flip,
+      text: `${d.label}: ${lower} wins if it is ${winsWhen} ${fmt(flip)}; staying wins if it is ${stayWhen} (you entered ${fmt(values[d.id])}).`,
+    };
   });
 }
 
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const usd = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 
 // Cash-flow breakeven for the sell path: the withdrawal rate (or, equivalently,
 // the starting monthly rent) at which the after-tax income from the invested
@@ -91,17 +113,31 @@ export function selfFundingRent(values) {
   const entered = `you entered ${fmt(values.investmentWithdrawal)} and ${usd.format(values.rent)} a month`;
   const base = { id: 'selfFunding', path: 'sell', label: 'Self-funding rent' };
   if (capital <= 0 || keep <= 0) {
-    return { ...base, rate: null, rent: null, text: 'Self-funding rent: the invested proceeds are nothing after moving and rental costs, so they cannot pay any rent.' };
+    return {
+      ...base,
+      rate: null,
+      rent: null,
+      text: 'Self-funding rent: the invested proceeds are nothing after moving and rental costs, so they cannot pay any rent.',
+    };
   }
   const rate = (annualRent / (capital * keep)) * 100;
   if (values.withdrawToCoverRent === 1) {
-    return { ...base, rate, rent: null, text: `Self-funding rent: withdrawals are set to cover the rent, so selling pays the first year's rent in full by withdrawing ${fmt(rate)} a year of the ${usd.format(capital)} invested (the withdrawal percentage is not used).` };
+    return {
+      ...base,
+      rate,
+      rent: null,
+      text: `Self-funding rent: withdrawals are set to cover the rent, so selling pays the first year's rent in full by withdrawing ${fmt(rate)} a year of the ${usd.format(capital)} invested (the withdrawal percentage is not used).`,
+    };
   }
-  const rent = Math.max(0, (capital * (values.investmentWithdrawal / 100) * keep - values.rentersInsurance) / 12);
+  const rent = Math.max(
+    0,
+    (capital * (values.investmentWithdrawal / 100) * keep - values.rentersInsurance) / 12,
+  );
   const income = capital * (values.investmentWithdrawal / 100) * keep;
-  const result = income >= annualRent
-    ? 'at your inputs the released equity pays the rent in full'
-    : `at your inputs you would top up about ${usd.format((annualRent - income) / 12)} a month`;
+  const result =
+    income >= annualRent
+      ? 'at your inputs the released equity pays the rent in full'
+      : `at your inputs you would top up about ${usd.format((annualRent - income) / 12)} a month`;
   return {
     ...base,
     rate,
@@ -110,4 +146,8 @@ export function selfFundingRent(values) {
   };
 }
 
-export const sensitivityLines = (values) => [...pathLines(values, 'sell'), selfFundingRent(values), ...pathLines(values, 'downsize')];
+export const sensitivityLines = (values) => [
+  ...pathLines(values, 'sell'),
+  selfFundingRent(values),
+  ...pathLines(values, 'downsize'),
+];

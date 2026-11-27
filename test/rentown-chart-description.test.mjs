@@ -12,6 +12,9 @@ test('chart description gives each line its own clause', () => {
   const { description } = rentOwnChart(years, null, fmt, null, null);
   assert.match(description, /owning is \$100 and renting with equal cash is \$200/);
   assert.match(description, /pure net worth basis is \$300 in year 1 and \$310 in year 30/);
-  assert.match(description, /renting first and buying later is \$400 in year 1 and \$410 in year 30/);
+  assert.match(
+    description,
+    /renting first and buying later is \$400 in year 1 and \$410 in year 30/,
+  );
   assert.doesNotMatch(description, /with equal cash, or/);
 });

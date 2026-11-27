@@ -1,0 +1,16 @@
+#!/bin/sh
+# Refuses a commit while `npm run lint` (the Prettier check) fails.
+# `npm ci` turns this on by pointing core.hooksPath at .githooks.
+#
+# A checkout with no dependencies installed cannot run the check. That is
+# the release's merge checkout, among others, so it is let through with a
+# note rather than blocked: `npm test` runs the same check before anything
+# ships.
+if [ ! -x node_modules/.bin/prettier ]; then
+  echo "pre-commit: Prettier is not installed here (run npm ci); skipping the format check" >&2
+  exit 0
+fi
+npm run --silent lint || {
+  echo "pre-commit: run 'npm run format', stage the result and commit again" >&2
+  exit 1
+}

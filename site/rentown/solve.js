@@ -19,7 +19,19 @@ export function solveText(v, id) {
   const target = SOLVE_TARGETS.find((t) => t.id === id);
   const solved = solveBreakEven(v, id);
   const years = `${v.years} ${v.years === 1 ? 'year' : 'years'}`;
-  if (solved == null) return { id, solved, text: `No ${target.label} from ${money(target.min)} to ${money(target.max)} makes buying break even in ${years} with your other inputs.` };
-  const subject = id === 'price' ? `at a ${target.label} of ${money(solved)}` : `if rent is ${money(solved)} a month`;
-  return { id, solved, text: `Buying breaks even in ${years} ${subject} (you entered ${money(v[id])}).` };
+  if (solved == null)
+    return {
+      id,
+      solved,
+      text: `No ${target.label} from ${money(target.min)} to ${money(target.max)} makes buying break even in ${years} with your other inputs.`,
+    };
+  const subject =
+    id === 'price'
+      ? `at a ${target.label} of ${money(solved)}`
+      : `if rent is ${money(solved)} a month`;
+  return {
+    id,
+    solved,
+    text: `Buying breaks even in ${years} ${subject} (you entered ${money(v[id])}).`,
+  };
 }

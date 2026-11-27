@@ -13,12 +13,14 @@ export function encodeInputs(values) {
   const params = new URLSearchParams();
   for (const f of FIELDS) {
     if (values[f.id] == null) continue;
-    const isDefault = f.id === 'horizon'
-      ? values.horizon === defaultHorizon(values.mortgageTerm)
-      : values[f.id] === defaults[f.id];
+    const isDefault =
+      f.id === 'horizon'
+        ? values.horizon === defaultHorizon(values.mortgageTerm)
+        : values[f.id] === defaults[f.id];
     if (!isDefault) params.set(f.id, String(values[f.id]));
   }
-  if (values.repairs?.length) params.set('repairs', values.repairs.map((r) => `${r.year}:${r.amount}`).join(','));
+  if (values.repairs?.length)
+    params.set('repairs', values.repairs.map((r) => `${r.year}:${r.amount}`).join(','));
   return params.toString();
 }
 
@@ -27,17 +29,24 @@ export function encodeInputs(values) {
 export function decodeInputs(text) {
   const values = defaultValues();
   let params;
-  try { params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')); } catch { return values; }
+  try {
+    params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, ''));
+  } catch {
+    return values;
+  }
   for (const f of FIELDS) {
     if (!params.has(f.id)) continue;
     const v = parseValue(f, params.get(f.id));
     if (v != null) values[f.id] = v;
   }
   if (!params.has('horizon')) values.horizon = defaultHorizon(values.mortgageTerm);
-  const rows = (params.get('repairs') ?? '').split(',').slice(0, MAX_REPAIRS).map((p) => {
-    const [year, amount] = p.split(':');
-    return { year, amount };
-  });
+  const rows = (params.get('repairs') ?? '')
+    .split(',')
+    .slice(0, MAX_REPAIRS)
+    .map((p) => {
+      const [year, amount] = p.split(':');
+      return { year, amount };
+    });
   values.repairs = parseRepairs(rows) ?? [];
   return values;
 }

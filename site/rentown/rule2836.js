@@ -7,7 +7,8 @@ const pct = (n) => `${(Math.round(n * 10) / 10).toFixed(1)}%`;
 export function rule2836Card({ v, r }) {
   const a = rule2836(v, r);
   if (!a) return '';
-  const row = (label, amount, ratio, cap, over) => `<tr><th scope="row">${label}</th><td>${money(amount)}</td><td><strong>${pct(ratio)}</strong> of ${money(a.gross)}</td><td>${over ? `Over the ${cap}% cap` : `Within the ${cap}% cap`}</td></tr>`;
+  const row = (label, amount, ratio, cap, over) =>
+    `<tr><th scope="row">${label}</th><td>${money(amount)}</td><td><strong>${pct(ratio)}</strong> of ${money(a.gross)}</td><td>${over ? `Over the ${cap}% cap` : `Within the ${cap}% cap`}</td></tr>`;
   return `<div class="card ro-rule2836"><h3>Can you afford it? The 28/36 rule</h3>
       <table class="data-table"><thead><tr><th scope="col">Per month</th><th scope="col">Amount</th><th scope="col">Share of gross monthly income</th><th scope="col">Result</th></tr></thead><tbody>
         ${row('Housing (mortgage, property tax, insurance, HOA)', a.housing, a.housingRatio, HOUSING_CAP, a.housingOver)}

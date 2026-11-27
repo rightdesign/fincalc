@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 import { payment } from '../site/mortgage.js';
 import { affordability, affordabilityCard } from '../site/rentown/affordability.js';
 import { renderCards } from '../site/rentown/cards.js';
@@ -25,8 +31,14 @@ test('housing share is P&I, tax, insurance, PMI and HOA over take-home pay, flag
   assert.equal(a.termYears, 15);
   assert.equal(a.over, a.share > 25);
   assert.equal(affordability({ ...v, takeHome: 1e6 }, r).over, false);
-  assert.match(affordabilityCard(buildContext({ ...v, takeHome: 12000 }, 'future')), /Over the 25% guideline/);
-  assert.match(affordabilityCard(buildContext({ ...v, takeHome: 1e6 }, 'future')), /Within the 25% guideline/);
+  assert.match(
+    affordabilityCard(buildContext({ ...v, takeHome: 12000 }, 'future')),
+    /Over the 25% guideline/,
+  );
+  assert.match(
+    affordabilityCard(buildContext({ ...v, takeHome: 1e6 }, 'future')),
+    /Within the 25% guideline/,
+  );
 });
 
 test('the card carries Ramsey context and shows in the results', () => {
@@ -45,7 +57,17 @@ test('the after-tax salary is optional, validated when given and kept in the lin
 test('a 30-year loan is tested on its 15-year payment; a shorter term is used as entered', () => {
   const v = { ...base(), takeHome: 60000 };
   const r = compareRentOwn(v);
-  assert.ok(affordability(v, r).housing > Math.round(r.monthly[0].principal + r.monthly[0].interest + r.monthly[0].tax + r.monthly[0].insurance + r.monthly[0].pmi + r.monthly[0].hoa));
+  assert.ok(
+    affordability(v, r).housing >
+      Math.round(
+        r.monthly[0].principal +
+          r.monthly[0].interest +
+          r.monthly[0].tax +
+          r.monthly[0].insurance +
+          r.monthly[0].pmi +
+          r.monthly[0].hoa,
+      ),
+  );
   const short = { ...v, term: 10 };
   assert.equal(affordability(short, compareRentOwn(short)).termYears, 10);
 });

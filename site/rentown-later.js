@@ -20,7 +20,19 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
   const arm = v.arm === 1;
   // A rate entered for the later purchase replaces the starting rate, fixed or adjustable.
   const startRate = v.waitRate ?? (arm ? v.armRate : v.rate);
-  const armLoan = arm ? { rateBasis: 'index', initialRate: startRate, indexRate: v.armIndexRate, margin: v.armMargin, indexChange: v.armIndexChange, firstCap: v.armFirstCap, periodicCap: v.armPeriodicCap, lifetimeCap: v.armLifetimeCap, floor: v.armFloor } : null;
+  const armLoan = arm
+    ? {
+        rateBasis: 'index',
+        initialRate: startRate,
+        indexRate: v.armIndexRate,
+        margin: v.armMargin,
+        indexChange: v.armIndexChange,
+        firstCap: v.armFirstCap,
+        periodicCap: v.armPeriodicCap,
+        lifetimeCap: v.armLifetimeCap,
+        floor: v.armFloor,
+      }
+    : null;
   const growth = (1 + v.growth / 100) ** (1 / 12);
   const invest = (1 + v.investment / 100) ** (1 / 12);
   const dragRate = v.investDrag / 100 / 12;
@@ -84,13 +96,21 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       monthsOwned += 1;
       // An ARM re-amortizes the balance over the months left at each reset, as buying now does.
       const sinceFixed = monthsOwned - 1 - v.armFixedMonths;
-      if (arm && sinceFixed >= 0 && sinceFixed % v.armAdjustMonths === 0 && monthsOwned <= v.term * 12) {
+      if (
+        arm &&
+        sinceFixed >= 0 &&
+        sinceFixed % v.armAdjustMonths === 0 &&
+        monthsOwned <= v.term * 12
+      ) {
         resets += 1;
         loanRate = rateAfter(armLoan, resets);
         monthlyRate = loanRate / 100 / 12;
         pay = payment(balance, loanRate, v.term * 12 - (monthsOwned - 1));
       }
-      const insured = fin.insuranceMonths == null ? fin.base > homeCost * 0.8 + 0.005 && balance > homeCost * 0.78 + 0.005 : monthsOwned <= fin.insuranceMonths;
+      const insured =
+        fin.insuranceMonths == null
+          ? fin.base > homeCost * 0.8 + 0.005 && balance > homeCost * 0.78 + 0.005
+          : monthsOwned <= fin.insuranceMonths;
       const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
       const interest = balance * monthlyRate;
       const mortgage = monthsOwned <= v.term * 12 ? pay : 0;
@@ -98,7 +118,8 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       yearBalance += balance;
       yearPropertyTax += point.tax;
       balance = Math.max(0, balance + interest - mortgage);
-      const repair = v.repairYear > 0 && monthsOwned === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
+      const repair =
+        v.repairYear > 0 && monthsOwned === (v.repairYear - 1) * 12 + 1 ? v.repairCost : 0;
       repairs = repairs * invest + repair;
       homeBasis += repair;
       // A renter or owner who runs out of money borrows the shortfall at the mortgage rate and owes no drag.
@@ -106,13 +127,24 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       const drag = portfolio > 0 ? Math.min(portfolio * dragRate, Math.max(0, gain)) : 0;
       portfolio += gain - drag;
       const put = point.own - (mortgage + pmi + point.carry);
-      if (put < 0) ({ portfolio, basis } = withdraw(portfolio, basis, -put, v.view === 'unrealized' ? 0 : capGains));
-      else { basis += put; portfolio += put; }
+      if (put < 0)
+        ({ portfolio, basis } = withdraw(
+          portfolio,
+          basis,
+          -put,
+          v.view === 'unrealized' ? 0 : capGains,
+        ));
+      else {
+        basis += put;
+        portfolio += put;
+      }
       value *= growth;
     }
     if (m % 12 === 0) {
       // The budget is buy-now's cost before any tax refund; the owner's refund is invested like any other saving.
-      const refund = owned ? taxBenefit(v, yearInterest, yearPropertyTax, m / 12 - 1, yearBalance / 12) : 0;
+      const refund = owned
+        ? taxBenefit(v, yearInterest, yearPropertyTax, m / 12 - 1, yearBalance / 12)
+        : 0;
       yearInterest = 0;
       yearBalance = 0;
       yearPropertyTax = 0;
@@ -125,18 +157,25 @@ export function compareRentThenBuy(v, base = compareRentOwn(v)) {
       let later = saved + (owned ? 0 : deposit);
       if (owned) {
         const sale = paper ? value : value * (1 - v.selling / 100);
-        const homeTax = paper ? 0 : Math.max(0, sale - homeBasis - (monthsOwned >= 24 ? v.exclusion : 0)) * capGains;
+        const homeTax = paper
+          ? 0
+          : Math.max(0, sale - homeBasis - (monthsOwned >= 24 ? v.exclusion : 0)) * capGains;
         later = saved + sale - balance - repairs - homeTax;
       }
       rows.push({ year: m / 12, later, owning: owned });
     }
   }
-  const years = rows.slice(0, v.years).map((y, i) => ({ ...y, own: base.years[i].own, rent: base.years[i].rent }));
-  const chartYears = rows.slice(0, base.chartYears.length).map((y, i) => ({ ...y, own: base.chartYears[i].own, rent: base.chartYears[i].rent }));
-  const deflate = (list) => list.map((y) => {
-    const d = (1 + v.inflation / 100) ** y.year;
-    return { ...y, own: y.own / d, rent: y.rent / d, later: y.later / d };
-  });
+  const years = rows
+    .slice(0, v.years)
+    .map((y, i) => ({ ...y, own: base.years[i].own, rent: base.years[i].rent }));
+  const chartYears = rows
+    .slice(0, base.chartYears.length)
+    .map((y, i) => ({ ...y, own: base.chartYears[i].own, rent: base.chartYears[i].rent }));
+  const deflate = (list) =>
+    list.map((y) => {
+      const d = (1 + v.inflation / 100) ** y.year;
+      return { ...y, own: y.own / d, rent: y.rent / d, later: y.later / d };
+    });
   const real = deflate(years);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];

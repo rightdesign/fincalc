@@ -19,14 +19,21 @@ test('income above the threshold phases the cap down, never below $10,000', () =
   near(saltCap(0, null), 40400);
 });
 
-test('property tax is deducted up to each year\'s cap', () => {
+test("property tax is deducted up to each year's cap", () => {
   const v = { ...rentOwnDefaults(), filing: 1, marginalTaxRate: 30, inflation: 0, itemize: 1 };
   near(taxBenefit(v, 20000, 50000, 0), (20000 + 40400 - 16100) * 0.3);
   near(taxBenefit(v, 20000, 50000, 5), (20000 + 10000 - 16100) * 0.3);
 });
 
 test('state income tax shares the cap, and the renter deducts it too', () => {
-  const v = { ...rentOwnDefaults(), filing: 1, marginalTaxRate: 30, inflation: 0, itemize: 1, stateIncomeTax: 40000 };
+  const v = {
+    ...rentOwnDefaults(),
+    filing: 1,
+    marginalTaxRate: 30,
+    inflation: 0,
+    itemize: 1,
+    stateIncomeTax: 40000,
+  };
   // State tax uses 40,000 of the 40,400 cap, so only $400 of property tax counts, plus the interest.
   near(taxBenefit(v, 20000, 50000, 0), (20000 + 40400 - 40000) * 0.3);
   near(taxBenefit({ ...v, itemize: 0 }, 20000, 50000, 0), 0);

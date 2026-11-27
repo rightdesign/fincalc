@@ -4,7 +4,11 @@ const W = 480;
 const H = 220;
 const PAD = { l: 72, r: 16, t: 20, b: 28 };
 
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const escape = (s) =>
+  String(s).replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+  );
 
 const when = (month) => `year ${Math.ceil(month / 12)}, month ${((month - 1) % 12) + 1}`;
 
@@ -13,9 +17,12 @@ const when = (month) => `year ${Math.ceil(month / 12)}, month ${((month - 1) % 1
 // shortest the chart may run (the same span as the net worth chart). Returns { svg, description }.
 export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 0) {
   const crossYears = cross == null ? 0 : Math.ceil(cross / 12);
-  const months = Math.min(curve.length, Math.max(minYears, crossYears, stay ?? 0) * 12) || curve.length;
+  const months =
+    Math.min(curve.length, Math.max(minYears, crossYears, stay ?? 0) * 12) || curve.length;
   const d = (m) => (1 + inflation / 100) ** (m / 12);
-  const pts = curve.slice(0, months).map((c) => ({ x: c.month / 12, own: c.cost / d(c.month), rent: c.rent / d(c.month) }));
+  const pts = curve
+    .slice(0, months)
+    .map((c) => ({ x: c.month / 12, own: c.cost / d(c.month), rent: c.rent / d(c.month) }));
   const xMin = pts[0].x;
   const xMax = pts[pts.length - 1].x;
   const all = pts.flatMap((p) => [p.own, p.rent]);
@@ -24,10 +31,12 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
   const yMin = lo - pad;
   const yMax = hi + pad;
-  const sx = (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r));
+  const sx = (x) =>
+    PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r));
   const sy = (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
   const f = (n) => n.toFixed(1);
-  const line = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p[key]))}`).join('');
+  const line = (key) =>
+    pts.map((p, i) => `${i ? 'L' : 'M'}${f(sx(p.x))},${f(sy(p[key]))}`).join('');
 
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly cost of owning and of renting, by year" class="chart">`;
   for (let i = 0; i <= 4; i++) {
@@ -46,15 +55,24 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
   const mark = (x0, label, cls, dash, row) => {
     const x = sx(x0);
     const anchor = x0 > (xMin + xMax) / 2 ? 'end' : 'start';
-    return `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="${cls}" stroke-dasharray="${dash}"/>`
-      + `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 14}" text-anchor="${anchor}" font-size="12">${escape(label)}</text>`;
+    return (
+      `<line x1="${f(x)}" x2="${f(x)}" y1="${PAD.t}" y2="${H - PAD.b}" class="${cls}" stroke-dasharray="${dash}"/>` +
+      `<text x="${f(x + (anchor === 'end' ? -4 : 4))}" y="${PAD.t + 8 + row * 14}" text-anchor="${anchor}" font-size="12">${escape(label)}</text>`
+    );
   };
   const showCross = cross != null && cross > 1 && cross <= months;
   const stayX = stay == null ? null : stay;
-  if (stayX != null && stayX >= xMin && stayX <= xMax) svg += mark(stayX, `Your stay: year ${stay}`, 'stay', '2 3', 0);
+  if (stayX != null && stayX >= xMin && stayX <= xMax)
+    svg += mark(stayX, `Your stay: year ${stay}`, 'stay', '2 3', 0);
   if (showCross) {
     const p = pts[cross - 1];
-    svg += mark(p.x, `Monthly break-even: ${when(cross)}`, 'breakeven', '5 3', stay != null && Math.abs(stay - p.x) < 2 ? 1 : 0);
+    svg += mark(
+      p.x,
+      `Monthly break-even: ${when(cross)}`,
+      'breakeven',
+      '5 3',
+      stay != null && Math.abs(stay - p.x) < 2 ? 1 : 0,
+    );
     svg += `<circle class="ring" cx="${f(sx(p.x))}" cy="${f(sy(p.own))}" r="4" style="stroke:var(--series-1)" stroke-width="2"/>`;
   }
   svg += '</svg>';
@@ -62,9 +80,12 @@ export function monthlyChart(curve, cross, fmt, stay, inflation = 0, minYears = 
   const first = pts[0];
   // The same month the tables use: the first month of the last year shown.
   const yearStart = pts[Math.min(pts.length - 1, (Math.ceil(xMax) - 1) * 12)];
-  const verdict = cross == null ? 'Owning stays the dearer month to month through the whole run.'
-    : cross === 1 ? 'Owning costs no more than renting every month.'
-      : `Owning becomes the cheaper month to month in ${when(cross)}.`;
+  const verdict =
+    cross == null
+      ? 'Owning stays the dearer month to month through the whole run.'
+      : cross === 1
+        ? 'Owning costs no more than renting every month.'
+        : `Owning becomes the cheaper month to month in ${when(cross)}.`;
   const description = `Line chart of the monthly cost of owning and renting. In month 1 owning costs ${fmt(first.own)} and renting costs ${fmt(first.rent)}; in the first month of year ${Math.ceil(xMax)} owning costs ${fmt(yearStart.own)} and renting costs ${fmt(yearStart.rent)}. Owning here leaves out the mortgage principal, which builds equity. ${verdict}`;
   return { svg, description };
 }

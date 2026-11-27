@@ -23,7 +23,10 @@ test('a near-tie reads too close to call', () => {
   let found;
   for (let p = 200000; p <= 1500000; p += 5000) {
     const html = renderCards(buildContext({ ...v, price: p }, 'future'));
-    if (/Too close to call/.test(html)) { found = html; break; }
+    if (/Too close to call/.test(html)) {
+      found = html;
+      break;
+    }
   }
   assert.ok(found, 'some price lands in the band');
   assert.match(found, /apart after/);

@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Keep your home or sell and rent</title>
-    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
-    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="styles.css" />
     <script type="module" src="menu.js"></script>
     <script type="module" src="app.js"></script>
   </head>
@@ -19,102 +19,289 @@
     <section class="methodology" id="methodology">
       <details>
         <summary>Methodology and assumptions</summary>
-        <p>The calculator compares three paths over the time horizon you choose, year by year: <strong>stay</strong> in your home, <strong>sell and rent</strong> a comparable home while investing the proceeds, and <strong>downsize</strong> to a cheaper home while investing the rest. All three cover the same housing need. Percentages are annual rates, applied once per year.</p>
+        <p>
+          The calculator compares three paths over the time horizon you choose, year by year:
+          <strong>stay</strong> in your home, <strong>sell and rent</strong> a comparable home while
+          investing the proceeds, and <strong>downsize</strong> to a cheaper home while investing
+          the rest. All three cover the same housing need. Percentages are annual rates, applied
+          once per year.
+        </p>
 
         <h3>Mortgage</h3>
         <ul>
-          <li>The monthly payment is the standard amortizing payment: <code>P = B &times; r / (1 &minus; (1 + r)<sup>&minus;n</sup>)</code>, where B is the balance, r is the annual rate divided by 12 and n is the remaining term in months. At a 0% rate it is B / n.</li>
-          <li>Each month, interest is the balance times r and the rest of the payment is principal. Months are summed into years; after the loan is paid off, interest and principal are zero.</li>
-          <li><strong>Principal is not a cost of owning.</strong> It builds equity, so it is left out of the &ldquo;unrecoverable cost&rdquo;. It is cash out the door, though, so it is counted in monthly cash flow and in the money the sell path can invest.</li>
+          <li>
+            The monthly payment is the standard amortizing payment:
+            <code>P = B &times; r / (1 &minus; (1 + r)<sup>&minus;n</sup>)</code>, where B is the
+            balance, r is the annual rate divided by 12 and n is the remaining term in months. At a
+            0% rate it is B / n.
+          </li>
+          <li>
+            Each month, interest is the balance times r and the rest of the payment is principal.
+            Months are summed into years; after the loan is paid off, interest and principal are
+            zero.
+          </li>
+          <li>
+            <strong>Principal is not a cost of owning.</strong> It builds equity, so it is left out
+            of the &ldquo;unrecoverable cost&rdquo;. It is cash out the door, though, so it is
+            counted in monthly cash flow and in the money the sell path can invest.
+          </li>
         </ul>
 
         <h3>Costs of owning</h3>
         <ul>
-          <li>Property tax is the dollars you enter in year 1. Home insurance and maintenance are their percentage of today&rsquo;s home value in year 1. HOA dues are the monthly dues times 12 in year 1.</li>
-          <li>Each of these then grows at its own growth rate. They do <strong>not</strong> track the home&rsquo;s appreciation.</li>
-          <li>Major repairs are one-time amounts in the year you enter, in that year&rsquo;s own dollars. They are not tax deductible.</li>
-          <li><strong>Unrecoverable cost</strong> = property tax + insurance + maintenance + HOA dues + major repairs + mortgage interest &minus; income tax saved by deductions.</li>
-          <li>Tax saved = (mortgage interest + property tax up to the state and local tax cap &minus; standard deduction, never below 0) &times; marginal tax rate. Only the amount above the standard deduction is a benefit of owning.</li>
-          <li><strong>Monthly cost of owning</strong> is the full cash outlay: unrecoverable cost plus principal, divided by 12.</li>
+          <li>
+            Property tax is the dollars you enter in year 1. Home insurance and maintenance are
+            their percentage of today&rsquo;s home value in year 1. HOA dues are the monthly dues
+            times 12 in year 1.
+          </li>
+          <li>
+            Each of these then grows at its own growth rate. They do <strong>not</strong> track the
+            home&rsquo;s appreciation.
+          </li>
+          <li>
+            Major repairs are one-time amounts in the year you enter, in that year&rsquo;s own
+            dollars. They are not tax deductible.
+          </li>
+          <li>
+            <strong>Unrecoverable cost</strong> = property tax + insurance + maintenance + HOA dues
+            + major repairs + mortgage interest &minus; income tax saved by deductions.
+          </li>
+          <li>
+            Tax saved = (mortgage interest + property tax up to the state and local tax cap &minus;
+            standard deduction, never below 0) &times; marginal tax rate. Only the amount above the
+            standard deduction is a benefit of owning.
+          </li>
+          <li>
+            <strong>Monthly cost of owning</strong> is the full cash outlay: unrecoverable cost plus
+            principal, divided by 12.
+          </li>
         </ul>
 
         <h3>Selling</h3>
         <ul>
-          <li>Net sales = home value &minus; selling costs (a percentage of the sale price). Gain = net sales &minus; cost basis. Taxable gain = gain &minus; the primary-residence exclusion you pick (never below 0), taxed at your capital gains rate.</li>
+          <li>
+            Net sales = home value &minus; selling costs (a percentage of the sale price). Gain =
+            net sales &minus; cost basis. Taxable gain = gain &minus; the primary-residence
+            exclusion you pick (never below 0), taxed at your capital gains rate.
+          </li>
           <li>Net proceeds = net sales &minus; capital gains tax &minus; mortgage balance.</li>
-          <li>Moving costs and the rental&rsquo;s upfront cash (deposit, first and last month&rsquo;s rent) are one-time amounts taken out of the proceeds before investing. They are counted as spent.</li>
+          <li>
+            Moving costs and the rental&rsquo;s upfront cash (deposit, first and last month&rsquo;s
+            rent) are one-time amounts taken out of the proceeds before investing. They are counted
+            as spent.
+          </li>
         </ul>
 
         <h3>Sell and rent</h3>
         <ul>
-          <li>Rent is the monthly rent times 12 in year 1, growing at the rent growth rate, plus renter&rsquo;s insurance (flat).</li>
-          <li>Each year the investments grow, then receive what owning would have cost in cash (including principal), less the part of the rent and renter&rsquo;s insurance the household pays out of pocket, and are charged the withdrawals (below). The withdrawals pay the rest of the rent, so each dollar of rent is paid once, either by the portfolio or by the household. Both paths are therefore compared on equal cash out.</li>
-          <li>Growth: investment growth is reduced by the tax rate on investment growth in a year with a gain, as a tax drag on a taxable account. A year with a loss owes no tax and gets no cushion.</li>
+          <li>
+            Rent is the monthly rent times 12 in year 1, growing at the rent growth rate, plus
+            renter&rsquo;s insurance (flat).
+          </li>
+          <li>
+            Each year the investments grow, then receive what owning would have cost in cash
+            (including principal), less the part of the rent and renter&rsquo;s insurance the
+            household pays out of pocket, and are charged the withdrawals (below). The withdrawals
+            pay the rest of the rent, so each dollar of rent is paid once, either by the portfolio
+            or by the household. Both paths are therefore compared on equal cash out.
+          </li>
+          <li>
+            Growth: investment growth is reduced by the tax rate on investment growth in a year with
+            a gain, as a tax drag on a taxable account. A year with a loss owes no tax and gets no
+            cushion.
+          </li>
         </ul>
 
         <h3>Withdrawals</h3>
         <ul>
-          <li>The gross withdrawal is the withdrawal rate times the capital at the start of the year. It is spent, so it <strong>is</strong> deducted from the capital each year and stops growing; the net worth figures assume you take it. Investment income, as shown in the tables, is that withdrawal less the tax on withdrawals.</li>
-          <li>If you choose to withdraw only enough to cover the rent or housing bill, the rate is ignored: the withdrawal is the amount that pays the bill after tax (capped at the capital), and only the tax on it comes out of the capital on top of the bill already deducted.</li>
-          <li>Because investment growth is taxed, a withdrawal rate above the after-tax growth rate erodes capital over time.</li>
+          <li>
+            The gross withdrawal is the withdrawal rate times the capital at the start of the year.
+            It is spent, so it <strong>is</strong> deducted from the capital each year and stops
+            growing; the net worth figures assume you take it. Investment income, as shown in the
+            tables, is that withdrawal less the tax on withdrawals.
+          </li>
+          <li>
+            If you choose to withdraw only enough to cover the rent or housing bill, the rate is
+            ignored: the withdrawal is the amount that pays the bill after tax (capped at the
+            capital), and only the tax on it comes out of the capital on top of the bill already
+            deducted.
+          </li>
+          <li>
+            Because investment growth is taxed, a withdrawal rate above the after-tax growth rate
+            erodes capital over time.
+          </li>
         </ul>
 
         <h3>Net worth and break-even</h3>
         <ul>
-          <li>Net worth for staying compounds before taxes until the period ends: each year before the last it is the home&rsquo;s value less the remaining mortgage. In the final year the home is sold, so selling costs and capital gains tax are taken out. Year 0 is shown as if you sold today, so it is level with selling, whose investment capital had its selling costs and taxes charged up front.</li>
-          <li>The break-even year is the first year (1 or later) in which the sell path&rsquo;s net worth is at or ahead of staying. If that never happens within the horizon, none is shown. The downsize path has its own break-even year.</li>
+          <li>
+            Net worth for staying compounds before taxes until the period ends: each year before the
+            last it is the home&rsquo;s value less the remaining mortgage. In the final year the
+            home is sold, so selling costs and capital gains tax are taken out. Year 0 is shown as
+            if you sold today, so it is level with selling, whose investment capital had its selling
+            costs and taxes charged up front.
+          </li>
+          <li>
+            The break-even year is the first year (1 or later) in which the sell path&rsquo;s net
+            worth is at or ahead of staying. If that never happens within the horizon, none is
+            shown. The downsize path has its own break-even year.
+          </li>
         </ul>
 
         <h3>Equal cash contributions</h3>
         <ul>
-          <li>Every path receives the same cash each year: what staying needs for its mortgage and carrying costs (unrecoverable cost plus principal).</li>
-          <li>Selling and renting, and downsizing, pay their own housing costs first from after-tax portfolio withdrawals (per the withdrawal setting, never more than the housing cost), then from that contribution, and invest the rest. A shortfall is drawn from the portfolio.</li>
-          <li>The &ldquo;Equal cash contributions&rdquo; tab shows the final net worth of all three paths on that footing, as a chart and a table.</li>
+          <li>
+            Every path receives the same cash each year: what staying needs for its mortgage and
+            carrying costs (unrecoverable cost plus principal).
+          </li>
+          <li>
+            Selling and renting, and downsizing, pay their own housing costs first from after-tax
+            portfolio withdrawals (per the withdrawal setting, never more than the housing cost),
+            then from that contribution, and invest the rest. A shortfall is drawn from the
+            portfolio.
+          </li>
+          <li>
+            The &ldquo;Equal cash contributions&rdquo; tab shows the final net worth of all three
+            paths on that footing, as a chart and a table.
+          </li>
         </ul>
 
         <h3>Pure net worth</h3>
         <ul>
-          <li>The <strong>Pure net worth</strong> result answers &ldquo;what is each path worth at the end if the portfolio pays its own way?&rdquo; Withdrawals are taken out of the portfolio and spent, and the sell and downsize paths get no yearly credit for the cash-flow difference against owning. Staying is unchanged. Unlike the Net worth result, it makes no equal-cash-contribution assumption.</li>
+          <li>
+            The <strong>Pure net worth</strong> result answers &ldquo;what is each path worth at the
+            end if the portfolio pays its own way?&rdquo; Withdrawals are taken out of the portfolio
+            and spent, and the sell and downsize paths get no yearly credit for the cash-flow
+            difference against owning. Staying is unchanged. Unlike the Net worth result, it makes
+            no equal-cash-contribution assumption.
+          </li>
         </ul>
 
         <h3>Cash flow and net worth are different lenses</h3>
         <ul>
-          <li><strong>Net worth measures wealth; cash flow measures liquidity.</strong> The cash-flow outputs show what leaves your pocket each month. They are not a second cost chart, so do not add them to the unrecoverable costs.</li>
-          <li><strong>Principal payments are cash out but not a cost.</strong> They build equity you get back when you sell, so counting them as a cost as well would count the same money twice.</li>
+          <li>
+            <strong>Net worth measures wealth; cash flow measures liquidity.</strong> The cash-flow
+            outputs show what leaves your pocket each month. They are not a second cost chart, so do
+            not add them to the unrecoverable costs.
+          </li>
+          <li>
+            <strong>Principal payments are cash out but not a cost.</strong> They build equity you
+            get back when you sell, so counting them as a cost as well would count the same money
+            twice.
+          </li>
           <li><strong>Rent is fully unrecoverable.</strong> Nothing comes back from it.</li>
-          <li><strong>Withdrawals applied to housing are the house paying for itself.</strong> Equity you freed up by selling is converted into an income stream that covers the housing bill.</li>
-          <li><strong>Staying converts income into equity; selling converts equity into income.</strong> Owning turns monthly cash into home equity, and selling turns home equity into investments that can pay out monthly.</li>
+          <li>
+            <strong>Withdrawals applied to housing are the house paying for itself.</strong> Equity
+            you freed up by selling is converted into an income stream that covers the housing bill.
+          </li>
+          <li>
+            <strong
+              >Staying converts income into equity; selling converts equity into income.</strong
+            >
+            Owning turns monthly cash into home equity, and selling turns home equity into
+            investments that can pay out monthly.
+          </li>
         </ul>
 
         <h3>Downsize</h3>
         <ul>
-          <li>The home is sold with the same net proceeds as the sell path, and the moving costs are taken out of them. The new home costs its price plus buying costs (a percentage of the price). What happens next depends on the &ldquo;Use the proceeds from selling my current home to buy the new home&rdquo; checkbox, which is checked by default.</li>
-          <li><strong>Checked (proceeds used).</strong> The new home is funded in this order: first the net sale proceeds (after moving costs), then the new mortgage, then other savings. Amount invested at year 0 = net proceeds &minus; moving costs &minus; (new home price + buying costs &minus; new mortgage). If that is positive, it is invested. If it is negative, that amount is the <strong>shortfall</strong>: it is drawn from other savings, so the downsize path&rsquo;s invested capital starts negative. The page flags the shortfall in the downsize inputs and in the Investable cash section, and suggests a larger new mortgage as the alternative.</li>
-          <li><strong>Unchecked (proceeds not used).</strong> The purchase is not drawn from the sale proceeds. All the net proceeds less moving costs are invested at year 0, as in the sell path, and the new mortgage plus money from outside this model pay for the new home. There is no shortfall in this mode, and the outside money is not counted anywhere in the results.</li>
-          <li><strong>Negative starting capital.</strong> It is treated like any other investment balance: each year it grows at the same after-tax investment growth rate as the other paths (so the shortfall is charged the growth it would have earned), and each year&rsquo;s cash difference is added to it. Its net worth is that negative capital plus the new home&rsquo;s value after selling costs, capital gains tax and mortgage, so the shortfall reduces net worth. The investment income shown for it is also negative while capital is negative.</li>
-          <li><strong>Capping the purchase.</strong> Instead of &ldquo;as much as needed&rdquo;, you can cap what the purchase takes from the net proceeds at a dollar amount or a percentage of the net proceeds. The rest stays invested, and any part of the purchase the cap leaves uncovered is paid from outside funds (shown in the proceeds breakdown), which are not counted in the results.</li>
-          <li>The new home appreciates at the same rate as the old one, and its tax, insurance, maintenance and HOA dues grow at the same rates. The same deduction rules apply.</li>
-          <li>Each year it invests the stay path&rsquo;s cash outlay less its own (unrecoverable cost plus principal). Its net worth is the investment capital plus the new home&rsquo;s value less mortgage; in the final year the value is also net of selling costs and capital gains tax (cost basis is the price paid).</li>
+          <li>
+            The home is sold with the same net proceeds as the sell path, and the moving costs are
+            taken out of them. The new home costs its price plus buying costs (a percentage of the
+            price). What happens next depends on the &ldquo;Use the proceeds from selling my current
+            home to buy the new home&rdquo; checkbox, which is checked by default.
+          </li>
+          <li>
+            <strong>Checked (proceeds used).</strong> The new home is funded in this order: first
+            the net sale proceeds (after moving costs), then the new mortgage, then other savings.
+            Amount invested at year 0 = net proceeds &minus; moving costs &minus; (new home price +
+            buying costs &minus; new mortgage). If that is positive, it is invested. If it is
+            negative, that amount is the <strong>shortfall</strong>: it is drawn from other savings,
+            so the downsize path&rsquo;s invested capital starts negative. The page flags the
+            shortfall in the downsize inputs and in the Investable cash section, and suggests a
+            larger new mortgage as the alternative.
+          </li>
+          <li>
+            <strong>Unchecked (proceeds not used).</strong> The purchase is not drawn from the sale
+            proceeds. All the net proceeds less moving costs are invested at year 0, as in the sell
+            path, and the new mortgage plus money from outside this model pay for the new home.
+            There is no shortfall in this mode, and the outside money is not counted anywhere in the
+            results.
+          </li>
+          <li>
+            <strong>Negative starting capital.</strong> It is treated like any other investment
+            balance: each year it grows at the same after-tax investment growth rate as the other
+            paths (so the shortfall is charged the growth it would have earned), and each
+            year&rsquo;s cash difference is added to it. Its net worth is that negative capital plus
+            the new home&rsquo;s value after selling costs, capital gains tax and mortgage, so the
+            shortfall reduces net worth. The investment income shown for it is also negative while
+            capital is negative.
+          </li>
+          <li>
+            <strong>Capping the purchase.</strong> Instead of &ldquo;as much as needed&rdquo;, you
+            can cap what the purchase takes from the net proceeds at a dollar amount or a percentage
+            of the net proceeds. The rest stays invested, and any part of the purchase the cap
+            leaves uncovered is paid from outside funds (shown in the proceeds breakdown), which are
+            not counted in the results.
+          </li>
+          <li>
+            The new home appreciates at the same rate as the old one, and its tax, insurance,
+            maintenance and HOA dues grow at the same rates. The same deduction rules apply.
+          </li>
+          <li>
+            Each year it invests the stay path&rsquo;s cash outlay less its own (unrecoverable cost
+            plus principal). Its net worth is the investment capital plus the new home&rsquo;s value
+            less mortgage; in the final year the value is also net of selling costs and capital
+            gains tax (cost basis is the price paid).
+          </li>
         </ul>
 
         <h3>Nominal or real dollars</h3>
         <ul>
-          <li>By default every figure is <strong>nominal</strong>: the dollars you would see in that year. Choose &ldquo;Today&rsquo;s dollars&rdquo; to divide each year&rsquo;s amounts by (1 + inflation)<sup>year</sup>. Year 0 is unchanged.</li>
-          <li>Inflation is used only for that restatement. It does not change any growth rate you enter.</li>
+          <li>
+            By default every figure is <strong>nominal</strong>: the dollars you would see in that
+            year. Choose &ldquo;Today&rsquo;s dollars&rdquo; to divide each year&rsquo;s amounts by
+            (1 + inflation)<sup>year</sup>. Year 0 is unchanged.
+          </li>
+          <li>
+            Inflation is used only for that restatement. It does not change any growth rate you
+            enter.
+          </li>
         </ul>
 
         <h3>What is not modelled</h3>
         <ul>
-          <li>Taxes beyond those described above: investment and withdrawal taxes are the flat rates you enter, and the alternative minimum tax and future changes in tax law are ignored.</li>
-          <li>Rates, returns and appreciation that vary from year to year. Every rate is a constant for the whole horizon.</li>
-          <li>Financing costs of a new mortgage beyond the buying costs you enter, and any benefit of owning that is not money, such as stability or the ability to modify your home.</li>
+          <li>
+            Taxes beyond those described above: investment and withdrawal taxes are the flat rates
+            you enter, and the alternative minimum tax and future changes in tax law are ignored.
+          </li>
+          <li>
+            Rates, returns and appreciation that vary from year to year. Every rate is a constant
+            for the whole horizon.
+          </li>
+          <li>
+            Financing costs of a new mortgage beyond the buying costs you enter, and any benefit of
+            owning that is not money, such as stability or the ability to modify your home.
+          </li>
         </ul>
       </details>
     </section>
-    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real results will differ. It is not tax, legal, investment or financial advice; talk to a qualified professional before making a decision about your home.</p>
+    <p class="disclaimer">
+      <strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and
+      simplifications described above. Real results will differ. It is not tax, legal, investment or
+      financial advice; talk to a qualified professional before making a decision about your home.
+    </p>
     <footer class="site-footer">
-      <p>Everything runs in your browser. Nothing is sent anywhere; saved scenarios and your current inputs stay in this browser, and are also kept in the page address so you can bookmark or share a link.</p>
-      <p><a href="https://app.tablation.com/v/6JRkFg" target="_blank" rel="noopener">Send feedback or ask for an enhancement</a></p>
+      <p>
+        Everything runs in your browser. Nothing is sent anywhere; saved scenarios and your current
+        inputs stay in this browser, and are also kept in the page address so you can bookmark or
+        share a link.
+      </p>
+      <p>
+        <a href="https://app.tablation.com/v/6JRkFg" target="_blank" rel="noopener"
+          >Send feedback or ask for an enhancement</a
+        >
+      </p>
     </footer>
   </body>
 </html>

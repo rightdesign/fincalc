@@ -7,9 +7,10 @@ import { winner } from './format.js';
 // Every answer quotes the numbers on the page right now, so each is built from the inputs and the result.
 export function faqItems({ v, r, final, label, span }) {
   const paper = v.view === 'unrealized';
-  const stay = r.breakEven == null
-    ? `Owning does not pull ahead within your ${span}.`
-    : `On your inputs owning pulls ahead in ${monthPoint(r.breakEvenMonth)}, and your stay is ${span}.`;
+  const stay =
+    r.breakEven == null
+      ? `Owning does not pull ahead within your ${span}.`
+      : `On your inputs owning pulls ahead in ${monthPoint(r.breakEvenMonth)}, and your stay is ${span}.`;
   const tiePrice = solveBreakEven(v, 'price');
   const tieRent = solveBreakEven(v, 'rent');
   const share = ((v.rent * 12) / v.price) * 100;
@@ -53,15 +54,39 @@ export function faqItems({ v, r, final, label, span }) {
 
 // Sources the model leans on. Dates say when the figures were last checked against them.
 export const FAQ_SOURCES = [
-  { name: 'Freddie Mac Primary Mortgage Market Survey (default mortgage rate)', url: 'https://www.freddiemac.com/pmms', asOf: 'November 2026' },
-  { name: 'IRS Publication 523, Selling Your Home (the $250,000 / $500,000 gain exclusion and two-year test)', url: 'https://www.irs.gov/publications/p523', asOf: 'November 2026' },
-  { name: 'HUD FHA Single Family Housing Policy Handbook 4000.1 (FHA mortgage insurance premiums)', url: 'https://www.hud.gov/hud-partners/single-family-handbook-4000-1', asOf: 'November 2026' },
-  { name: 'VA funding fee table (VA loan funding fee)', url: 'https://www.va.gov/housing-assistance/home-loans/funding-fee-and-closing-costs/', asOf: 'November 2026' },
-  { name: 'Zillow Research (rent and home value context for your metro)', url: 'https://www.zillow.com/research/', asOf: 'November 2026' },
+  {
+    name: 'Freddie Mac Primary Mortgage Market Survey (default mortgage rate)',
+    url: 'https://www.freddiemac.com/pmms',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'IRS Publication 523, Selling Your Home (the $250,000 / $500,000 gain exclusion and two-year test)',
+    url: 'https://www.irs.gov/publications/p523',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'HUD FHA Single Family Housing Policy Handbook 4000.1 (FHA mortgage insurance premiums)',
+    url: 'https://www.hud.gov/hud-partners/single-family-handbook-4000-1',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'VA funding fee table (VA loan funding fee)',
+    url: 'https://www.va.gov/housing-assistance/home-loans/funding-fee-and-closing-costs/',
+    asOf: 'November 2026',
+  },
+  {
+    name: 'Zillow Research (rent and home value context for your metro)',
+    url: 'https://www.zillow.com/research/',
+    asOf: 'November 2026',
+  },
 ];
 
 export function faqCard(ctx) {
-  const items = faqItems(ctx).map((i) => `<details><summary>${i.q}</summary><p>${i.a}</p></details>`).join('');
-  const sources = FAQ_SOURCES.map((s) => `<li><a href="${s.url}" rel="noopener">${s.name}</a>, as of ${s.asOf}</li>`).join('');
+  const items = faqItems(ctx)
+    .map((i) => `<details><summary>${i.q}</summary><p>${i.a}</p></details>`)
+    .join('');
+  const sources = FAQ_SOURCES.map(
+    (s) => `<li><a href="${s.url}" rel="noopener">${s.name}</a>, as of ${s.asOf}</li>`,
+  ).join('');
   return `<section class="card ro-faq"><h2>Frequently asked questions</h2>${items}<h3>Sources</h3><ul>${sources}</ul></section>`;
 }

@@ -10,8 +10,18 @@ export function mortgageRows(r) {
     const interest = r0(m.interest);
     const payment = r0(m.interest + m.principal);
     const principal = payment - interest;
-    const other = r0(m.tax) + r0(m.insurance) + r0(m.pmi) + r0(m.maintenance) + r0(m.hoa) + r0(m.utilities);
-    return { year: m.year, payment, interest, principal, other, paid: payment + other, balance: r.yearEndBalances[i] ?? 0, paidOff: payment === 0 };
+    const other =
+      r0(m.tax) + r0(m.insurance) + r0(m.pmi) + r0(m.maintenance) + r0(m.hoa) + r0(m.utilities);
+    return {
+      year: m.year,
+      payment,
+      interest,
+      principal,
+      other,
+      paid: payment + other,
+      balance: r.yearEndBalances[i] ?? 0,
+      paidOff: payment === 0,
+    };
   });
 }
 
@@ -20,7 +30,12 @@ export function mortgageCard({ v, r }) {
   const arm = v.arm === 1;
   const first = rows[0];
   const terms = `${arm ? `${v.armRate}% ARM` : `${v.rate}%`} · ${word(v.term, 'yr')}`;
-  const body = rows.map((x) => `<tr><th scope="row">${x.year}</th>${x.paidOff ? `<td colspan="3">Paid off</td>` : `<td>${money(x.payment)}</td><td>${money(x.interest)}</td><td>${money(x.principal)}</td>`}<td>${money(x.other)}</td><td><strong>${money(x.paid)}</strong></td><td>${money(x.balance)}</td></tr>`).join('');
+  const body = rows
+    .map(
+      (x) =>
+        `<tr><th scope="row">${x.year}</th>${x.paidOff ? `<td colspan="3">Paid off</td>` : `<td>${money(x.payment)}</td><td>${money(x.interest)}</td><td>${money(x.principal)}</td>`}<td>${money(x.other)}</td><td><strong>${money(x.paid)}</strong></td><td>${money(x.balance)}</td></tr>`,
+    )
+    .join('');
   return `<div class="card ro-mortgage-card"><h3>Your mortgage</h3>
       <dl class="ro-mortgage-facts">
         <div><dt>Loan amount</dt><dd>${money(r.program.loan)}</dd></div>
