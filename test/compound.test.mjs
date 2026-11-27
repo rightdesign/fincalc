@@ -45,7 +45,7 @@ test('encode keeps only changed values and round-trips; bad input falls back to 
 
 test('validation and presets', () => {
   assert.deepEqual(invalidCompound(compoundDefaults()), []);
-  assert.deepEqual(invalidCompound({ ...compoundDefaults(), years: 2.5, rate: NaN }), ['Annual return (%)', 'Years']);
+  assert.deepEqual(invalidCompound({ ...compoundDefaults(), years: 2.5, rate: NaN }), ['Years', 'Annual return (%)']);
   for (const p of COMPOUND_PRESETS) assert.deepEqual(invalidCompound({ ...compoundDefaults(), ...p.values }), [], p.id);
 });
 
@@ -303,11 +303,11 @@ test('contribute for: link round-trip, follows Years when absent, held to Years,
   const d = modelDefaults();
   assert.equal(encodeCompound({ ...d, contributeYears: 10 }), 'contributeYears=10');
   assert.equal(decodeCompound('#contributeYears=10').contributeYears, 10);
-  assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'contributeYears=20&years=20');
+  assert.equal(encodeCompound({ ...d, years: 20, contributeYears: 20 }), 'years=20&contributeYears=20');
   assert.equal(decodeCompound('#years=26&contributeYears=26').contributeYears, 26);
   assert.equal(decodeCompound('#years=30&contributeYears=26').contributeYears, 26);
   const long = { ...d, years: 40, contributeYears: 30 };
-  assert.equal(encodeCompound(long), 'contributeYears=30&years=40');
+  assert.equal(encodeCompound(long), 'years=40&contributeYears=30');
   assert.deepEqual(decodeCompound('#' + encodeCompound(long)), long);
   assert.equal(encodeCompound({ ...d }), '');
   assert.equal(decodeCompound('#years=20').contributeYears, 20);
@@ -562,6 +562,15 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
+});
+
+test('Basics come first, then the advanced inputs, and advancedChanged names what differs from default', async () => {
+  const { COMPOUND_FIELDS, advancedChanged, compoundDefaults } = await import('../site/compound.js');
+  assert.deepEqual(COMPOUND_FIELDS.filter((f) => !f.advanced).map((f) => f.id), ['start', 'monthly', 'years', 'rate']);
+  const v = compoundDefaults();
+  assert.deepEqual(advancedChanged(v), []);
+  assert.deepEqual(advancedChanged({ ...v, years: 20, contributeYears: 20 }), []);
+  assert.deepEqual(advancedChanged({ ...v, contributeYears: 10, stepUp: 3.5, timing: 'start' }), ['Contribute for (years)', 'Increase contribution each year (%)', 'Contributions made']);
 });
 
 test('growthRates steps the effective rate down for tax, then inflation in today\'s dollars', () => {

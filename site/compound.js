@@ -26,53 +26,59 @@ export const DIVIDEND_YIELD = 2;
 export const COMPOUND_FIELDS = [
   { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 10000000, step: 1000, curve: 2 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
   { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 100000, step: 50, curve: 2 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
-  { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
-  { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
+  { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: MAX_YEARS, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
+  { id: 'contributeYears', advanced: true, label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
+  { id: 'stepUp', advanced: true, label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
   {
-    id: 'withdrawMode', label: 'Withdraw', kind: 'choice', default: 'amount',
+    id: 'withdrawMode', advanced: true, label: 'Withdraw', kind: 'choice', default: 'amount',
     hint: 'A fixed dollar amount each time, a percent of the balance at the moment of each withdrawal, or a percent of the interest earned since the previous withdrawal (nothing is taken if that interest is negative). The amount below is used for the fixed mode; the percent below for the other two.',
     options: [{ value: 'amount', label: 'A fixed amount' }, { value: 'percentBalance', label: 'A percent of the balance' }, { value: 'percentEarnings', label: 'A percent of the earnings' }],
   },
-  { id: 'withdrawal', label: 'Withdrawal amount', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. The fixed amount you take out each time, at the same point in the month as contributions (set below). How often is set by Withdraw every. Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match. Only used when Withdraw is a fixed amount.' },
-  { id: 'withdrawPercent', label: 'Withdrawal percent (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.1 }, hint: 'The percent taken each time when Withdraw is a percent of the balance or of the earnings (0-100). Remember it applies to every withdrawal, so 1% a month is far more than 1% a year. Only used for those two modes.' },
+  { id: 'withdrawal', advanced: true, label: 'Withdrawal amount', kind: 'money', default: 0, slider: { min: 0, max: 5000, step: 50 }, hint: 'Optional. The fixed amount you take out each time, at the same point in the month as contributions (set below). How often is set by Withdraw every. Enter 0 for no withdrawals. It is capped at what is left, so the balance never goes below zero, and the results say when it runs out. To model saving first and spending later, set Contribute for and Start withdrawing to match. Only used when Withdraw is a fixed amount.' },
+  { id: 'withdrawPercent', advanced: true, label: 'Withdrawal percent (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.1 }, hint: 'The percent taken each time when Withdraw is a percent of the balance or of the earnings (0-100). Remember it applies to every withdrawal, so 1% a month is far more than 1% a year. Only used for those two modes.' },
   {
-    id: 'withdrawFreq', label: 'Withdraw every', kind: 'choice', default: 'monthly',
+    id: 'withdrawFreq', advanced: true, label: 'Withdraw every', kind: 'choice', default: 'monthly',
     hint: 'How often the withdrawal is taken. Quarterly, half-yearly and yearly withdrawals happen in the last month of each 3, 6 or 12 months (the first month of each when contributions are at the beginning of the month), counted from the start of year 1, and a withdrawal only happens once the start year is reached.',
     options: [{ value: 'monthly', label: 'Month' }, { value: 'quarterly', label: 'Quarter' }, { value: 'semiannually', label: 'Half year' }, { value: 'yearly', label: 'Year' }],
   },
-  { id: 'withdrawFrom', label: 'Start withdrawing in year', kind: 'years', default: 1, slider: { min: 1, max: 60, step: 1 }, hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.' },
-  { id: 'withdrawStep', label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises a fixed withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat. Not used for the percent modes.' },
+  { id: 'withdrawFrom', advanced: true, label: 'Start withdrawing in year', kind: 'years', default: 1, slider: { min: 1, max: 60, step: 1 }, hint: 'The year withdrawals begin (1 is the first year). Contributions and withdrawals can overlap. A year after the end of Years means no withdrawals are taken. Only used when the monthly withdrawal is above 0.' },
+  { id: 'withdrawStep', advanced: true, label: 'Increase withdrawal each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises a fixed withdrawal by this percent at the start of each year after the first withdrawal year, for example to keep up with inflation. 0 keeps it flat. Not used for the percent modes.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
-    id: 'rateBasis', label: 'Return is quoted as', kind: 'choice', default: 'effective',
+    id: 'rateBasis', advanced: true, label: 'Return is quoted as', kind: 'choice', default: 'effective',
     hint: 'Effective means the balance grows by exactly this percent over a year, however often interest is added: 9% turns $100 into $109. This is how long-run market returns are quoted. Nominal (APR) is the rate before compounding, as loans and CDs quote it: 9% compounded monthly adds 0.75% a month and grows 9.38% a year.',
     options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
   },
-  { id: 'variance', label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
-  { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: MAX_YEARS, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
+  { id: 'variance', advanced: true, label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
   {
-    id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
+    id: 'frequency', advanced: true, label: 'Compounding', kind: 'choice', default: 'monthly',
     hint: 'How often interest is added to the balance. An effective annual return grows by that percent over a year whatever you pick here; with a nominal rate, monthly adds one twelfth of the rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
     options: [{ value: 'annually', label: 'Annually' }, { value: 'semiannually', label: 'Semiannually' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'monthly', label: 'Monthly' }, { value: 'daily', label: 'Daily' }, { value: 'continuous', label: 'Continuously' }],
   },
   {
-    id: 'timing', label: 'Contributions made', kind: 'choice', default: 'end',
+    id: 'timing', advanced: true, label: 'Contributions made', kind: 'choice', default: 'end',
     hint: 'End of month: each contribution lands after that month\'s interest, so it starts earning the next month. Beginning of month: it lands first and earns interest for the whole month, worth about one extra month of growth per contribution.',
     options: [{ value: 'end', label: 'End of month' }, { value: 'start', label: 'Beginning of month' }],
   },
   {
-    id: 'accountType', label: 'Account type', kind: 'choice', default: 'interest',
+    id: 'accountType', advanced: true, label: 'Account type', kind: 'choice', default: 'interest',
     hint: 'How the money is taxed. Taxable, interest: each period\'s interest is taxed as it is earned (a savings account, CD or bonds). Tax-free: nothing is taxed (a Roth IRA). Tax-deferred: nothing is taxed until you withdraw, so the whole balance is taxed at the end (a 401(k) or traditional IRA). Taxable, stocks: a small yearly dividend (' + DIVIDEND_YIELD + '% of the balance) is taxed each year and the rest of the gain is taxed when you sell at the end. Results are the after-tax balance.',
     options: [{ value: 'interest', label: 'Taxable: interest' }, { value: 'stocks', label: 'Taxable: stocks' }, { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' }, { value: 'free', label: 'Tax-free (Roth)' }],
   },
-  { id: 'taxRate', label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
-  { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
+  { id: 'taxRate', advanced: true, label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
+  { id: 'inflation', advanced: true, label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
-    id: 'basis', label: 'Show results in', kind: 'choice', default: 'future',
+    id: 'basis', advanced: true, label: 'Show results in', kind: 'choice', default: 'future',
     hint: "Future dollars are the plain amounts you will see on the statement. Today's dollars restate the balance in what it could buy at today's prices.",
     options: [{ value: 'future', label: 'Future dollars' }, { value: 'today', label: "Today's dollars" }],
   },
 ];
+
+// The Advanced inputs whose value differs from its default (Contribute for is measured against Years,
+// which it follows), so the page can badge the disclosure when something hidden is changing the result.
+export function advancedChanged(v) {
+  return COMPOUND_FIELDS.filter((f) => f.advanced && v[f.id] !== (f.id === 'contributeYears' ? v.years : f.default)).map((f) => f.label);
+}
 
 // A curved slider is positions 0..SLIDER_STEPS mapped to min..max along a power curve.
 export const SLIDER_STEPS = 1000;

@@ -751,6 +751,12 @@ legend {
 .m-optional > summary, .collapse > summary { cursor: pointer; list-style: none; }
 .m-group-title, .group-title { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .m-optional .m-group-summary, .collapse .group-summary { float: none; margin-left: 0.5rem; }
+.m-advanced { margin-top: 0.75rem; }
+.m-advanced > summary { cursor: pointer; list-style: none; }
+.m-advanced > summary::-webkit-details-marker { display: none; }
+.m-advanced .m-group-summary { margin-left: 0.5rem; color: var(--muted); font-size: 0.85rem; }
+.m-badge { display: inline-block; padding: 0 0.5rem; border-radius: 1rem; background: var(--series-2); color: var(--bg); font-size: 0.75rem; font-weight: 600; }
+.m-badge[hidden] { display: none; }
 .m-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--series-2); }
 .m-dot[hidden] { display: none; }
 .m-optional-section h3 { margin: 1rem 0 0; font-size: 0.9rem; color: var(--muted); }

@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { COMPOUND_FIELDS, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -38,6 +38,12 @@ function setSlider(f, n) {
   s.title = over || under ? `The value is ${over ? 'above' : 'below'} this slider's range (${f.slider.min}–${f.slider.max}); the slider is held at its end.` : '';
   s.setAttribute('aria-valuetext', over || under ? `${n}, ${over ? 'above' : 'below'} the slider range` : String(n));
 }
+// The four inputs everyone needs sit in the group; the rest go under an Advanced disclosure.
+const advanced = document.createElement('details');
+advanced.className = 'm-advanced';
+advanced.innerHTML = '<summary><span class="m-group-title">Advanced</span> <span class="m-badge" id="compound-advanced-badge" hidden></span> <span class="m-group-summary">Contribution length and step-up, return range, compounding, tax, inflation</span></summary>';
+const advancedBadge = advanced.querySelector('#compound-advanced-badge');
+group.insertBefore(advanced, presetsLabel);
 // "Contribute for" follows Years until the user sets it shorter; it never runs past Years.
 let follow = true;
 for (const f of COMPOUND_FIELDS) {
@@ -94,7 +100,7 @@ for (const f of COMPOUND_FIELDS) {
     input.setAttribute('aria-describedby', tip.id);
     label.append(tip);
   }
-  group.insertBefore(label, presetsLabel);
+  if (f.advanced) advanced.append(label); else group.insertBefore(label, advanced);
 }
 
 function markFollow() {
@@ -204,6 +210,10 @@ function render() {
     const p = COMPOUND_PRESETS.find((x) => x.id === b.dataset.preset);
     b.setAttribute('aria-pressed', String(Object.keys(p.values).every((id) => p.values[id] === v[id])));
   }
+  const changed = advancedChanged(v);
+  advancedBadge.hidden = !changed.length;
+  advancedBadge.textContent = `${changed.length} changed`;
+  advancedBadge.title = `Changed from the default: ${changed.join(', ')}`;
   const bad = invalidCompound(v);
   if (bad.length) {
     hero.innerHTML = '';
@@ -346,6 +356,7 @@ let stored = '';
 try { stored = localStorage.getItem(COMPOUND_INPUTS_KEY) ?? ''; } catch { /* storage unavailable */ }
 writeValues(decodeCompound(location.hash.length > 1 ? location.hash : stored));
 render();
+advanced.open = !advancedBadge.hidden;
 
 window.addEventListener('hashchange', () => {
   if (location.hash.length > 1) { writeValues(decodeCompound(location.hash)); render(); }
