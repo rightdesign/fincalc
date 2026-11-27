@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.129.0] — 2026-11-27
+
+- FINC-226 Compound interest now accepts weekly, biweekly, semimonthly, monthly, quarterly or yearly contributions, plus an optional annual lump sum with its own yearly increase.
+
 ## [0.128.0] — 2026-11-27
 
 - FINC-224 Compound interest results now break the final balance into starting balance, contributions, interest on the starting balance and interest on the contributions; with withdrawals, the contributions part is net of them.
