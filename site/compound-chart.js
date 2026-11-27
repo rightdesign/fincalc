@@ -59,7 +59,7 @@ export function axisLabel(n) {
 export function chartKeyHtml(band, basis) {
   const item = (cls, text) => `<li><span class="cc-swatch ${cls}" aria-hidden="true"></span>${escape(text)}</li>`;
   const entries = item('cc-sw-put', 'What you put in') + item('cc-sw-int', 'Interest earned')
-    + (band && band.lowRate !== undefined ? item('cc-sw-band', `Range at ${band.lowRate}%\u2013${band.highRate}% return`) : band ? item('cc-sw-band', 'Range of returns') : '');
+    + (band && band.label ? item('cc-sw-band', `Range: ${band.label}`) : band && band.lowRate !== undefined ? item('cc-sw-band', `Range at ${band.lowRate}%\u2013${band.highRate}% return`) : band ? item('cc-sw-band', 'Range of returns') : '');
   const btn = (value, label) => `<button type="button" class="ghost" data-basis="${value}" aria-pressed="${basis === value}">${label}</button>`;
   const toggle = basis === null ? '' : `<div class="cc-basis no-print" role="group" aria-label="Show chart in">${btn('future', 'Future dollars')}${btn('today', "Today's dollars")}</div>`;
   return `<div class="cc-key"><ul class="cc-legend">${entries}</ul>${toggle}</div>`;
@@ -145,7 +145,7 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null, target =
   const xy = rows.map((r) => ({ year: r.year, x: sx(r.year) / W, y: sy(r.balance) / H }));
   const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${yearLabel(cross)}.`;
   const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
-  const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${yearLabel(last.year)}.` : '';
+  const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the ${band.label ? '10th percentile' : 'lower return'} to ${fmt(band.high[band.high.length - 1].balance)} at the ${band.label ? '90th percentile' : 'higher return'} in year ${yearLabel(last.year)}.` : '';
   const targetText = target === null ? '' : ` A dashed line marks your goal of ${fmt(target)}, which the balance ${last.balance >= target ? 'reaches' : 'does not reach'} by year ${yearLabel(last.year)}.`;
   const description = `Stacked area chart over ${monthsText(Math.round(last.year * 12))}. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${yearLabel(last.year)}. ${crossText}${stopText}${bandText}${targetText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure">${chartKeyHtml(band, basis)}<div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;

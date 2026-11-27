@@ -36,6 +36,7 @@ export const LIMITS = {
   withdrawFrom: { min: 1, max: MAX_YEARS },
   withdrawPercent: { min: 0, max: 100 },
   variance: { min: 0, max: 15 },
+  volatility: { min: 0, max: 40 },
   inflation: { min: -10, max: 30 },
   fee: { min: 0, max: 10 },
 };
@@ -84,6 +85,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
   },
   { id: 'variance', advanced: true, label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
+  { id: 'volatility', advanced: true, label: 'Volatility (std. deviation, % per year)', kind: 'percent', default: 0, slider: { min: 0, max: 30, step: 1 }, hint: 'Optional. How much the return swings from year to year (about 15 for a stock-heavy mix, 5 for bonds). Above 0, the page runs 2,000 simulated market histories and shades the 10th to 90th percentile range of balances on the chart. 0 turns it off.' },
   { id: 'target', advanced: true, label: 'Target balance (optional)', kind: 'money', default: 0, slider: { min: 0, max: 5000000, step: 50000 }, hint: "A balance you want to reach by the end of Years, in the dollars the results are shown in (set Show results in to Today's dollars to name a goal in today's buying power). Leave at 0 to skip it. When set, the page shows the contribution, the years and the return needed to reach it, changing one thing at a time, and marks the target on the chart." },
   {
     id: 'frequency', advanced: true, label: 'Compounding', kind: 'choice', default: 'monthly',
@@ -265,9 +267,11 @@ export function doubleTileText(v) {
 // month) that joins the balance when the period ends. A term that is not a whole number of years
 // ends with a partial final row (its year is fractional); deposits that fall after the end of the term
 // are not made, and a compounding period cut short by the end of the term earns pro rata.
-export function simulateCompound(v) {
+// rateAt, when given, is a function from the year (1-based) to that year's stated return in percent,
+// used by the market simulation; otherwise every year earns v.rate.
+export function simulateCompound(v, rateAt = null) {
   const k = PERIODS_PER_YEAR[v.frequency];
-  const r = nominalRate(v.rate / 100, k, v.rateBasis);
+  let r = nominalRate(v.rate / 100, k, v.rateBasis);
   const keep = 1 - interestTax(v) / 100;
   const type = v.accountType ?? 'interest';
   const t = (v.taxRate ?? 0) / 100;
@@ -282,8 +286,8 @@ export function simulateCompound(v) {
   const n = CONTRIB_PERIODS[v.contribFrequency] ?? 12;
   // Interest rate earned over one month when compounding at least monthly.
   // The tax comes off each period's interest, so for k >= 12 it scales the rate itself.
-  const rm = r * keep;
-  const monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
+  let rm = r * keep;
+  let monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
   const slots = k >= 12 ? 12 : k;
   // Where a deposit at fraction t of the year falls: its slot, and how far into it (0..1).
   const place = (t) => {
@@ -319,6 +323,11 @@ export function simulateCompound(v) {
   const pushMonth = (y, m, contributions, withdrawals, interest, bal, paid, paidOut) => months.push({ month: (y - 1) * 12 + m, year: y, contributions, withdrawals, interest, balance: bal, totalContributed: paid, totalWithdrawn: paidOut, totalInterest: bal - paid + paidOut });
   const rows = Math.ceil(term / 12);
   for (let y = 1; y <= rows; y++) {
+    if (rateAt) {
+      r = nominalRate(rateAt(y) / 100, k, v.rateBasis);
+      rm = r * keep;
+      monthRate = k === 12 ? rm / 12 : k === Infinity ? Math.expm1(rm / 12) : (1 + rm / k) ** (k / 12) - 1;
+    }
     let interest = 0;
     let added = 0;
     let fees = 0;
@@ -488,6 +497,59 @@ export function returnRange(v) {
   const lowRate = Math.max(LIMITS.rate.min, v.rate - v.variance);
   const highRate = v.rate + v.variance;
   return { lowRate, highRate, low: run(lowRate), high: run(highRate) };
+}
+
+export const SIM_RUNS = 2000;
+export const SIM_PERCENTILES = [10, 50, 90];
+
+// Small seeded generator (mulberry32), so the same inputs always draw the same market histories.
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Standard normal draws (Box-Muller) from a uniform source.
+function normalDraws(rand) {
+  return () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
+}
+
+// Market simulation: the plan run SIM_RUNS times with a random return each year. A year's growth is
+// (1 + return) x exp(volatility x Z - volatility^2 / 2) with Z a standard normal, so the average growth
+// stays at the stated return, a year can lose money but never more than all of it, and the order of good
+// and bad years matters. Returns the 10th, 50th and 90th percentile balance of each year, in the dollars
+// the results are shown in (low, mid and high are { years } shaped like simulateCompound's output), and
+// null when no volatility is set.
+export function marketSimulation(v, runs = SIM_RUNS) {
+  if (!(v.volatility > 0)) return null;
+  const sigma = v.volatility / 100;
+  const draw = normalDraws(seededRandom(20240229));
+  const today = v.basis === 'today';
+  const paths = [];
+  for (let i = 0; i < runs; i++) {
+    const rates = [];
+    const r = simulateCompound(v, (y) => {
+      while (rates.length < y) rates.push(100 * ((1 + v.rate / 100) * Math.exp(sigma * draw() - (sigma * sigma) / 2) - 1));
+      return rates[y - 1];
+    });
+    paths.push((today ? inTodaysDollars(r, v.inflation) : r).years.map((y) => y.balance));
+  }
+  const pick = (p) => {
+    return paths[0].map((_, y) => {
+      const col = paths.map((path) => path[y]).sort((a, b) => a - b);
+      return col[Math.min(col.length - 1, Math.floor((p / 100) * col.length))];
+    });
+  };
+  const plain = simulateCompound(v);
+  const base = today ? inTodaysDollars(plain, v.inflation) : plain;
+  const shape = (balances) => ({ years: base.years.map((row, i) => ({ ...row, balance: balances[i] })) });
+  const [low, mid, high] = SIM_PERCENTILES.map((p) => pick(p));
+  return { runs, volatility: v.volatility, low: shape(low), mid: shape(mid), high: shape(high), lowBalance: low[low.length - 1], midBalance: mid[mid.length - 1], highBalance: high[high.length - 1] };
 }
 
 export const WAIT_YEARS = 10;

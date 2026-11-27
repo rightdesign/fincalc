@@ -565,6 +565,44 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });
 
+import { marketSimulation as _market } from '../site/compound.js';
+
+test('marketSimulation is null without volatility and gives an ordered, repeatable band with it', () => {
+  const v = _def();
+  assert.equal(_market(v), null);
+  const m = _market({ ...v, volatility: 15 }, 300);
+  const again = _market({ ...v, volatility: 15 }, 300);
+  assert.equal(m.midBalance, again.midBalance);
+  assert.ok(m.lowBalance < m.midBalance && m.midBalance < m.highBalance);
+  assert.equal(m.low.years.length, v.years);
+  for (let i = 0; i < v.years; i++) assert.ok(m.low.years[i].balance <= m.high.years[i].balance);
+  const base = _sim(v).futureValue;
+  assert.ok(m.lowBalance < base && base < m.highBalance);
+});
+
+test('a tiny volatility collapses the simulation onto the steady plan, and today\'s dollars are restated', () => {
+  const v = { ..._def(), volatility: 0.001 };
+  const m = _market(v, 50);
+  assert.ok(Math.abs(m.midBalance - _sim(_def()).futureValue) / m.midBalance < 0.001);
+  const t = _market({ ...v, basis: 'today', inflation: 3 }, 50);
+  assert.ok(Math.abs(t.midBalance - m.midBalance / 1.03 ** v.years) / t.midBalance < 0.001);
+});
+
+test('volatility is limited to 0..40 and round-trips through the link', () => {
+  assert.deepEqual(invalidCompound({ ..._def(), volatility: 41 }), ['Volatility (std. deviation, % per year)']);
+  assert.equal(_dec(_enc({ ..._def(), volatility: 12 })).volatility, 12);
+  assert.ok(!_enc(_def()).includes('volatility'));
+});
+
+test('chart labels a simulation band by percentile', () => {
+  const v = _def();
+  const rows = _sim(v).years;
+  const m = _market({ ...v, volatility: 15 }, 50);
+  const html = _chart(rows, (n) => `$${Math.round(n)}`, { low: m.low.years, high: m.high.years, label: '10th to 90th percentile' });
+  assert.match(html, /10th percentile/);
+  assert.match(html, /cc-band/);
+});
+
 test('goal seek: each answer reaches the target and a smaller step does not', () => {
   const v = { ...modelDefaults(), target: 2000000, years: 26, contributeYears: 26 };
   const g = solveGoal(v);

@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { contribUnit, contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, feeEffect, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, solveGoal, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { contribUnit, contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, feeEffect, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, marketSimulation, simulateCompound, solveGoal, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -268,6 +268,8 @@ function render() {
   const feeNote = fee ? `<p class="m-strip" id="compound-fees">With ${v.fee}% annual fees the balance after ${monthsText(termMonths(v))} is <strong>${money(r.futureValue)}</strong>${unit}, <strong>${money(fee.gap)}</strong> less than the ${money(fee.futureValue)} you would have with no fees. Fees charged along the way total ${money(fee.paid)}${unit}; the rest of the gap is the growth that money would have earned.</p>` : '';
   const range = returnRange(v);
   const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${monthsText(termMonths(v))} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
+  const sim = marketSimulation(v);
+  const simNote = sim ? `<p class="m-strip" id="compound-sim">With returns that swing ${sim.volatility} points a year around ${v.rate}% (${sim.runs.toLocaleString('en-US')} simulated market histories), the balance after ${monthsText(termMonths(v))} is <strong>${money(sim.midBalance)}</strong> in the middle. Nine in ten histories end above <strong>${money(sim.lowBalance)}</strong> and one in ten ends above <strong>${money(sim.highBalance)}</strong>${unit}. The shaded band on the chart runs from the 10th to the 90th percentile.</p>` : '';
   const goal = goalPanel(v, solveGoal(v), unit);
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
@@ -302,8 +304,8 @@ function render() {
       <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of period' : 'Beginning of period', fx.timing.alt === 'end' ? 'End of period' : 'Beginning of period', fx.timing)}${feeRow}</tbody></table></div>
     ${feeNote}
     ${goal}
-    ${rangeNote}
-    <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis, v.target > 0 ? v.target : null)}</div>
+    ${sim ? simNote : rangeNote}
+    <div class="m-panelbox">${compoundChartHtml(r.years, money, sim ? { low: sim.low.years, high: sim.high.years, label: '10th to 90th percentile' } : range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis, v.target > 0 ? v.target : null)}</div>
     <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}. The changes cost different amounts, so compare each gain with the extra you put in.</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${monthsText(termMonths(v))}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
