@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -242,6 +242,12 @@ function render() {
   const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${v.years} year${v.years === 1 ? '' : 's'} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
+  const bd = balanceBreakdown(v, today ? v.inflation : null);
+  const parts = [['Starting balance', bd.start, 1], [bd.withdrawn ? 'Contributions, net of withdrawals' : 'Monthly contributions', bd.contributions, 2], ['Interest on starting balance', bd.startInterest, 3], ['Interest on contributions', bd.contributionInterest, 4]];
+  const barOk = parts.every(([, n]) => n >= -0.005) && bd.total > 0;
+  const breakdown = `<div class="m-panelbox m-breakdown" id="compound-breakdown"><h3>Where the final balance comes from${unit}</h3>
+      ${barOk ? `<div class="m-bar" role="img" aria-label="${parts.map(([n, a]) => `${n} ${money(a)}`).join(', ')}">${parts.map(([n, a, i]) => `<span class="m-bar-${i}" style="flex-grow:${Math.max(a, 0)}"></span>`).join('')}</div>` : ''}
+      <ul class="m-legend">${parts.map(([n, a, i]) => `<li><span class="m-swatch m-bar-${i}" aria-hidden="true"></span>${n}: <strong>${money(a)}</strong>${barOk ? ` (${Math.round((a / bd.total) * 100)}%)` : ''}</li>`).join('')}</ul></div>`;
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
   const c = compareStartingLater(v);
   const compare = withdrawsOn(v) ? '' : c ? `
@@ -261,6 +267,7 @@ function render() {
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? `${v.stepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : (taking ? 'All interest earned, including what was withdrawn' : `${share}% of the final balance`)}</p></div>
     </div>
+    ${breakdown}
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
       <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of month' : 'Beginning of month', fx.timing.alt === 'end' ? 'End of month' : 'Beginning of month', fx.timing)}</tbody></table></div>

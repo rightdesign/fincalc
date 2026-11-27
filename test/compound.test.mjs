@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -565,6 +565,24 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });
 
+test('balance breakdown: four parts add to the final balance and match a hand calculation', () => {
+  const v = { start: 10000, monthly: 500, rate: 7, years: 30, frequency: 'monthly', rateBasis: 'nominal', timing: 'end', stepUp: 0, taxRate: 0 };
+  const b = balanceBreakdown(v);
+  const r = simulateCompound(v);
+  assert.ok(Math.abs(b.start + b.contributions + b.startInterest + b.contributionInterest - r.futureValue) < 1e-6);
+  assert.equal(b.start, 10000);
+  assert.equal(b.contributions, 180000);
+  assert.ok(Math.abs(b.startInterest - (10000 * (1 + 0.07 / 12) ** 360 - 10000)) < 1e-6);
+});
+
+test('balance breakdown in today\'s dollars adds to the deflated balance and can go negative', () => {
+  const v = { start: 10000, monthly: 200, rate: 1, years: 20, frequency: 'monthly', rateBasis: 'nominal', timing: 'end', stepUp: 0, taxRate: 0 };
+  const b = balanceBreakdown(v, 5);
+  assert.ok(Math.abs(b.start + b.contributions + b.startInterest + b.contributionInterest - b.total) < 1e-6);
+  assert.ok(Math.abs(b.total - simulateCompound(v).futureValue / 1.05 ** 20) < 1e-6);
+  assert.ok(b.startInterest < 0);
+});
+
 test('Basics come first, then the advanced inputs, and advancedChanged names what differs from default', async () => {
   const { COMPOUND_FIELDS, advancedChanged, compoundDefaults } = await import('../site/compound.js');
   assert.deepEqual(COMPOUND_FIELDS.filter((f) => !f.advanced).map((f) => f.id), ['start', 'monthly', 'years', 'rate']);
@@ -739,6 +757,17 @@ test('compound chart has a legend entry for the return range, labels the band en
   const plain = compoundChartHtml(years, fmt);
   assert.doesNotMatch(plain, /Range at|cc-band-label|data-basis/);
   assert.match(plain, /What you put in/);
+});
+
+test('balance breakdown with withdrawals nets them out of the contributions and still adds to the balance', () => {
+  const v = { start: 20000, monthly: 300, rate: 6, years: 20, frequency: 'monthly', rateBasis: 'nominal', timing: 'end', stepUp: 0, taxRate: 0, withdrawal: 100, withdrawFrom: 11, withdrawStep: 0 };
+  for (const inflation of [null, 3]) {
+    const b = balanceBreakdown(v, inflation);
+    const r = simulateCompound(v);
+    assert.ok(b.withdrawn > 0);
+    assert.ok(Math.abs(b.start + b.contributions + b.startInterest + b.contributionInterest - b.total) < 1e-6);
+    if (inflation == null) assert.ok(Math.abs(b.contributions - (r.contributed - r.start - r.withdrawn)) < 1e-6);
+  }
 });
 
 test('monthly schedule with withdrawals: each December matches its year row, withdrawals and totals included', () => {

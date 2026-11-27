@@ -418,6 +418,21 @@ export function inTodaysDollars(r, inflation) {
   return { ...r, years, months, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest };
 }
 
+// The final balance split four ways: the starting balance, the contributions, and the interest each earned.
+// The plan is linear in what goes in, so the contributions' share is the same plan run with no starting
+// balance, and the starting balance's share is the rest. inflation (percent) restates every part in today's
+// dollars at the horizon; null leaves them nominal. An interest part is negative when inflation outruns the return.
+export function balanceBreakdown(v, inflation = null) {
+  const run = (plan) => { const r = simulateCompound(plan); return inflation == null ? r : inTodaysDollars(r, inflation); };
+  const whole = run(v);
+  const added = run({ ...v, start: 0 });
+  // Withdrawals come out of the same pot as contributions, so the contributions' part is net of them.
+  const put = whole.contributed - v.start - (whole.withdrawn ?? 0);
+  const fromContributions = added.futureValue;
+  const fromStart = whole.futureValue - fromContributions;
+  return { start: v.start, contributions: put, startInterest: fromStart - v.start, contributionInterest: fromContributions - put, total: whole.futureValue, withdrawn: whole.withdrawn ?? 0 };
+}
+
 // What each choice is worth: the same plan with the other compounding frequency, and with the other
 // contribution timing. gap is the plan as entered minus the alternative, in the same dollars as r.
 export function choiceEffects(v, r, inflation) {
