@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.120.1] — 2026-11-27
+
+- FINC-215 The Compound interest sliders now cover the allowed range, and a typed value beyond a slider's range is shown as out of range instead of silently pinned.
+
 ## [0.120.0] — 2026-11-27
 
 - FINC-218 Compound interest shared links keep "Contribute for" whenever it is not the default, including when it equals Years or when Years is changed, so a link reopens the plan that was shared.
