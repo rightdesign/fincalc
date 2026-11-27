@@ -1044,5 +1044,20 @@ fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-p
   .m-stack td::before { content: attr(data-label); text-align: left; color: var(--muted); overflow-wrap: break-word; min-width: 0; }
 }
 
+/* Compound interest schedule: Yearly / Monthly toggle, CSV and print */
+.m-schedule-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
+.m-toggle { display: inline-flex; }
+.m-toggle button { border-radius: 0; }
+.m-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.m-toggle button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.m-toggle button[aria-pressed="true"] { font-weight: 700; background: var(--border); }
+.m-print-inputs ul { columns: 2; margin: 0.25rem 0 1rem; padding-left: 1.25rem; }
+@media print {
+  .m-print-inputs { break-inside: avoid; }
+  .m-years { font-size: 0.75rem; }
+  .m-years tr { break-inside: avoid; }
+  .m-years thead { display: table-header-group; }
+}
+
 /* A typed value outside the slider's range: the thumb is held at the end and dimmed so it is not mistaken for the value. */
 input[type="range"].out-of-range { accent-color: var(--muted); opacity: 0.6; }

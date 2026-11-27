@@ -564,6 +564,22 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
 });
 
+test('monthly schedule: 12 rows a year, each December matches its year row, in every compounding mode', () => {
+  for (const frequency of ['monthly', 'daily', 'quarterly', 'annually']) {
+    for (const timing of ['end', 'start']) {
+      const r = simulateCompound({ ...compoundDefaults(), years: 5, frequency, timing, stepUp: 3, taxRate: 20 });
+      assert.equal(r.months.length, 60);
+      r.years.forEach((y, i) => {
+        const dec = r.months[i * 12 + 11];
+        assert.ok(Math.abs(dec.balance - y.balance) < 1e-6, `${frequency}/${timing} year ${y.year}`);
+        assert.ok(Math.abs(dec.totalContributed - y.totalContributed) < 1e-6);
+        const mi = r.months.slice(i * 12, i * 12 + 12).reduce((a, m) => a + m.interest, 0);
+        assert.ok(Math.abs(mi - y.interest) < 1e-6);
+      });
+    }
+  }
+});
+
 test('withdrawals: zero rate takes the amount out each month, from the start year, with a yearly increase', () => {
   const base = { start: 12000, monthly: 0, rate: 0, years: 3, frequency: 'monthly', timing: 'end' };
   const r = simulateCompound({ ...base, withdrawal: 100, withdrawFrom: 2, withdrawStep: 0 });
@@ -621,6 +637,12 @@ test('a withdrawal that overdraws pays out the whole balance at every compoundin
   }
 });
 
+test("monthly schedule in today's dollars ends each year at that year's real balance", () => {
+  const r = inTodaysDollars(simulateCompound({ ...compoundDefaults(), years: 4 }), 3);
+  r.years.forEach((y, i) => assert.ok(Math.abs(r.months[i * 12 + 11].balance - y.balance) < 1e-6));
+  assert.ok(Math.abs(r.months[47].totalInterest - r.interest) < 1e-6);
+});
+
 test('a negative return never drives the balance below zero with withdrawals, and the totals still reconcile', () => {
   for (const frequency of ['monthly', 'quarterly', 'semiannually', 'annually']) {
     for (const timing of ['end', 'start']) {
@@ -650,4 +672,19 @@ test('compound chart has a legend entry for the return range, labels the band en
   const plain = compoundChartHtml(years, fmt);
   assert.doesNotMatch(plain, /Range at|cc-band-label|data-basis/);
   assert.match(plain, /What you put in/);
+});
+
+test('monthly schedule with withdrawals: each December matches its year row, withdrawals and totals included', () => {
+  for (const frequency of ['monthly', 'quarterly', 'annually']) {
+    const r = simulateCompound({ ...compoundDefaults(), years: 6, frequency, withdrawal: 500, withdrawFrom: 3 });
+    for (const t of [r, inTodaysDollars(r, 3)]) {
+      t.years.forEach((y, i) => {
+        const dec = t.months[i * 12 + 11];
+        const w = t.months.slice(i * 12, i * 12 + 12).reduce((a, m) => a + m.withdrawals, 0);
+        assert.ok(Math.abs(dec.balance - y.balance) < 1e-6, `${frequency} balance ${y.year}`);
+        assert.ok(Math.abs(w - y.withdrawals) < 1e-6, `${frequency} withdrawals ${y.year}`);
+        assert.ok(Math.abs(dec.totalInterest - y.totalInterest) < 1e-6, `${frequency} interest ${y.year}`);
+      });
+    }
+  }
 });

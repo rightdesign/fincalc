@@ -175,8 +175,11 @@ export function simulateCompound(v) {
   let withdrawn = 0;
   let runsOut = null;
   const years = [];
+  // The same run month by month (for the monthly schedule). Below monthly compounding, interest
+  // joins the balance only when its period ends, so it shows up in that period's last month.
+  const months = [];
+  const pushMonth = (y, m, contributions, withdrawals, interest, bal, paid, paidOut) => months.push({ month: (y - 1) * 12 + m, year: y, contributions, withdrawals, interest, balance: bal, totalContributed: paid, totalWithdrawn: paidOut, totalInterest: bal - paid + paidOut });
   for (let y = 1; y <= v.years; y++) {
-    const open = balance;
     let interest = 0;
     let added = 0;
     let taken = 0;
@@ -192,12 +195,14 @@ export function simulateCompound(v) {
     };
     if (k >= 12) {
       for (let m = 1; m <= 12; m++) {
+        const t0 = taken;
         if (early) { balance += monthly; take(m); }
         const i = balance * monthRate;
         balance += i + (early ? 0 : monthly);
         if (!early) take(m);
         interest += i;
         added += monthly;
+        pushMonth(y, m, monthly, taken - t0, i, balance, contributed + added, withdrawn + taken);
       }
     } else {
       for (let p = 0; p < k; p++) {
@@ -205,6 +210,7 @@ export function simulateCompound(v) {
         let periodInterest = periodOpen * (r / k);
         let periodAdded = 0;
         let periodTaken = 0;
+        const gots = [];
         for (let j = 1; j <= span; j++) {
           // Interest is simple within the period, so a month's withdrawal is limited to the cash on hand
           // (the opening balance plus contributions less what was already taken) and never drives the interest below zero.
@@ -213,9 +219,11 @@ export function simulateCompound(v) {
           periodInterest += (monthly - got) * (r / k) * ((span - j + (early ? 1 : 0)) / span);
           periodAdded += monthly;
           periodTaken += got;
+          gots.push(got);
         }
         periodInterest *= keep;
         balance = periodOpen + periodAdded - periodTaken + periodInterest;
+        const takenBefore = periodTaken;
         // A negative return can leave the period short even after the cash cap; what could not be covered was never paid out.
         if (balance < 0 && periodTaken > 0) {
           const short = Math.min(-balance, periodTaken);
@@ -224,7 +232,15 @@ export function simulateCompound(v) {
           if (!runsOut) runsOut = { year: y, month: (y - 1) * 12 + (p + 1) * span };
         }
         if (Math.abs(balance) < 1e-9) balance = 0;
-        interest += periodInterest;
+        // Spread the period's withdrawals over its months (scaled if the clamp above trimmed them); interest lands in the last month.
+        const scale = takenBefore > 0 ? periodTaken / takenBefore : 1;
+        let cumTaken = 0;
+        for (let j = 1; j <= span; j++) {
+          const w = gots[j - 1] * scale;
+          cumTaken += w;
+          pushMonth(y, p * span + j, monthly, w, j === span ? periodInterest : 0, periodOpen + j * monthly - cumTaken + (j === span ? periodInterest : 0), contributed + added + j * monthly, withdrawn + taken + cumTaken);
+        }
+                interest += periodInterest;
         added += periodAdded;
         taken += periodTaken;
       }
@@ -234,7 +250,7 @@ export function simulateCompound(v) {
     years.push({ year: y, contributions: added, withdrawals: taken, interest, balance, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: balance - contributed + withdrawn });
   }
   const last = years[years.length - 1];
-  return { years, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
+  return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
 }
 
 // Best and worst case: the same plan at the return minus and plus the variance (never below the lowest return the page accepts),
@@ -300,8 +316,23 @@ export function inTodaysDollars(r, inflation) {
     prevWithdrawn = totalWithdrawn;
     return { ...y, contributions, withdrawals, interest, balance, totalContributed, totalWithdrawn, totalInterest: balance - totalContributed + totalWithdrawn };
   });
+  // Months are restated to match: balances at (1 + inflation)^(month / 12), contributions at their year's factor as above,
+  // so each December equals its year row.
+  let prevM = r.start;
+  let paidM = r.start;
+  let outM = 0;
+  const months = r.months.map((m) => {
+    const balance = m.balance / (1 + inflation / 100) ** (m.month / 12);
+    const contributions = m.contributions / (1 + inflation / 100) ** m.year;
+    const withdrawals = (m.withdrawals ?? 0) / (1 + inflation / 100) ** m.year;
+    paidM += contributions;
+    outM += withdrawals;
+    const interest = balance - prevM - contributions + withdrawals;
+    prevM = balance;
+    return { ...m, balance, contributions, withdrawals, interest, totalContributed: paidM, totalWithdrawn: outM, totalInterest: balance - paidM + outM };
+  });
   const last = years[years.length - 1];
-  return { ...r, years, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest };
+  return { ...r, years, months, futureValue: last.balance, contributed: last.totalContributed, withdrawn: last.totalWithdrawn, interest: last.totalInterest };
 }
 
 // What each choice is worth: the same plan with the other compounding frequency, and with the other

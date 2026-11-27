@@ -2,6 +2,7 @@
 import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
+import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
 import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
@@ -137,6 +138,56 @@ for (const p of COMPOUND_PRESETS) {
   presets.append(b);
 }
 
+// The schedule under the results: one row per year or per month, with a CSV of whatever is showing and a print button.
+let schedule = null;
+let scheduleView = 'yearly';
+let scheduleCsv = '';
+function scheduleSection({ r, today, unit, cross, taking }) {
+  const monthly = scheduleView === 'monthly';
+  const rows = monthly ? r.months : r.years;
+  const cell = (x) => [monthly ? x.month : x.year, money(x.contributions), ...(taking ? [money(x.withdrawals)] : []), money(x.interest), money(x.totalContributed), money(x.totalInterest), money(x.balance)];
+  return {
+    id: `compound-${scheduleView}`,
+    rows: rows.map(cell),
+    columns: [monthly ? 'Month' : 'Year', monthly ? 'Contributed this month' : 'Contributed this year', ...(taking ? [monthly ? 'Taken out this month' : 'Taken out this year'] : []), monthly ? 'Interest this month' : 'Interest this year', 'Total contributed', today ? 'Growth after inflation' : 'Total interest', `Balance${unit}`],
+    crossRow: monthly ? -1 : r.years.findIndex((y) => y.year === cross),
+  };
+}
+
+function drawSchedule() {
+  const host = document.getElementById('compound-schedule');
+  const { timing, today, unit, cross, taking } = schedule;
+  const intCol = taking ? 3 : 2;
+  const sec = scheduleSection(schedule);
+  const monthly = scheduleView === 'monthly';
+  scheduleCsv = tableCsv(sec);
+  const body = sec.rows.map((row, i) => `<tr${i === sec.crossRow ? ` class="m-cross" aria-label="Year ${cross}, the year interest to date passes contributions to date"` : ''}>${row.map((c, j) => `<td${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</td>`).join('')}</tr>`).join('');
+  const heads = sec.columns.map((c, j) => `<th scope="col"${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</th>`).join('');
+  const note = monthly && schedule.r.months.some((m) => m.interest === 0 && m.balance > 0) ? ' Below monthly compounding, interest joins the balance only when each compounding period ends.' : '';
+  host.innerHTML = `<div class="m-schedule-bar no-print"><div class="m-toggle" role="group" aria-label="Schedule detail"><button type="button" data-view="yearly" aria-pressed="${!monthly}">Yearly</button><button type="button" data-view="monthly" aria-pressed="${monthly}">Monthly</button></div> <button type="button" class="ghost" id="compound-csv">Download table (CSV)</button> <button type="button" class="ghost" id="compound-print">Print&hellip;</button></div>
+    <p class="m-table-caption" id="compound-years-caption">${monthly ? 'Month by month' : 'Year by year'} (contributions at the ${timing === 'start' ? 'beginning' : 'end'} of each month)${!monthly && cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}${note}</p>
+    <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
+  for (const b of host.querySelectorAll('[data-view]')) b.addEventListener('click', () => { scheduleView = b.dataset.view; drawSchedule(); host.querySelector(`[data-view="${scheduleView}"]`).focus(); });
+  host.querySelector('#compound-csv').addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([scheduleCsv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = csvFilename(sec);
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  host.querySelector('#compound-print').addEventListener('click', () => window.print());
+}
+
+// The inputs as a plain list for the printed page, where the form is hidden.
+function printInputs(v) {
+  const items = COMPOUND_FIELDS.map((f) => {
+    const text = f.kind === 'choice' ? inputs[f.id].selectedOptions[0].textContent : f.kind === 'money' ? usd.format(v[f.id]) : v[f.id];
+    return `<li>${f.label}: <strong>${text}</strong></li>`;
+  }).join('');
+  return `<div class="print-only m-print-inputs"><h3>Your inputs</h3><ul>${items}</ul></div>`;
+}
+
 function render() {
   syncContribute();
   const v = values();
@@ -158,7 +209,6 @@ function render() {
   const cross = crossoverYear(r.years);
   const doubleTile = doubleTileText(v);
   const taking = r.withdrawn > 0;
-  const rows = r.years.map((y) => `<tr${y.year === cross ? ' class="m-cross" aria-label="Year ' + y.year + ', the year interest to date passes contributions to date"' : ''}><td>${y.year}</td><td>${money(y.contributions)}</td>${taking ? `<td>${money(y.withdrawals)}</td>` : ''}<td class="m-int">${money(y.interest)}</td><td>${money(y.totalContributed)}</td><td class="m-int m-int-total">${money(y.totalInterest)}</td><td>${money(y.balance)}</td></tr>`).join('');
   const withdrawNote = taking ? (r.runsOut ? `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance runs out in year ${r.runsOut.year}, so later withdrawals could not be paid.` : `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance lasts the full ${v.years} year${v.years === 1 ? '' : 's'}.`) : (v.withdrawal > 0 ? `No withdrawals are taken: they start in year ${v.withdrawFrom}, after the ${v.years} years shown.` : '');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
@@ -183,6 +233,7 @@ function render() {
       <p>Starting ${c.waitYears} years earlier means ${c.extraContributed > 0 ? `contributing ${money(c.extraContributed)} more` : 'contributing the same amount'} and ending with ${money(c.gap)} more.</p></div>` : `
     <p class="m-strip">Set Years above ${WAIT_YEARS} to compare starting now with starting ${WAIT_YEARS} years later.</p>`;
   out.innerHTML = `
+    ${printInputs(v)}
     <div class="m-tiles">
       <div class="m-tile" id="compound-double"><h3>Time to double</h3><p class="m-big">${doubleTile.value}</p><p>${doubleTile.caption}</p></div>
       <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${money(v.monthly)} a month${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.monthly > 0 && contributionYears(v) < v.years ? `${v.stepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
@@ -197,11 +248,10 @@ function render() {
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
     ${compare}
-    <p class="m-table-caption" id="compound-years-caption">Year by year (contributions at the ${v.timing === 'start' ? 'beginning' : 'end'} of each month)${cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}</p>
-    <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption">
-      <thead><tr><th scope="col">Year</th><th scope="col">Contributed this year</th>${taking ? '<th scope="col">Taken out this year</th>' : ''}<th scope="col" class="m-int">Interest this year</th><th scope="col">Total contributed</th><th scope="col" class="m-int m-int-total">${today ? 'Growth after inflation' : 'Total interest'}</th><th scope="col">Balance${unit}</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>
+    <div id="compound-schedule"></div>
     ${faqCard(v, r)}`;
+  schedule = { r, today, unit, cross, timing: v.timing, taking };
+  drawSchedule();
   for (const t of out.querySelectorAll('.m-stack')) {
     const heads = [...t.querySelectorAll('thead th')].map((h) => h.textContent);
     for (const tr of t.querySelectorAll('tbody tr')) [...tr.querySelectorAll('td')].forEach((td, i) => td.setAttribute('data-label', heads[i + 1] ?? ''));
