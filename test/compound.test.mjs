@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -562,6 +562,36 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
+});
+
+test('growthRates steps the effective rate down for tax, then inflation in today\'s dollars', () => {
+  const v = { ...modelDefaults(), rate: 9, rateBasis: 'effective', taxRate: 20, basis: 'future', inflation: 3 };
+  const g = growthRates(v);
+  assert.ok(Math.abs(g.effective - 9) < 1e-9);
+  assert.ok(Math.abs(g.afterTax - 7.2) < 1e-9);
+  assert.equal(g.real, null);
+  assert.equal(g.net, g.afterTax);
+  const t = growthRates({ ...v, basis: 'today' });
+  assert.ok(Math.abs(t.real - ((1.072 / 1.03) - 1) * 100) < 1e-9);
+  assert.equal(t.net, t.real);
+});
+
+test('growthRates takes no tax step for a non-interest account even with a tax rate set', () => {
+  const v = { ...modelDefaults(), rate: 9, rateBasis: 'effective', taxRate: 20, basis: 'future' };
+  for (const accountType of ['stocks', 'deferred', 'free']) {
+    assert.equal(interestTax({ ...v, accountType }), 0);
+    const g = growthRates({ ...v, accountType });
+    assert.equal(g.afterTax, g.effective);
+  }
+  assert.equal(interestTax({ ...v, accountType: 'interest' }), 20);
+});
+
+test('yearsToDouble and its tile use the after-inflation rate in today\'s dollars', () => {
+  const v = { ...modelDefaults(), rate: 9, rateBasis: 'effective', taxRate: 0, basis: 'today', inflation: 3 };
+  const real = (1.09 / 1.03 - 1);
+  assert.ok(Math.abs(yearsToDouble(v) - Math.log(2) / Math.log1p(real)) < 1e-9);
+  assert.match(doubleTileText(v).caption, /after inflation/);
+  assert.deepEqual(doubleTileText({ ...v, rate: 2 }), { value: 'Never', caption: 'Needs a positive return after inflation' });
 });
 
 test('account types: tax-free ignores the rate, deferred taxes the balance, stocks taxes dividends and gain', () => {

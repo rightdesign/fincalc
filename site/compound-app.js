@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -138,6 +138,15 @@ for (const p of COMPOUND_PRESETS) {
   presets.append(b);
 }
 
+// What the effective rate shrinks to after tax and, in today's dollars, after inflation.
+function rateBreakdown(v) {
+  const g = growthRates(v);
+  const parts = [];
+  if (interestTax(v) > 0) parts.push(`<strong>${g.afterTax.toFixed(2)}%</strong> after tax`);
+  if (g.real !== null) parts.push(`<strong>${g.real.toFixed(2)}%</strong> after inflation`);
+  return parts.length ? `, ${parts.join(', ')}` : '';
+}
+
 // The schedule under the results: one row per year or per month, with a CSV of whatever is showing and a print button.
 let schedule = null;
 let scheduleView = 'yearly';
@@ -212,7 +221,7 @@ function render() {
   const withdrawNote = taking ? (r.runsOut ? `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance runs out in year ${r.runsOut.year}, so later withdrawals could not be paid.` : `Withdrawals of ${money(r.withdrawn)}${today ? " (today's dollars)" : ''} in all. The balance lasts the full ${v.years} year${v.years === 1 ? '' : 's'}.`) : (v.withdrawal > 0 ? `No withdrawals are taken: they start in year ${v.withdrawFrom}, after the ${v.years} years shown.` : '');
   const headlineEl = document.createElement('p');
   headlineEl.textContent = headline(v, r);
-  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
+  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}${rateBreakdown(v)}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
   const fx = choiceEffects(v, r, today ? v.inflation : null);
   const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;

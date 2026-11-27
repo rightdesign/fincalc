@@ -140,20 +140,31 @@ export function effectiveAnnualRate(v) {
 // The percent of each period's interest taken as tax: only a taxable interest account is taxed as it grows.
 export const interestTax = (v) => ((v.accountType ?? 'interest') === 'interest' ? (v.taxRate ?? 0) : 0);
 
-// Years for a lump sum to double at the effective annual rate, after tax on the interest
-// (null when the rate leaves nothing to compound).
+// The yearly growth money really gets, as percents: the effective rate, then after tax on the
+// interest, then (only in today's dollars) after inflation too. `net` is the last one that applies.
+export function growthRates(v) {
+  const effective = effectiveAnnualRate(v);
+  const afterTax = effective * (1 - interestTax(v) / 100);
+  const real = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + (v.inflation ?? 0) / 100) - 1) * 100 : null;
+  return { effective, afterTax, real, net: real ?? afterTax };
+}
+
+// Years for a lump sum to double at the rate it really grows (after tax, and after inflation in
+// today's dollars); null when that rate leaves nothing to compound.
 export function yearsToDouble(v) {
-  const net = (effectiveAnnualRate(v) / 100) * (1 - interestTax(v) / 100);
+  const net = growthRates(v).net / 100;
   return net > 0 ? Math.log(2) / Math.log1p(net) : null;
 }
 
 // Text for the "Time to double" tile: the big value and its caption.
 export function doubleTileText(v) {
   const years = yearsToDouble(v);
-  if (years === null) return { value: 'Never', caption: 'Needs a positive return after tax' };
+  const adjusts = [interestTax(v) > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean).join(' and ');
+  if (years === null) return { value: 'Never', caption: `Needs a positive return after ${adjusts || 'tax'}` };
+  const rate = growthRates(v).net;
   return {
     value: `${years < 10 ? years.toFixed(1) : Math.round(years)} years`,
-    caption: `Money invested at the ${effectiveAnnualRate(v).toFixed(2)}% effective rate${interestTax(v) > 0 ? ', after tax' : ''}`,
+    caption: adjusts ? `Money growing ${rate.toFixed(2)}% a year, after ${adjusts}` : `Money invested at the ${rate.toFixed(2)}% effective rate`,
   };
 }
 
