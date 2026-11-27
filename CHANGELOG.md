@@ -17,6 +17,10 @@ every verified ticket, then in one following commit adds one
 largest `Bump:` in the batch. It pushes `master`, then the `deploy` hook runs
 `.github/workflows/pages.yml`, which publishes the site to GitHub Pages.
 
+## [0.128.0] — 2026-11-27
+
+- FINC-224 Compound interest results now break the final balance into starting balance, contributions, interest on the starting balance and interest on the contributions; with withdrawals, the contributions part is net of them.
+
 ## [0.127.0] — 2026-11-27
 
 - FINC-221 Compound interest now shows the final balance in both future and today's dollars in the result at the top, so the Inflation input always has a visible effect.
