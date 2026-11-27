@@ -1,7 +1,19 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildResults, cardHtml, cardText, chartDescription, chartHtml, costSummaryHtml, formatMoney, hoverPoints, lineChartSvg, sensitivityHtml, tableHtml } from '../site/results.js';
+import {
+  buildResults,
+  cardHtml,
+  cardText,
+  chartDescription,
+  chartHtml,
+  costSummaryHtml,
+  formatMoney,
+  hoverPoints,
+  lineChartSvg,
+  sensitivityHtml,
+  tableHtml,
+} from '../site/results.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('formats money without cents and without negative zero', () => {
@@ -13,7 +25,10 @@ test('formats money without cents and without negative zero', () => {
 test('builds the six sections with a table row per year', () => {
   const v = defaultValues();
   const { sections } = buildResults(v);
-  assert.deepEqual(sections.map((s) => s.id), ['net-worth', 'cash-flow', 'investable-cash', 'cash-needed', 'pure-net-worth', 'equal-cash']);
+  assert.deepEqual(
+    sections.map((s) => s.id),
+    ['net-worth', 'cash-flow', 'investable-cash', 'cash-needed', 'pure-net-worth', 'equal-cash'],
+  );
   assert.equal(sections[0].rows.length, v.horizon + 1);
   assert.equal(sections[1].rows.length, v.horizon);
   for (const s of sections) for (const r of s.rows) assert.equal(r.length, s.columns.length);
@@ -103,7 +118,12 @@ test('the net worth summary always gives the gap at the horizon and the closest 
 test('the cost summary lists each category for the three paths and the gaps against staying', () => {
   const v = defaultValues();
   const { costSummary } = buildResults(v);
-  assert.deepEqual(costSummary.rows.map((r) => r[0]).slice(0, 4), ['Initial costs', 'Recurring costs', 'Opportunity costs', 'Total costs']);
+  assert.deepEqual(costSummary.rows.map((r) => r[0]).slice(0, 4), [
+    'Initial costs',
+    'Recurring costs',
+    'Opportunity costs',
+    'Total costs',
+  ]);
   for (const r of costSummary.rows) assert.equal(r.length, 4);
   assert.equal(costSummary.rows[0][1], '$0');
   const total = costSummary.rows.find((r) => /^Total cash you must supply/.test(r[0]));
@@ -116,18 +136,22 @@ test('the cost summary lists each category for the three paths and the gaps agai
   assert.match(costSummaryHtml(costSummary), /<th scope="row">Initial costs<\/th>/);
 });
 
-test('the cost summary is absent with no years and noted in today\'s dollars', () => {
+test("the cost summary is absent with no years and noted in today's dollars", () => {
   assert.equal(buildResults({ ...defaultValues(), horizon: 0 }).costSummary, null);
   assert.equal(costSummaryHtml(null), '');
-  assert.match(buildResults({ ...defaultValues(), todaysDollars: 'real' }).costSummary.note, /today's dollars/);
+  assert.match(
+    buildResults({ ...defaultValues(), todaysDollars: 'real' }).costSummary.note,
+    /today's dollars/,
+  );
 });
 
 test('every chart axis rescales to the visible data when the horizon shrinks', () => {
-  const axisLabels = (h) => buildResults({ ...defaultValues(), horizon: h }).sections.map((s) => {
-    const svg = lineChartSvg(s);
-    const peak = Math.max(...s.series.flatMap((x) => x.points.map((p) => p.y)));
-    return { svg, peak, xs: Math.max(...s.series.flatMap((x) => x.points.map((p) => p.x))) };
-  });
+  const axisLabels = (h) =>
+    buildResults({ ...defaultValues(), horizon: h }).sections.map((s) => {
+      const svg = lineChartSvg(s);
+      const peak = Math.max(...s.series.flatMap((x) => x.points.map((p) => p.y)));
+      return { svg, peak, xs: Math.max(...s.series.flatMap((x) => x.points.map((p) => p.x))) };
+    });
   const long = axisLabels(25);
   const short = axisLabels(10);
   short.forEach((s, i) => {
@@ -150,9 +174,22 @@ test('each chart carries a text equivalent with every line and a pointer to its 
 });
 
 test('the shortfall notice states the amount and labels the investable cash section', () => {
-  const v = { ...defaultValues(), horizon: 5, homeValue: 5500000, sellingCostsPct: 0, costBasis: 5500000, mortgageBalance: 2443000, newHomePrice: 3000000, newMortgageAmount: 0, movingCosts: 20000 };
+  const v = {
+    ...defaultValues(),
+    horizon: 5,
+    homeValue: 5500000,
+    sellingCostsPct: 0,
+    costBasis: 5500000,
+    mortgageBalance: 2443000,
+    newHomePrice: 3000000,
+    newMortgageAmount: 0,
+    movingCosts: 20000,
+  };
   const r = buildResults(v);
-  assert.match(r.shortfallNotice, /^Shortfall of \$23,000 — increase the new mortgage, or it will be drawn from other savings\.$/);
+  assert.match(
+    r.shortfallNotice,
+    /^Shortfall of \$23,000 — increase the new mortgage, or it will be drawn from other savings\.$/,
+  );
   assert.ok(r.sections[2].summary.includes(r.shortfallNotice));
   assert.match(r.sections[2].series[1].name ?? r.sections[2].series[1].label, /shortfall/);
   const none = buildResults({ ...v, newHomePrice: 100000 });
@@ -187,7 +224,10 @@ test('the downsize waterfall leaves out the purchase when the proceeds are not u
   const { downsizeWaterfall } = await import('../site/results.js');
   const v = { ...defaultValues(), useProceeds: 0 };
   const w = downsizeWaterfall(v);
-  assert.equal(w.steps.some((s) => s.label === 'New home price'), false);
+  assert.equal(
+    w.steps.some((s) => s.label === 'New home price'),
+    false,
+  );
   assert.equal(w.invested, w.steps.find((s) => s.label === 'Net proceeds').amount - v.movingCosts);
 });
 
@@ -199,7 +239,12 @@ test('unchecked proceeds mode: summaries say the outside money is left out, chec
   const on = buildResults({ ...defaultValues(), useProceeds: 1 });
   assert.doesNotMatch(on.sections[0].summary, /outside this model/);
   assert.doesNotMatch(on.costSummary.note, /outside this model/);
-  const capped = buildResults({ ...defaultValues(), useProceeds: 1, proceedsMode: 'amount', proceedsAmount: 1000 });
+  const capped = buildResults({
+    ...defaultValues(),
+    useProceeds: 1,
+    proceedsMode: 'amount',
+    proceedsAmount: 1000,
+  });
   assert.match(capped.sections[0].summary, /outside this model/);
 });
 
@@ -218,15 +263,27 @@ test('the proceeds setting reaches the year-0 numbers, tables and verdict', () =
 });
 
 test('the investable cash table shows the rent, how much of it the withdrawals cover and the top-up', () => {
-  const v = { ...defaultValues(), horizon: 3, rent: 12000, rentGrowth: 0, rentersInsurance: 0, withdrawalTaxRate: 0 };
+  const v = {
+    ...defaultValues(),
+    horizon: 3,
+    rent: 12000,
+    rentGrowth: 0,
+    rentersInsurance: 0,
+    withdrawalTaxRate: 0,
+  };
   const { sections } = buildResults(v);
   const sec = sections[2];
   const col = (name) => sec.columns.indexOf(name);
-  assert.ok(col('Rent (per month)') > 0 && col('Rent covered') > 0 && col('Out of pocket (per month)') > 0);
+  assert.ok(
+    col('Rent (per month)') > 0 && col('Rent covered') > 0 && col('Out of pocket (per month)') > 0,
+  );
   const row = sec.rows[0];
   const income = Number(row[col('Income (per month)')].replace(/[^0-9.-]/g, ''));
   const covered = Math.round((income / 12000) * 100);
-  assert.equal(row[col('Rent covered')], covered < 100 ? `${covered}% (under 100%)` : `${covered}%`);
+  assert.equal(
+    row[col('Rent covered')],
+    covered < 100 ? `${covered}% (under 100%)` : `${covered}%`,
+  );
   const top = Number(row[col('Out of pocket (per month)')].replace(/[^0-9.-]/g, ''));
   assert.ok(Math.abs(top - Math.max(0, 12000 - income)) <= 1);
   const rich = buildResults({ ...v, rent: 100 }).sections[2];
@@ -261,7 +318,11 @@ test('changedInputs lists only inputs that differ from the defaults, plus repair
   const { FIELDS } = await import('../site/inputs.js');
   const defaults = defaultValues();
   assert.deepEqual(changedInputs({ ...defaults, repairs: [] }, FIELDS, defaults), []);
-  const list = changedInputs({ ...defaults, homeValue: 123, repairs: [{ year: 3, amount: 5000 }] }, FIELDS, defaults);
+  const list = changedInputs(
+    { ...defaults, homeValue: 123, repairs: [{ year: 3, amount: 5000 }] },
+    FIELDS,
+    defaults,
+  );
   assert.equal(list.length, 2);
   assert.deepEqual(list[0], [FIELDS.find((f) => f.id === 'homeValue').label, '123']);
   assert.deepEqual(list[1], ['Major repair', 'year 3, $5,000']);
@@ -284,7 +345,10 @@ test('cash-needed section and cost-summary rows surface the out-of-pocket cash',
 test('the no-mortgage notice names the carrying-cost-only cash need when the new mortgage is zero', () => {
   const v = { ...defaultValues(), horizon: 5, newMortgageAmount: 0 };
   const r = buildResults(v);
-  assert.match(r.noMortgageNotice, /^No mortgage payment on the new home: monthly cash you must supply in year 1 is its carrying costs only, \$[\d,]+ a month, or \$[\d,]+ after withdrawals, against \$[\d,]+ to stay\./);
+  assert.match(
+    r.noMortgageNotice,
+    /^No mortgage payment on the new home: monthly cash you must supply in year 1 is its carrying costs only, \$[\d,]+ a month, or \$[\d,]+ after withdrawals, against \$[\d,]+ to stay\./,
+  );
   assert.ok(r.sections[3].summary.includes(r.noMortgageNotice));
   const loan = buildResults({ ...v, newMortgageAmount: 100000 });
   assert.equal(loan.noMortgageNotice, '');
@@ -321,13 +385,26 @@ test('with downsizeUnavailable every downsize figure is blanked and stay/sell ar
 test('the no-mortgage notice states a negative starting balance instead of saying nothing is invested', async () => {
   const { noMortgageNotice } = await import('../site/results.js');
   const v = { newMortgageAmount: 0 };
-  const first = { monthlyDownsizeCost: 1, monthlyDownsizeOutOfPocket: 1, monthlyStayOutOfPocket: 1, monthlyDownsizeInvestmentIncome: 0 };
-  assert.match(noMortgageNotice(v, first, { invested: -42250 }), /Invested capital starts at \u2212\$42,250, drawn from other savings/);
+  const first = {
+    monthlyDownsizeCost: 1,
+    monthlyDownsizeOutOfPocket: 1,
+    monthlyStayOutOfPocket: 1,
+    monthlyDownsizeInvestmentIncome: 0,
+  };
+  assert.match(
+    noMortgageNotice(v, first, { invested: -42250 }),
+    /Invested capital starts at \u2212\$42,250, drawn from other savings/,
+  );
   assert.match(noMortgageNotice(v, first, { invested: 0 }), /Nothing is left invested/);
 });
 
 test('unchecked proceeds mode: summaries reconcile year-0 Downsize net worth with the outside funds', () => {
-  const r = buildResults({ ...defaultValues(), newHomePrice: 300000, newMortgageAmount: 0, useProceeds: 0 });
+  const r = buildResults({
+    ...defaultValues(),
+    newHomePrice: 300000,
+    newMortgageAmount: 0,
+    useProceeds: 0,
+  });
   for (const id of ['net-worth', 'equal-cash', 'pure-net-worth']) {
     const sec = r.sections.find((x) => x.id === id);
     assert.match(sec.summary, /At year 0, Downsize net worth is .* paid from outside funds/);
@@ -373,9 +450,17 @@ test('the cost summary breaks out the cash deployed at sale and purchase and the
   assert.match(cell(deploy.rows, 'Invested at year 0', 2), /\$/);
   const cents = (t) => Number(t.replace(/[^0-9.]/g, ''));
   for (const col of [1, 2, 3]) {
-    const parts = opp.rows.slice(0, -1).reduce((t, r) => t + (r[col] === '—' ? 0 : (r[col].startsWith('−') ? -1 : 1) * cents(r[col])), 0);
+    const parts = opp.rows
+      .slice(0, -1)
+      .reduce(
+        (t, r) => t + (r[col] === '—' ? 0 : (r[col].startsWith('−') ? -1 : 1) * cents(r[col])),
+        0,
+      );
     const total = opp.rows[opp.rows.length - 1][col];
-    assert.ok(Math.abs(parts - (total.startsWith('−') ? -1 : 1) * cents(total)) <= 3, `column ${col}`);
+    assert.ok(
+      Math.abs(parts - (total.startsWith('−') ? -1 : 1) * cents(total)) <= 3,
+      `column ${col}`,
+    );
   }
   assert.match(costSummary.headlines[4], /uses \$3,0\d\d,\d{3} of cash to buy the new home/);
   assert.match(costSummaryHtml(costSummary), /Cash deployed at sale and purchase/);
@@ -383,10 +468,19 @@ test('the cost summary breaks out the cash deployed at sale and purchase and the
 });
 
 test('no downsize figure leaks into any summary when downsizing is unavailable', () => {
-  const v = { ...defaultValues(), homeValue: 5500000, newHomePrice: 3000000, newMortgageAmount: 500000, newMortgageTerm: 0 };
+  const v = {
+    ...defaultValues(),
+    homeValue: 5500000,
+    newHomePrice: 3000000,
+    newMortgageAmount: 500000,
+    newMortgageTerm: 0,
+  };
   const r = buildResults(v, { downsizeUnavailable: true });
   for (const s of r.sections) {
-    const body = s.summary.replace(/^Downsizing is unavailable until its inputs are valid\.\s*/, '');
+    const body = s.summary.replace(
+      /^Downsizing is unavailable until its inputs are valid\.\s*/,
+      '',
+    );
     assert.doesNotMatch(body, /downsiz/i, s.id);
     assert.doesNotMatch(body, /\.[A-Z]/, `${s.id}: sentences run together`);
     for (const row of s.footRows ?? []) {
@@ -410,7 +504,10 @@ test('with downsizeUnavailable, no-mortgage and unchecked proceeds, no summary o
   const r = buildResults(v, { downsizeUnavailable: true });
   const texts = [...r.sections.map((s) => s.summary), r.costSummary.note, r.noMortgageNotice];
   for (const t of texts) {
-    assert.doesNotMatch(t, /Downsize net (worth|proceeds)|outside funds|No mortgage payment|stays invested after the purchase/i);
+    assert.doesNotMatch(
+      t,
+      /Downsize net (worth|proceeds)|outside funds|No mortgage payment|stays invested after the purchase/i,
+    );
   }
 });
 
@@ -420,17 +517,43 @@ test('chart series use the red / near-black / grey palette and only the second l
   assert.match(body, /--series-1: #96151d/);
   assert.match(body, /--series-2: #2b2b2b/);
   assert.match(body, /--series-3: #8a8d91/);
-  const mk = (label, y) => ({ label, points: [{ x: 0, y: 0 }, { x: 10, y }] });
-  const svg = lineChartSvg({ title: 't', markerX: null, series: [mk('A', 100), mk('B', 99), mk('C', 98)] });
+  const mk = (label, y) => ({
+    label,
+    points: [
+      { x: 0, y: 0 },
+      { x: 10, y },
+    ],
+  });
+  const svg = lineChartSvg({
+    title: 't',
+    markerX: null,
+    series: [mk('A', 100), mk('B', 99), mk('C', 98)],
+  });
   assert.equal((svg.match(/stroke-dasharray="6 4"/g) || []).length, 1);
   assert.match(svg, /stroke:var\(--series-1\)/);
   assert.match(svg, /stroke:var\(--series-3\)/);
 });
 
 test('line-end labels stay at least 14px apart when the lines end close together', () => {
-  const mk = (label, y) => ({ label, points: [{ x: 0, y: 0 }, { x: 10, y }] });
-  const svg = lineChartSvg({ title: 't', markerX: null, series: [mk('A', 100), mk('B', 99), mk('C', 98)] });
-  const ys = [...svg.matchAll(/<text x="[\d.]+" y="([\d.]+)" text-anchor="end" font-size="12" style="fill:var\(--series-\d\)"/g)].map((m) => Number(m[1])).sort((a, b) => a - b);
+  const mk = (label, y) => ({
+    label,
+    points: [
+      { x: 0, y: 0 },
+      { x: 10, y },
+    ],
+  });
+  const svg = lineChartSvg({
+    title: 't',
+    markerX: null,
+    series: [mk('A', 100), mk('B', 99), mk('C', 98)],
+  });
+  const ys = [
+    ...svg.matchAll(
+      /<text x="[\d.]+" y="([\d.]+)" text-anchor="end" font-size="12" style="fill:var\(--series-\d\)"/g,
+    ),
+  ]
+    .map((m) => Number(m[1]))
+    .sort((a, b) => a - b);
   assert.equal(ys.length, 3);
   assert.ok(ys[1] - ys[0] >= 13.9 && ys[2] - ys[1] >= 13.9, ys.join(','));
 });

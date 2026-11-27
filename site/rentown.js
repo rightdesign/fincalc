@@ -30,7 +30,10 @@ export function saltCap(yearIndex, magi = null) {
   const grow = 1.01 ** yearIndex;
   const cap = SALT_CAP * grow;
   if (magi == null || !(magi > 0)) return cap;
-  return Math.max(SALT_FLOOR, cap - SALT_PHASE_DOWN_RATE * Math.max(0, magi - SALT_PHASE_DOWN_START * grow));
+  return Math.max(
+    SALT_FLOOR,
+    cap - SALT_PHASE_DOWN_RATE * Math.max(0, magi - SALT_PHASE_DOWN_START * grow),
+  );
 }
 
 // Mortgage interest is deductible only on the first $750,000 of acquisition debt (single or married filing jointly).
@@ -40,65 +43,493 @@ export const MORTGAGE_DEBT_LIMIT = 750000;
 export const EXCLUSION_BY_FILING = { 1: 250000, 2: 500000 };
 
 // 0 = a fixed-rate loan, 1 = an adjustable-rate mortgage that resets as in the variable-rate calculator.
-export const MORTGAGE_TYPES = [[0, 'Fixed rate'], [1, 'Adjustable rate (ARM)']];
+export const MORTGAGE_TYPES = [
+  [0, 'Fixed rate'],
+  [1, 'Adjustable rate (ARM)'],
+];
 const isArm = (v) => v.arm === 1;
 
 export const RENTOWN_FIELDS = [
-  { id: 'price', group: 'buying', label: 'Home price ($)', value: 450000, min: 1, money: true, slider: { min: 100000, max: 1500000, step: 5000 } },
-  { id: 'down', group: 'buying', label: 'Down payment (%)', value: 20, min: 0, max: 100, slider: { min: 0, max: 100, step: 1 } },
-  { id: 'arm', group: 'buying', label: 'Mortgage type', value: 0, min: 0, max: 1, integer: true, options: MORTGAGE_TYPES },
-  { id: 'program', group: 'buying', label: 'Loan type', value: 0, min: 0, max: 2, integer: true, options: [[0, 'Conventional (PMI)'], [1, 'FHA (mortgage insurance premium)'], [2, 'VA (funding fee)']] },
-  { id: 'feeFinanced', group: 'buying', label: 'FHA or VA upfront fee', value: 1, min: 0, max: 1, integer: true, options: [[1, 'Financed into the loan'], [0, 'Paid in cash at closing']] },
-  { id: 'vaRepeat', group: 'buying', label: 'VA loan: first use or subsequent use', value: 0, min: 0, max: 1, integer: true, options: [[0, 'First use'], [1, 'Subsequent use']] },
-  { id: 'rate', group: 'buying', label: 'Mortgage rate (%)', value: 6.5, min: 0, max: 30, showIf: (v) => !v.arm, slider: { min: 0, max: 15, step: 0.125 } },
-  { id: 'term', group: 'buying', label: 'Loan term (years)', value: 30, min: 1, max: 50, integer: true },
-  { id: 'armRate', group: 'buying', label: 'ARM starting rate (%)', value: 5.75, min: 0, max: 30, showIf: isArm, slider: { min: 0, max: 15, step: 0.125 } },
-  { id: 'armFixedMonths', group: 'buying', label: 'ARM months before the first rate change', value: 84, min: 1, max: 600, integer: true, showIf: isArm },
-  { id: 'armAdjustMonths', group: 'buying', label: 'ARM months between rate changes after that', value: 6, min: 1, max: 600, integer: true, showIf: isArm },
-  { id: 'armIndexRate', group: 'buying', label: 'ARM index value today (%)', value: 4.3, min: 0, max: 30, showIf: isArm },
-  { id: 'armMargin', group: 'buying', label: 'ARM margin (percentage points)', value: 2.75, min: 0, max: 15, showIf: isArm },
-  { id: 'armIndexChange', group: 'buying', label: 'ARM assumed index change per reset (percentage points)', value: 0, min: -10, max: 10, showIf: isArm },
-  { id: 'armFirstCap', group: 'buying', label: 'ARM cap on the first adjustment (percentage points)', value: 5, min: 0, max: 30, showIf: isArm },
-  { id: 'armPeriodicCap', group: 'buying', label: 'ARM cap on each later adjustment (percentage points)', value: 1, min: 0, max: 30, showIf: isArm },
-  { id: 'armLifetimeCap', group: 'buying', label: 'ARM cap above the starting rate over the loan (percentage points)', value: 5, min: 0, max: 30, showIf: isArm },
-  { id: 'armFloor', group: 'buying', label: 'ARM lowest possible rate (%)', value: 2, min: 0, max: 30, showIf: isArm },
-  { id: 'closing', group: 'buying', label: 'Closing costs (% of price)', value: 3, min: 0, max: 20 },
+  {
+    id: 'price',
+    group: 'buying',
+    label: 'Home price ($)',
+    value: 450000,
+    min: 1,
+    money: true,
+    slider: { min: 100000, max: 1500000, step: 5000 },
+  },
+  {
+    id: 'down',
+    group: 'buying',
+    label: 'Down payment (%)',
+    value: 20,
+    min: 0,
+    max: 100,
+    slider: { min: 0, max: 100, step: 1 },
+  },
+  {
+    id: 'arm',
+    group: 'buying',
+    label: 'Mortgage type',
+    value: 0,
+    min: 0,
+    max: 1,
+    integer: true,
+    options: MORTGAGE_TYPES,
+  },
+  {
+    id: 'program',
+    group: 'buying',
+    label: 'Loan type',
+    value: 0,
+    min: 0,
+    max: 2,
+    integer: true,
+    options: [
+      [0, 'Conventional (PMI)'],
+      [1, 'FHA (mortgage insurance premium)'],
+      [2, 'VA (funding fee)'],
+    ],
+  },
+  {
+    id: 'feeFinanced',
+    group: 'buying',
+    label: 'FHA or VA upfront fee',
+    value: 1,
+    min: 0,
+    max: 1,
+    integer: true,
+    options: [
+      [1, 'Financed into the loan'],
+      [0, 'Paid in cash at closing'],
+    ],
+  },
+  {
+    id: 'vaRepeat',
+    group: 'buying',
+    label: 'VA loan: first use or subsequent use',
+    value: 0,
+    min: 0,
+    max: 1,
+    integer: true,
+    options: [
+      [0, 'First use'],
+      [1, 'Subsequent use'],
+    ],
+  },
+  {
+    id: 'rate',
+    group: 'buying',
+    label: 'Mortgage rate (%)',
+    value: 6.5,
+    min: 0,
+    max: 30,
+    showIf: (v) => !v.arm,
+    slider: { min: 0, max: 15, step: 0.125 },
+  },
+  {
+    id: 'term',
+    group: 'buying',
+    label: 'Loan term (years)',
+    value: 30,
+    min: 1,
+    max: 50,
+    integer: true,
+  },
+  {
+    id: 'armRate',
+    group: 'buying',
+    label: 'ARM starting rate (%)',
+    value: 5.75,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+    slider: { min: 0, max: 15, step: 0.125 },
+  },
+  {
+    id: 'armFixedMonths',
+    group: 'buying',
+    label: 'ARM months before the first rate change',
+    value: 84,
+    min: 1,
+    max: 600,
+    integer: true,
+    showIf: isArm,
+  },
+  {
+    id: 'armAdjustMonths',
+    group: 'buying',
+    label: 'ARM months between rate changes after that',
+    value: 6,
+    min: 1,
+    max: 600,
+    integer: true,
+    showIf: isArm,
+  },
+  {
+    id: 'armIndexRate',
+    group: 'buying',
+    label: 'ARM index value today (%)',
+    value: 4.3,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+  },
+  {
+    id: 'armMargin',
+    group: 'buying',
+    label: 'ARM margin (percentage points)',
+    value: 2.75,
+    min: 0,
+    max: 15,
+    showIf: isArm,
+  },
+  {
+    id: 'armIndexChange',
+    group: 'buying',
+    label: 'ARM assumed index change per reset (percentage points)',
+    value: 0,
+    min: -10,
+    max: 10,
+    showIf: isArm,
+  },
+  {
+    id: 'armFirstCap',
+    group: 'buying',
+    label: 'ARM cap on the first adjustment (percentage points)',
+    value: 5,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+  },
+  {
+    id: 'armPeriodicCap',
+    group: 'buying',
+    label: 'ARM cap on each later adjustment (percentage points)',
+    value: 1,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+  },
+  {
+    id: 'armLifetimeCap',
+    group: 'buying',
+    label: 'ARM cap above the starting rate over the loan (percentage points)',
+    value: 5,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+  },
+  {
+    id: 'armFloor',
+    group: 'buying',
+    label: 'ARM lowest possible rate (%)',
+    value: 2,
+    min: 0,
+    max: 30,
+    showIf: isArm,
+  },
+  {
+    id: 'closing',
+    group: 'buying',
+    label: 'Closing costs (% of price)',
+    value: 3,
+    min: 0,
+    max: 20,
+  },
   { id: 'moving', group: 'buying', label: 'Moving costs ($)', value: 0, min: 0, money: true },
-  { id: 'reserve', group: 'buying', label: 'Cash reserve (months of owning costs)', value: 0, min: 0, max: 60, hint: 'Counted in the cash needed to buy only. It does not change the net worth comparison, because the money stays yours either way.' },
-  { id: 'saved', group: 'buying', label: 'Cash you have saved, optional ($)', value: null, min: 0, money: true, optional: true },
-  { id: 'takeHome', group: 'buying', label: 'Your after-tax salary, optional ($ per year; for the 33% rule and job-loss check)', value: null, min: 1, money: true, optional: true },
-  { id: 'emergency', group: 'buying', label: 'Emergency savings you would keep after buying, optional ($)', value: null, min: 0, money: true, optional: true },
-  { id: 'tax', group: 'buying', label: 'Property tax (% of value, per year)', value: 1.1, min: 0, max: 10 },
-  { id: 'assessed', group: 'buying', label: 'Assessed value growth for property tax (% per year; blank = same as home value growth)', value: null, min: -20, max: 30, optional: true },
-  { id: 'insurance', group: 'buying', label: 'Home insurance (% of value)', value: 0.35, min: 0, max: 10 },
-  { id: 'pmi', group: 'buying', label: 'Mortgage insurance, PMI (% of loan, per year; conventional loans only)', value: 0.6, min: 0, max: 5 },
-  { id: 'maintenance', group: 'buying', label: 'Maintenance (% of value)', value: 1, min: 0, max: 10 },
-  { id: 'repairYear', group: 'buying', label: 'Major repair in year (0 = none)', value: 0, min: 0, max: 50, integer: true },
-  { id: 'repairCost', group: 'buying', label: 'Major repair cost ($, one time)', value: 0, min: 0, money: true },
-  { id: 'income', group: 'both', label: 'Gross income, optional ($ per year, before tax; for the 28/36 check)', value: null, min: 1, money: true, optional: true },
-  { id: 'otherDebt', group: 'both', label: 'Other debt payments, optional ($ per month: car, student loans, cards; for the 28/36 check)', value: 0, min: 0, money: true },
+  {
+    id: 'reserve',
+    group: 'buying',
+    label: 'Cash reserve (months of owning costs)',
+    value: 0,
+    min: 0,
+    max: 60,
+    hint: 'Counted in the cash needed to buy only. It does not change the net worth comparison, because the money stays yours either way.',
+  },
+  {
+    id: 'saved',
+    group: 'buying',
+    label: 'Cash you have saved, optional ($)',
+    value: null,
+    min: 0,
+    money: true,
+    optional: true,
+  },
+  {
+    id: 'takeHome',
+    group: 'buying',
+    label: 'Your after-tax salary, optional ($ per year; for the 33% rule and job-loss check)',
+    value: null,
+    min: 1,
+    money: true,
+    optional: true,
+  },
+  {
+    id: 'emergency',
+    group: 'buying',
+    label: 'Emergency savings you would keep after buying, optional ($)',
+    value: null,
+    min: 0,
+    money: true,
+    optional: true,
+  },
+  {
+    id: 'tax',
+    group: 'buying',
+    label: 'Property tax (% of value, per year)',
+    value: 1.1,
+    min: 0,
+    max: 10,
+  },
+  {
+    id: 'assessed',
+    group: 'buying',
+    label: 'Assessed value growth for property tax (% per year; blank = same as home value growth)',
+    value: null,
+    min: -20,
+    max: 30,
+    optional: true,
+  },
+  {
+    id: 'insurance',
+    group: 'buying',
+    label: 'Home insurance (% of value)',
+    value: 0.35,
+    min: 0,
+    max: 10,
+  },
+  {
+    id: 'pmi',
+    group: 'buying',
+    label: 'Mortgage insurance, PMI (% of loan, per year; conventional loans only)',
+    value: 0.6,
+    min: 0,
+    max: 5,
+  },
+  {
+    id: 'maintenance',
+    group: 'buying',
+    label: 'Maintenance (% of value)',
+    value: 1,
+    min: 0,
+    max: 10,
+  },
+  {
+    id: 'repairYear',
+    group: 'buying',
+    label: 'Major repair in year (0 = none)',
+    value: 0,
+    min: 0,
+    max: 50,
+    integer: true,
+  },
+  {
+    id: 'repairCost',
+    group: 'buying',
+    label: 'Major repair cost ($, one time)',
+    value: 0,
+    min: 0,
+    money: true,
+  },
+  {
+    id: 'income',
+    group: 'both',
+    label: 'Gross income, optional ($ per year, before tax; for the 28/36 check)',
+    value: null,
+    min: 1,
+    money: true,
+    optional: true,
+  },
+  {
+    id: 'otherDebt',
+    group: 'both',
+    label:
+      'Other debt payments, optional ($ per month: car, student loans, cards; for the 28/36 check)',
+    value: 0,
+    min: 0,
+    money: true,
+  },
   { id: 'hoa', group: 'buying', label: 'HOA dues ($ per month)', value: 0, min: 0, money: true },
-  { id: 'hoaGrowth', group: 'buying', label: 'HOA dues growth (% per year)', value: 3, min: -20, max: 30 },
-  { id: 'utilities', group: 'buying', label: 'Extra utilities vs. renting ($ per month; renters usually pay some too)', value: 0, min: 0, money: true },
-  { id: 'utilitiesGrowth', group: 'buying', label: 'Utilities growth (% per year)', value: 3, min: -20, max: 30 },
-  { id: 'growth', group: 'buying', label: 'Home value growth (% per year)', value: 3, min: -20, max: 30 },
+  {
+    id: 'hoaGrowth',
+    group: 'buying',
+    label: 'HOA dues growth (% per year)',
+    value: 3,
+    min: -20,
+    max: 30,
+  },
+  {
+    id: 'utilities',
+    group: 'buying',
+    label: 'Extra utilities vs. renting ($ per month; renters usually pay some too)',
+    value: 0,
+    min: 0,
+    money: true,
+  },
+  {
+    id: 'utilitiesGrowth',
+    group: 'buying',
+    label: 'Utilities growth (% per year)',
+    value: 3,
+    min: -20,
+    max: 30,
+  },
+  {
+    id: 'growth',
+    group: 'buying',
+    label: 'Home value growth (% per year)',
+    value: 3,
+    min: -20,
+    max: 30,
+  },
   { id: 'rent', group: 'renting', label: 'Monthly rent ($)', value: 2300, min: 1, money: true },
-  { id: 'rentGrowth', group: 'renting', label: 'Rent growth (% per year)', value: 3, min: -20, max: 30 },
-  { id: 'deposit', group: 'renting', label: "Security deposit ($, blank = one month's rent; returned when you leave)", value: null, min: 0, money: true, optional: true },
-  { id: 'renterInsurance', group: 'renting', label: "Renter's insurance ($ per year)", value: 180, min: 0, money: true },
-  { id: 'years', group: 'both', label: 'Years you will stay', value: 7, min: 1, max: 50, integer: true, slider: { min: 1, max: 30, step: 1 } },
-  { id: 'waitYears', group: 'both', label: 'Years you rent before buying (rent-then-buy path)', value: 2, min: 0, max: 50, integer: true },
-  { id: 'waitRate', group: 'both', label: 'Mortgage rate when you buy later, optional (%; blank = same as above)', value: null, min: 0, max: 30, optional: true },
-  { id: 'selling', group: 'both', label: 'Selling costs when you sell (%)', value: 6, min: 0, max: 30 },
-  { id: 'exclusion', group: 'both', label: 'Home-sale gain excluded from tax ($)', value: 250000, min: 0, money: true },
-  { id: 'inflation', group: 'both', label: 'Inflation (% per year)', value: 2.5, min: -20, max: 30 },
-  { id: 'investment', group: 'both', label: 'Investment return on money not spent on the home (% per year)', value: 5, min: -20, max: 30 },
-  { id: 'investDrag', group: 'renting', label: 'Annual tax drag on investments (% of balance)', value: 0.4, min: 0, max: 10, hint: 'For a top-bracket California taxpayer, plan on about 0.4% of the balance per year in tax drag from a taxable S&P 500 index fund' },
-  { id: 'filing', group: 'taxes', label: 'Filing status', value: 2, min: 1, max: 2, integer: true, options: [[1, 'Single'], [2, 'Married filing jointly']] },
-  { id: 'marginalTaxRate', group: 'taxes', label: 'Marginal income tax rate (federal + state, %)', value: 22, min: 0, max: 60 },
-  { id: 'stateIncomeTax', group: 'taxes', label: 'State and local income tax you pay, optional ($ per year; shares the SALT cap with property tax)', value: 0, min: 0, money: true },
-  { id: 'itemize', group: 'taxes', label: 'Deductions', value: 1, min: 0, max: 1, integer: true, options: [[1, 'I itemize'], [0, 'I take the standard deduction']] },
-  { id: 'capGains', group: 'renting', label: 'Capital gains tax when you sell the investments or the home (%)', value: 15, min: 0, max: 100 },
+  {
+    id: 'rentGrowth',
+    group: 'renting',
+    label: 'Rent growth (% per year)',
+    value: 3,
+    min: -20,
+    max: 30,
+  },
+  {
+    id: 'deposit',
+    group: 'renting',
+    label: "Security deposit ($, blank = one month's rent; returned when you leave)",
+    value: null,
+    min: 0,
+    money: true,
+    optional: true,
+  },
+  {
+    id: 'renterInsurance',
+    group: 'renting',
+    label: "Renter's insurance ($ per year)",
+    value: 180,
+    min: 0,
+    money: true,
+  },
+  {
+    id: 'years',
+    group: 'both',
+    label: 'Years you will stay',
+    value: 7,
+    min: 1,
+    max: 50,
+    integer: true,
+    slider: { min: 1, max: 30, step: 1 },
+  },
+  {
+    id: 'waitYears',
+    group: 'both',
+    label: 'Years you rent before buying (rent-then-buy path)',
+    value: 2,
+    min: 0,
+    max: 50,
+    integer: true,
+  },
+  {
+    id: 'waitRate',
+    group: 'both',
+    label: 'Mortgage rate when you buy later, optional (%; blank = same as above)',
+    value: null,
+    min: 0,
+    max: 30,
+    optional: true,
+  },
+  {
+    id: 'selling',
+    group: 'both',
+    label: 'Selling costs when you sell (%)',
+    value: 6,
+    min: 0,
+    max: 30,
+  },
+  {
+    id: 'exclusion',
+    group: 'both',
+    label: 'Home-sale gain excluded from tax ($)',
+    value: 250000,
+    min: 0,
+    money: true,
+  },
+  {
+    id: 'inflation',
+    group: 'both',
+    label: 'Inflation (% per year)',
+    value: 2.5,
+    min: -20,
+    max: 30,
+  },
+  {
+    id: 'investment',
+    group: 'both',
+    label: 'Investment return on money not spent on the home (% per year)',
+    value: 5,
+    min: -20,
+    max: 30,
+  },
+  {
+    id: 'investDrag',
+    group: 'renting',
+    label: 'Annual tax drag on investments (% of balance)',
+    value: 0.4,
+    min: 0,
+    max: 10,
+    hint: 'For a top-bracket California taxpayer, plan on about 0.4% of the balance per year in tax drag from a taxable S&P 500 index fund',
+  },
+  {
+    id: 'filing',
+    group: 'taxes',
+    label: 'Filing status',
+    value: 2,
+    min: 1,
+    max: 2,
+    integer: true,
+    options: [
+      [1, 'Single'],
+      [2, 'Married filing jointly'],
+    ],
+  },
+  {
+    id: 'marginalTaxRate',
+    group: 'taxes',
+    label: 'Marginal income tax rate (federal + state, %)',
+    value: 22,
+    min: 0,
+    max: 60,
+  },
+  {
+    id: 'stateIncomeTax',
+    group: 'taxes',
+    label:
+      'State and local income tax you pay, optional ($ per year; shares the SALT cap with property tax)',
+    value: 0,
+    min: 0,
+    money: true,
+  },
+  {
+    id: 'itemize',
+    group: 'taxes',
+    label: 'Deductions',
+    value: 1,
+    min: 0,
+    max: 1,
+    integer: true,
+    options: [
+      [1, 'I itemize'],
+      [0, 'I take the standard deduction'],
+    ],
+  },
+  {
+    id: 'capGains',
+    group: 'renting',
+    label: 'Capital gains tax when you sell the investments or the home (%)',
+    value: 15,
+    min: 0,
+    max: 100,
+  },
 ];
 
 export const rentOwnDefaults = () => Object.fromEntries(RENTOWN_FIELDS.map((f) => [f.id, f.value]));
@@ -114,10 +545,17 @@ export function parseLiveRate(data) {
   const f = RENTOWN_FIELDS.find((x) => x.id === 'rate');
   if (!data || typeof data !== 'object') return null;
   const { rate, week, updated, source, url } = data;
-  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < f.min || rate > f.max) return null;
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < f.min || rate > f.max)
+    return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(week)) || Number.isNaN(Date.parse(week))) return null;
   if (typeof url !== 'string' || !/^https:\/\//.test(url)) return null;
-  return { rate, week, updated: /^\d{4}-\d{2}-\d{2}$/.test(String(updated)) ? updated : null, source: String(source || 'Freddie Mac survey'), url };
+  return {
+    rate,
+    week,
+    updated: /^\d{4}-\d{2}-\d{2}$/.test(String(updated)) ? updated : null,
+    source: String(source || 'Freddie Mac survey'),
+    url,
+  };
 }
 
 // Makes the live rate the default for the rate field. Inputs in the address still win over it.
@@ -126,13 +564,35 @@ export function applyLiveRate(live) {
 }
 
 // "Oct 22, 2026" from an ISO date, in UTC so the day never shifts.
-export const longDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+export const longDate = (iso) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 
 export const RENTOWN_PRESETS = [
-  { id: 'ftb3', label: 'First-time buyer, 3% down', values: { down: 3, term: 30, years: 7, maintenance: 1 } },
-  { id: 'ftb10', label: 'First-time buyer, 10% down', values: { down: 10, term: 30, years: 7, maintenance: 1 } },
-  { id: 'down20', label: '20% down, 7-year stay', values: { down: 20, term: 30, years: 7, maintenance: 1 } },
-  { id: 'longterm', label: 'Long-term owner, 15-year stay', values: { down: 20, term: 30, years: 15, maintenance: 1.5 } },
+  {
+    id: 'ftb3',
+    label: 'First-time buyer, 3% down',
+    values: { down: 3, term: 30, years: 7, maintenance: 1 },
+  },
+  {
+    id: 'ftb10',
+    label: 'First-time buyer, 10% down',
+    values: { down: 10, term: 30, years: 7, maintenance: 1 },
+  },
+  {
+    id: 'down20',
+    label: '20% down, 7-year stay',
+    values: { down: 20, term: 30, years: 7, maintenance: 1 },
+  },
+  {
+    id: 'longterm',
+    label: 'Long-term owner, 15-year stay',
+    values: { down: 20, term: 30, years: 15, maintenance: 1.5 },
+  },
 ];
 
 // Places that cap how fast the taxable (assessed) value can rise, whatever the market does.
@@ -143,15 +603,34 @@ export const RENTOWN_TAX_CAPS = [
 ];
 
 // The preset whose four settings all match the inputs, or null ("Custom").
-export const matchRentOwnPreset = (v) => RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
+export const matchRentOwnPreset = (v) =>
+  RENTOWN_PRESETS.find((p) => Object.entries(p.values).every(([k, n]) => v[k] === n)) ?? null;
 
 // Long-run planning averages for the investment return (nominal, before the tax drag), not forecasts.
 // Each also suggests a yearly tax drag: more of a conservative portfolio's return arrives as taxable
 // interest rather than lightly taxed stock growth, so the drag rises as the stock share falls.
 export const RETURN_PRESETS = [
-  { id: 'aggressive', label: 'Aggressive 10%', detail: '100% stocks', investment: 10, investDrag: 0.7 },
-  { id: 'moderate', label: 'Moderate 8%', detail: '60% stocks, 40% bonds', investment: 8, investDrag: 0.8 },
-  { id: 'conservative', label: 'Conservative 6%', detail: '20% stocks, 80% bonds', investment: 6, investDrag: 0.9 },
+  {
+    id: 'aggressive',
+    label: 'Aggressive 10%',
+    detail: '100% stocks',
+    investment: 10,
+    investDrag: 0.7,
+  },
+  {
+    id: 'moderate',
+    label: 'Moderate 8%',
+    detail: '60% stocks, 40% bonds',
+    investment: 8,
+    investDrag: 0.8,
+  },
+  {
+    id: 'conservative',
+    label: 'Conservative 6%',
+    detail: '20% stocks, 80% bonds',
+    investment: 6,
+    investDrag: 0.9,
+  },
   { id: 'savings', label: 'Savings 4%', detail: 'savings account', investment: 4, investDrag: 1 },
 ];
 
@@ -160,7 +639,12 @@ export function invalidRentOwn(v) {
   return RENTOWN_FIELDS.filter((f) => {
     const n = v[f.id];
     if (f.optional && n == null) return false;
-    return !Number.isFinite(n) || n < f.min || (f.max != null && n > f.max) || (f.integer && !Number.isInteger(n));
+    return (
+      !Number.isFinite(n) ||
+      n < f.min ||
+      (f.max != null && n > f.max) ||
+      (f.integer && !Number.isInteger(n))
+    );
   }).map((f) => f.label.replace(/ \(.*\)$/, ''));
 }
 
@@ -239,13 +723,40 @@ export function financing(v) {
   const ltv = 100 - v.down;
   if (v.program === 1) {
     const fee = (base * FHA_UPFRONT) / 100;
-    return { base, fee, loan: v.feeFinanced ? base + fee : base, cashFee: v.feeFinanced ? 0 : fee, insurancePct: ltv > 90 ? FHA_ANNUAL_HIGH_LTV : FHA_ANNUAL_LOW_LTV, insuranceMonths: ltv > 90 ? Infinity : FHA_SHORT_MONTHS, insuranceName: 'FHA mortgage insurance', feeName: 'FHA upfront mortgage insurance premium' };
+    return {
+      base,
+      fee,
+      loan: v.feeFinanced ? base + fee : base,
+      cashFee: v.feeFinanced ? 0 : fee,
+      insurancePct: ltv > 90 ? FHA_ANNUAL_HIGH_LTV : FHA_ANNUAL_LOW_LTV,
+      insuranceMonths: ltv > 90 ? Infinity : FHA_SHORT_MONTHS,
+      insuranceName: 'FHA mortgage insurance',
+      feeName: 'FHA upfront mortgage insurance premium',
+    };
   }
   if (v.program === 2) {
     const fee = (base * vaFundingFeePct(v.down, v.vaRepeat)) / 100;
-    return { base, fee, loan: v.feeFinanced ? base + fee : base, cashFee: v.feeFinanced ? 0 : fee, insurancePct: 0, insuranceMonths: 0, insuranceName: 'Mortgage insurance', feeName: 'VA funding fee' };
+    return {
+      base,
+      fee,
+      loan: v.feeFinanced ? base + fee : base,
+      cashFee: v.feeFinanced ? 0 : fee,
+      insurancePct: 0,
+      insuranceMonths: 0,
+      insuranceName: 'Mortgage insurance',
+      feeName: 'VA funding fee',
+    };
   }
-  return { base, fee: 0, loan: base, cashFee: 0, insurancePct: v.pmi, insuranceMonths: null, insuranceName: 'Mortgage insurance (PMI)', feeName: '' };
+  return {
+    base,
+    fee: 0,
+    loan: base,
+    cashFee: 0,
+    insurancePct: v.pmi,
+    insuranceMonths: null,
+    insuranceName: 'Mortgage insurance (PMI)',
+    feeName: '',
+  };
 }
 
 // Owning pulls ahead for good from the year after the last year it trailed.
@@ -280,7 +791,10 @@ function aheadSpan(months, field = 'difference') {
   const first = months.findIndex((y) => y[field] >= 0);
   if (first < 0) return null;
   const last = months.map((y) => y[field] >= 0).lastIndexOf(true);
-  return { startMonth: months[first].month, endMonth: last === months.length - 1 ? null : months[last].month };
+  return {
+    startMonth: months[first].month,
+    endMonth: last === months.length - 1 ? null : months[last].month,
+  };
 }
 
 export function compareRentOwn(v) {
@@ -289,7 +803,19 @@ export function compareRentOwn(v) {
   const paper = v.view === 'unrealized';
   const loan = fin.loan;
   const arm = v.arm === 1;
-  const armLoan = arm ? { rateBasis: 'index', initialRate: v.armRate, indexRate: v.armIndexRate, margin: v.armMargin, indexChange: v.armIndexChange, firstCap: v.armFirstCap, periodicCap: v.armPeriodicCap, lifetimeCap: v.armLifetimeCap, floor: v.armFloor } : null;
+  const armLoan = arm
+    ? {
+        rateBasis: 'index',
+        initialRate: v.armRate,
+        indexRate: v.armIndexRate,
+        margin: v.armMargin,
+        indexChange: v.armIndexChange,
+        firstCap: v.armFirstCap,
+        periodicCap: v.armPeriodicCap,
+        lifetimeCap: v.armLifetimeCap,
+        floor: v.armFloor,
+      }
+    : null;
   let loanRate = arm ? v.armRate : v.rate;
   let monthlyRate = loanRate / 100 / 12;
   let pay = payment(loan, loanRate, v.term * 12);
@@ -330,7 +856,17 @@ export function compareRentOwn(v) {
   const monthly = [];
   const yearEndBalances = [];
   const curve = [];
-  const sum = { mortgage: 0, tax: 0, insurance: 0, maintenance: 0, hoa: 0, utilities: 0, pmi: 0, rent: 0, renterInsurance: 0 };
+  const sum = {
+    mortgage: 0,
+    tax: 0,
+    insurance: 0,
+    maintenance: 0,
+    hoa: 0,
+    utilities: 0,
+    pmi: 0,
+    rent: 0,
+    renterInsurance: 0,
+  };
   let repairs = 0;
   let repairBasis = 0;
   let stay = null;
@@ -348,7 +884,10 @@ export function compareRentOwn(v) {
       monthlyRate = loanRate / 100 / 12;
       pay = payment(balance, loanRate, v.term * 12 - (m - 1));
     }
-    const insured = fin.insuranceMonths == null ? fin.base > v.price * 0.8 + 0.005 && balance > v.price * 0.78 + 0.005 : m <= fin.insuranceMonths;
+    const insured =
+      fin.insuranceMonths == null
+        ? fin.base > v.price * 0.8 + 0.005 && balance > v.price * 0.78 + 0.005
+        : m <= fin.insuranceMonths;
     const pmi = insured ? (fin.base * fin.insurancePct) / 100 / 12 : 0;
     if (m <= stayMonths) totalPmi += pmi;
     const interest = balance * monthlyRate;
@@ -371,19 +910,43 @@ export function compareRentOwn(v) {
     const baseRent = v.rent * (1 + v.rentGrowth / 100) ** yearsIn;
     const rent = baseRent + v.renterInsurance / 12;
     if (m % 12 === 1 && m <= stayMonths) {
-      const part = { deposit: m === 1 ? deposit : 0, interest: before > 0 ? Math.min(interest, mortgage) : 0, principal: before - balance, tax, insurance, pmi, maintenance, hoa, utilities, rent: baseRent, renterInsurance: v.renterInsurance / 12 };
+      const part = {
+        deposit: m === 1 ? deposit : 0,
+        interest: before > 0 ? Math.min(interest, mortgage) : 0,
+        principal: before - balance,
+        tax,
+        insurance,
+        pmi,
+        maintenance,
+        hoa,
+        utilities,
+        rent: baseRent,
+        renterInsurance: v.renterInsurance / 12,
+      };
       monthly.push(monthlyCosts(part, yearsIn + 1));
     }
     Object.assign(sum, {
-      mortgage: sum.mortgage + mortgage, tax: sum.tax + tax, insurance: sum.insurance + insurance, maintenance: sum.maintenance + maintenance,
-      hoa: sum.hoa + hoa, utilities: sum.utilities + utilities, pmi: sum.pmi + pmi, rent: sum.rent + baseRent, renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
+      mortgage: sum.mortgage + mortgage,
+      tax: sum.tax + tax,
+      insurance: sum.insurance + insurance,
+      maintenance: sum.maintenance + maintenance,
+      hoa: sum.hoa + hoa,
+      utilities: sum.utilities + utilities,
+      pmi: sum.pmi + pmi,
+      rent: sum.rent + baseRent,
+      renterInsurance: sum.renterInsurance + v.renterInsurance / 12,
     });
     // `own` is the cash outlay; `cost` leaves out the principal, which builds equity rather than being spent.
     curve.push({ month: m, own, cost: own - (before - balance), rent });
     if (m <= stayMonths) peakRate = Math.max(peakRate, loanRate);
     const point = { own, rent, carry: tax + insurance + maintenance + hoa + utilities, tax };
     series.push(point);
-    if (m === 1) { firstMortgage = mortgage; firstOwn = own; firstRent = rent; firstPmi = pmi; }
+    if (m === 1) {
+      firstMortgage = mortgage;
+      firstOwn = own;
+      firstRent = rent;
+      firstPmi = pmi;
+    }
     // A renter whose deposit exceeds the cash put in starts in debt and borrows the shortfall at the mortgage rate; it earns nothing and owes no drag.
     const gain = portfolio < 0 ? portfolio * monthlyRate : portfolio * (invest - 1);
     const drag = portfolio > 0 ? Math.min(portfolio * dragRate, Math.max(0, gain)) : 0;
@@ -393,7 +956,13 @@ export function compareRentOwn(v) {
     ownPortfolio += ownGain - Math.min(ownPortfolio * dragRate, Math.max(0, ownGain));
     // Whichever side costs less that month invests the difference.
     const put = own - rent;
-    if (put > 0) { portfolio += put; basis += put; } else { ownPortfolio -= put; ownBasis -= put; }
+    if (put > 0) {
+      portfolio += put;
+      basis += put;
+    } else {
+      ownPortfolio -= put;
+      ownBasis -= put;
+    }
     if (m % 12 === 0) {
       if (m <= stayMonths) yearEndBalances.push(balance);
       const benefit = taxBenefit(v, yearInterest, yearPropertyTax, m / 12 - 1, yearBalance / 12);
@@ -419,19 +988,48 @@ export function compareRentOwn(v) {
     // selling costs and the price plus closing costs paid, plus any major repair. The exclusion needs two years in the home; the
     // capital gains rate is the one the renter's gains use.
     const homeGain = value * (1 - v.selling / 100) - v.price * (1 + v.closing / 100) - repairBasis;
-    const homeTax = paper ? 0 : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
+    const homeTax = paper
+      ? 0
+      : Math.max(0, homeGain - (m >= 24 ? v.exclusion : 0)) * (v.capGains / 100);
     const ownEquity = (paper ? value : value * (1 - v.selling / 100)) - balance - repairs - homeTax;
     const ownSaleTax = paper ? 0 : Math.max(0, ownPortfolio - ownBasis) * (v.capGains / 100);
     const ownWorth = ownEquity + ownPortfolio - ownSaleTax;
     const saleTax = paper ? 0 : Math.max(0, portfolio - basis) * (v.capGains / 100);
     const rentWorth = portfolio - saleTax + deposit;
-    const pureWorth = (paper ? pure : pure - Math.max(0, pure - pureStart) * (v.capGains / 100)) + deposit;
-    months.push({ month: m, difference: ownWorth - rentWorth, pureDifference: ownEquity - pureWorth });
+    const pureWorth =
+      (paper ? pure : pure - Math.max(0, pure - pureStart) * (v.capGains / 100)) + deposit;
+    months.push({
+      month: m,
+      difference: ownWorth - rentWorth,
+      pureDifference: ownEquity - pureWorth,
+    });
     if (m % 12 === 0) {
-      all.push({ year: m / 12, own: ownWorth, rent: rentWorth, difference: ownWorth - rentWorth, pureOwn: ownEquity, pureRent: pureWorth, pureDifference: ownEquity - pureWorth, dragPaid, saleTax, homeTax, taxBenefit: yearBenefit, repair: v.repairYear === m / 12 && v.repairCost > 0 });
+      all.push({
+        year: m / 12,
+        own: ownWorth,
+        rent: rentWorth,
+        difference: ownWorth - rentWorth,
+        pureOwn: ownEquity,
+        pureRent: pureWorth,
+        pureDifference: ownEquity - pureWorth,
+        dragPaid,
+        saleTax,
+        homeTax,
+        taxBenefit: yearBenefit,
+        repair: v.repairYear === m / 12 && v.repairCost > 0,
+      });
     }
     // The cost breakdown describes the end of the stay, not the end of the longer chart run.
-    if (m === stayMonths) stay = { sum: { ...sum }, taxBenefit: totalTaxBenefit, value, balance, portfolio, repairs, ownSavings: ownPortfolio - ownSaleTax };
+    if (m === stayMonths)
+      stay = {
+        sum: { ...sum },
+        taxBenefit: totalTaxBenefit,
+        value,
+        balance,
+        portfolio,
+        repairs,
+        ownSavings: ownPortfolio - ownSaleTax,
+      };
   }
   const years = all.slice(0, v.years);
   const breakEven = firstAheadYear(years);
@@ -446,10 +1044,24 @@ export function compareRentOwn(v) {
   const chartYears = all.slice(0, Math.max(v.years, chartBreakEven ?? CHART_YEARS));
   // Yearly return after the tax drag, before the tax on sale.
   const afterTaxReturn = v.investment - Math.min(v.investDrag, Math.max(0, v.investment));
-  const deflate = (rows) => rows.map((y) => {
-    const d = (1 + v.inflation / 100) ** y.year;
-    return { year: y.year, repair: y.repair, own: y.own / d, pureOwn: y.pureOwn / d, rent: y.rent / d, difference: y.difference / d, pureRent: y.pureRent / d, pureDifference: y.pureDifference / d, dragPaid: y.dragPaid / d, saleTax: y.saleTax / d, homeTax: y.homeTax / d, taxBenefit: y.taxBenefit / d };
-  });
+  const deflate = (rows) =>
+    rows.map((y) => {
+      const d = (1 + v.inflation / 100) ** y.year;
+      return {
+        year: y.year,
+        repair: y.repair,
+        own: y.own / d,
+        pureOwn: y.pureOwn / d,
+        rent: y.rent / d,
+        difference: y.difference / d,
+        pureRent: y.pureRent / d,
+        pureDifference: y.pureDifference / d,
+        dragPaid: y.dragPaid / d,
+        saleTax: y.saleTax / d,
+        homeTax: y.homeTax / d,
+        taxBenefit: y.taxBenefit / d,
+      };
+    });
   // Monthly lines cross when renting stays the dearer one from some month on.
   const lastCheaper = curve.map((c) => c.cost > c.rent).lastIndexOf(true);
   const monthlyCross = lastCheaper === curve.length - 1 ? null : curve[lastCheaper + 1].month;
@@ -458,7 +1070,16 @@ export function compareRentOwn(v) {
   const cash = cashNeeded(v, firstOwn, firstRent, fin.cashFee, deposit);
   const final = years[years.length - 1];
   const finalReal = real[real.length - 1];
-  const waterfall = costWaterfall(v, { upfront, deposit, cashFee: fin.cashFee, ...stay, ownWorth: final.pureOwn, invest, saleTax: final.saleTax, homeTax: final.homeTax });
+  const waterfall = costWaterfall(v, {
+    upfront,
+    deposit,
+    cashFee: fin.cashFee,
+    ...stay,
+    ownWorth: final.pureOwn,
+    invest,
+    saleTax: final.saleTax,
+    homeTax: final.homeTax,
+  });
   return {
     years,
     monthly,
@@ -484,7 +1105,14 @@ export function compareRentOwn(v) {
     firstMortgage,
     peakRate,
     totalPmi,
-    program: { id: v.program, fee: fin.fee, feeName: fin.feeName, financed: fin.fee > 0 && v.feeFinanced === 1, loan, insuranceName: fin.insuranceName },
+    program: {
+      id: v.program,
+      fee: fin.fee,
+      feeName: fin.feeName,
+      financed: fin.fee > 0 && v.feeFinanced === 1,
+      loan,
+      insuranceName: fin.insuranceName,
+    },
     yearEndBalances,
     cash,
     waterfall,
@@ -507,10 +1135,14 @@ export function equivalentRent(v) {
   const gap = (rent) => compareRentOwn({ ...v, rent }).final.difference;
   let lo = 0;
   let hi = Math.max(v.rent, 1) * 2;
-  for (let i = 0; i < 40 && gap(hi) < 0; i += 1) { lo = hi; hi *= 2; }
+  for (let i = 0; i < 40 && gap(hi) < 0; i += 1) {
+    lo = hi;
+    hi *= 2;
+  }
   for (let i = 0; i < 60; i += 1) {
     const mid = (lo + hi) / 2;
-    if (gap(mid) < 0) lo = mid; else hi = mid;
+    if (gap(mid) < 0) lo = mid;
+    else hi = mid;
   }
   return (lo + hi) / 2;
 }
@@ -522,10 +1154,29 @@ export function equivalentRent(v) {
 // Moving costs are part of the upfront cash: the owner spends them and never gets them back, and the
 // renter invests the same money. The cash reserve is not: it is cash held back on both sides, so it
 // changes neither net worth.
-function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, balance, portfolio, ownSavings, ownWorth, invest, repairs, saleTax, homeTax }) {
+function costWaterfall(
+  v,
+  {
+    upfront,
+    deposit,
+    cashFee,
+    sum,
+    taxBenefit,
+    value,
+    balance,
+    portfolio,
+    ownSavings,
+    ownWorth,
+    invest,
+    repairs,
+    saleTax,
+    homeTax,
+  },
+) {
   const down = (v.price * v.down) / 100;
   const closing = (v.price * v.closing) / 100;
-  const ownCosts = sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
+  const ownCosts =
+    sum.mortgage + sum.pmi + sum.tax + sum.insurance + sum.maintenance + sum.hoa + sum.utilities;
   const rentCosts = sum.rent + sum.renterInsurance;
   // Income tax refunds from the home deductions cut what owning cost.
   const recurring = ownCosts - taxBenefit - rentCosts;
@@ -536,8 +1187,24 @@ function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, b
   const sellingCosts = v.view === 'unrealized' ? 0 : (value * v.selling) / 100;
   return {
     upfront: { down, closing, fee: cashFee, moving: v.moving, deposit, total: upfront },
-    recurring: { mortgage: sum.mortgage, pmi: sum.pmi, tax: sum.tax, insurance: sum.insurance, maintenance: sum.maintenance, hoa: sum.hoa, utilities: sum.utilities, taxBenefit, rent: sum.rent, renterInsurance: sum.renterInsurance, total: recurring },
-    opportunity: { upfront: opportunityUpfront, monthly: opportunity - opportunityUpfront, total: opportunity },
+    recurring: {
+      mortgage: sum.mortgage,
+      pmi: sum.pmi,
+      tax: sum.tax,
+      insurance: sum.insurance,
+      maintenance: sum.maintenance,
+      hoa: sum.hoa,
+      utilities: sum.utilities,
+      taxBenefit,
+      rent: sum.rent,
+      renterInsurance: sum.renterInsurance,
+      total: recurring,
+    },
+    opportunity: {
+      upfront: opportunityUpfront,
+      monthly: opportunity - opportunityUpfront,
+      total: opportunity,
+    },
     moneyBack: { value, sellingCosts, balance, repairs, homeTax, total: ownWorth },
     gap: upfront + recurring + opportunity - ownWorth,
   };
@@ -546,8 +1213,15 @@ function costWaterfall(v, { upfront, deposit, cashFee, sum, taxBenefit, value, b
 // First month of a year, itemized. Principal builds equity, so the cost of
 // owning leaves it out; rent has no such part.
 function monthlyCosts(m, year) {
-  const ownTotal = m.interest + m.principal + m.tax + m.insurance + m.pmi + m.maintenance + m.hoa + m.utilities;
-  return { year, ...m, ownTotal, ownCost: ownTotal - m.principal, rentTotal: m.rent + m.renterInsurance };
+  const ownTotal =
+    m.interest + m.principal + m.tax + m.insurance + m.pmi + m.maintenance + m.hoa + m.utilities;
+  return {
+    year,
+    ...m,
+    ownTotal,
+    ownCost: ownTotal - m.principal,
+    rentTotal: m.rent + m.renterInsurance,
+  };
 }
 
 // Kevin O'Leary's rule of thumb: keep housing costs under a third of after-tax pay. Housing here is
@@ -563,7 +1237,15 @@ export function affordability(v, r) {
   const income = v.takeHome / 12;
   const share = (monthly / income) * 100;
   const months = v.emergency == null ? null : monthly > 0 ? v.emergency / monthly : Infinity;
-  return { monthly, income, share, over: share > OLEARY_SHARE, maxMonthly: income * OLEARY_SHARE / 100, months, covered: months == null ? null : months >= JOB_LOSS_MONTHS };
+  return {
+    monthly,
+    income,
+    share,
+    over: share > OLEARY_SHARE,
+    maxMonthly: (income * OLEARY_SHARE) / 100,
+    months,
+    covered: months == null ? null : months >= JOB_LOSS_MONTHS,
+  };
 }
 
 // What to do once the verdict is in. Renting ahead: the renter must put the Year-1 monthly gap
@@ -572,7 +1254,11 @@ export function affordability(v, r) {
 // `monthly` is the size of that gap, `direction` says which way it runs.
 export function followThrough(r) {
   const gap = r.firstOwnMonthly - r.firstRentMonthly;
-  return { winner: r.final.difference >= 0 ? 'own' : 'rent', monthly: Math.abs(gap), direction: gap > 0.5 ? 'ownCostsMore' : gap < -0.5 ? 'rentCostsMore' : 'same' };
+  return {
+    winner: r.final.difference >= 0 ? 'own' : 'rent',
+    monthly: Math.abs(gap),
+    direction: gap > 0.5 ? 'ownCostsMore' : gap < -0.5 ? 'rentCostsMore' : 'same',
+  };
 }
 
 // The 28/36 rule of thumb: housing costs at most 28% of gross monthly income, and all debt payments
@@ -593,15 +1279,35 @@ export function rule2836(v, r) {
   const debt = housing + v.otherDebt;
   const housingRatio = (housing / gross) * 100;
   const debtRatio = (debt / gross) * 100;
-  return { gross, housing, debt, housingRatio, debtRatio, housingOver: housingRatio > HOUSING_CAP, debtOver: debtRatio > DEBT_CAP };
+  return {
+    gross,
+    housing,
+    debt,
+    housingRatio,
+    debtRatio,
+    housingOver: housingRatio > HOUSING_CAP,
+    debtOver: debtRatio > DEBT_CAP,
+  };
 }
 
 // Things the calculator does not weigh; shown as a short list of questions.
 export const RENTOWN_CHECKLIST = [
-  { label: 'How long you will stay', ask: 'Is your stay really as long as the years you entered? Selling early usually favors renting.' },
-  { label: 'Flexibility vs. roots', ask: 'Do you want to be free to move easily, or settle in and make the place your own?' },
-  { label: 'Maintenance appetite', ask: 'Are you happy to handle repairs and upkeep, or do you want a landlord to?' },
-  { label: 'Job and location risk', ask: 'How likely is a job change or a move that would force a sale or a lease break?' },
+  {
+    label: 'How long you will stay',
+    ask: 'Is your stay really as long as the years you entered? Selling early usually favors renting.',
+  },
+  {
+    label: 'Flexibility vs. roots',
+    ask: 'Do you want to be free to move easily, or settle in and make the place your own?',
+  },
+  {
+    label: 'Maintenance appetite',
+    ask: 'Are you happy to handle repairs and upkeep, or do you want a landlord to?',
+  },
+  {
+    label: 'Job and location risk',
+    ask: 'How likely is a job change or a move that would force a sale or a lease break?',
+  },
 ];
 
 // Cash needed to buy: down payment, closing costs, moving and a reserve of
@@ -618,7 +1324,19 @@ function cashNeeded(v, ownMonthly, rentMonthly, fee = 0, deposit = 0) {
   const shortfall = hasSaved ? Math.max(0, total - v.saved) : 0;
   const monthlyGap = ownMonthly - rentMonthly;
   const monthsToClose = shortfall > 0 && monthlyGap > 0 ? Math.ceil(shortfall / monthlyGap) : null;
-  return { down, closing, fee, moving, reserve, deposit, total, saved: hasSaved ? v.saved : null, shortfall, monthlyGap, monthsToClose };
+  return {
+    down,
+    closing,
+    fee,
+    moving,
+    reserve,
+    deposit,
+    total,
+    saved: hasSaved ? v.saved : null,
+    shortfall,
+    monthlyGap,
+    monthsToClose,
+  };
 }
 
 // Three named cases around the user's own inputs. Owning does better when homes and rents grow
@@ -632,17 +1350,43 @@ export const RENTOWN_SCENARIOS = [
 
 export function compareScenarios(v) {
   return RENTOWN_SCENARIOS.map((s) => {
-    const inputs = { ...v, growth: v.growth + 2 * s.shift, rentGrowth: v.rentGrowth + s.shift, investment: v.investment - s.shift };
+    const inputs = {
+      ...v,
+      growth: v.growth + 2 * s.shift,
+      rentGrowth: v.rentGrowth + s.shift,
+      investment: v.investment - s.shift,
+    };
     const r = compareRentOwn(inputs);
-    return { id: s.id, label: s.label, growth: inputs.growth, rentGrowth: inputs.rentGrowth, investment: inputs.investment, breakEven: r.breakEven, difference: r.final.difference, differenceReal: r.finalReal.difference };
+    return {
+      id: s.id,
+      label: s.label,
+      growth: inputs.growth,
+      rentGrowth: inputs.rentGrowth,
+      investment: inputs.investment,
+      breakEven: r.breakEven,
+      difference: r.final.difference,
+      differenceReal: r.finalReal.difference,
+    };
   });
 }
 
 // The same inputs with a fixed-rate loan and with the ARM, side by side. Only meaningful when the ARM is chosen.
 export function compareMortgageTypes(v) {
-  return [{ id: 'fixed', label: 'Fixed rate', arm: 0 }, { id: 'arm', label: 'Adjustable rate (ARM)', arm: 1 }].map((t) => {
+  return [
+    { id: 'fixed', label: 'Fixed rate', arm: 0 },
+    { id: 'arm', label: 'Adjustable rate (ARM)', arm: 1 },
+  ].map((t) => {
     const r = compareRentOwn({ ...v, arm: t.arm });
-    return { id: t.id, label: t.label, startRate: t.arm ? v.armRate : v.rate, peakRate: r.peakRate, firstMortgage: r.firstMortgage, breakEven: r.breakEven, difference: r.final.difference, differenceReal: r.finalReal.difference };
+    return {
+      id: t.id,
+      label: t.label,
+      startRate: t.arm ? v.armRate : v.rate,
+      peakRate: r.peakRate,
+      firstMortgage: r.firstMortgage,
+      breakEven: r.breakEven,
+      difference: r.final.difference,
+      differenceReal: r.finalReal.difference,
+    };
   });
 }
 
@@ -665,12 +1409,15 @@ const pct = (n) => `${Number(n.toFixed(1))}%`;
 // narrows it.
 export function rentOwnFlipPoint(v, driver) {
   const at = (x) => compareRentOwn({ ...v, [driver.id]: x }).final.difference;
-  const xs = Array.from({ length: STEPS + 1 }, (_, i) => driver.min + ((driver.max - driver.min) * i) / STEPS);
+  const xs = Array.from(
+    { length: STEPS + 1 },
+    (_, i) => driver.min + ((driver.max - driver.min) * i) / STEPS,
+  );
   const ms = xs.map(at);
   const current = v[driver.id];
   let best = null;
   for (let i = 0; i < STEPS; i += 1) {
-    if ((ms[i] >= 0) === (ms[i + 1] >= 0)) continue;
+    if (ms[i] >= 0 === ms[i + 1] >= 0) continue;
     const mid = (xs[i] + xs[i + 1]) / 2;
     if (best == null || Math.abs(mid - current) < Math.abs(best.mid - current)) best = { i, mid };
   }
@@ -680,7 +1427,8 @@ export function rentOwnFlipPoint(v, driver) {
   const loOwning = ms[best.i] >= 0;
   for (let k = 0; k < 40; k += 1) {
     const m = (lo + hi) / 2;
-    if ((at(m) >= 0) === loOwning) lo = m; else hi = m;
+    if (at(m) >= 0 === loOwning) lo = m;
+    else hi = m;
   }
   return (lo + hi) / 2;
 }
@@ -688,27 +1436,53 @@ export function rentOwnFlipPoint(v, driver) {
 // One plain-language line per driver, in the order of RENTOWN_DRIVERS.
 export function rentOwnThresholds(v) {
   // An ARM has no single mortgage rate to flip, so its starting rate takes that place.
-  const drivers = v.arm === 1 ? RENTOWN_DRIVERS.map((d) => (d.id === 'rate' ? { ...d, id: 'armRate', label: 'ARM starting rate' } : d)) : RENTOWN_DRIVERS;
+  const drivers =
+    v.arm === 1
+      ? RENTOWN_DRIVERS.map((d) =>
+          d.id === 'rate' ? { ...d, id: 'armRate', label: 'ARM starting rate' } : d,
+        )
+      : RENTOWN_DRIVERS;
   const ahead = (x, d) => compareRentOwn({ ...v, [d.id]: x }).final.difference >= 0;
   return drivers.map((d) => {
     const flip = rentOwnFlipPoint(v, d);
     const entered = `${+Number(v[d.id]).toFixed(3)}%`;
     if (flip == null) {
       const winner = ahead(v[d.id], d) ? 'Owning' : 'Renting';
-      return { id: d.id, label: d.label, flip: null, text: `${winner} wins at every ${d.label.toLowerCase()} from ${d.min}% to ${d.max}%, so this assumption does not change the verdict (you entered ${entered}).` };
+      return {
+        id: d.id,
+        label: d.label,
+        flip: null,
+        text: `${winner} wins at every ${d.label.toLowerCase()} from ${d.min}% to ${d.max}%, so this assumption does not change the verdict (you entered ${entered}).`,
+      };
     }
     const owningAbove = ahead(Math.min(d.max, flip + 0.05), d);
     const winner = owningAbove ? 'Owning' : 'Renting';
     const other = owningAbove ? 'renting' : 'owning';
-    return { id: d.id, label: d.label, flip, owningAbove, text: `${winner} wins if ${d.label.toLowerCase()} is above ${pct(flip)}; ${other} wins if it is below (you entered ${entered}).` };
+    return {
+      id: d.id,
+      label: d.label,
+      flip,
+      owningAbove,
+      text: `${winner} wins if ${d.label.toLowerCase()} is above ${pct(flip)}; ${other} wins if it is below (you entered ${entered}).`,
+    };
   });
 }
 
 // Fields that can be entered as a percentage (the model's own unit) or in dollars. The dollar amount is
 // derived from the percentage and the home price, so changing the price moves the dollars, not the percentage.
 export const RENTOWN_UNITS = {
-  down: { label: { pct: 'Down payment (%)', usd: 'Down payment ($)' }, choices: { pct: '%', usd: '$' }, toUsd: (pct, price) => (price * pct) / 100, toPct: (usd, price) => (usd / price) * 100 },
-  maintenance: { label: { pct: 'Maintenance (% of value)', usd: 'Maintenance ($ per month)' }, choices: { pct: '% of value', usd: '$ per month' }, toUsd: (pct, price) => (price * pct) / 100 / 12, toPct: (usd, price) => (usd * 12 * 100) / price },
+  down: {
+    label: { pct: 'Down payment (%)', usd: 'Down payment ($)' },
+    choices: { pct: '%', usd: '$' },
+    toUsd: (pct, price) => (price * pct) / 100,
+    toPct: (usd, price) => (usd / price) * 100,
+  },
+  maintenance: {
+    label: { pct: 'Maintenance (% of value)', usd: 'Maintenance ($ per month)' },
+    choices: { pct: '% of value', usd: '$ per month' },
+    toUsd: (pct, price) => (price * pct) / 100 / 12,
+    toPct: (usd, price) => (usd * 12 * 100) / price,
+  },
 };
 
 export const defaultUnits = () => ({ down: 'pct', maintenance: 'pct' });
@@ -717,10 +1491,12 @@ export const defaultUnits = () => ({ down: 'pct', maintenance: 'pct' });
 export function encodeRentOwn(v, basis = 'future', units = defaultUnits(), view = 'realized') {
   const defaults = rentOwnDefaults();
   const params = new URLSearchParams();
-  for (const f of RENTOWN_FIELDS) if (Number.isFinite(v[f.id]) && v[f.id] !== defaults[f.id]) params.set(f.id, String(v[f.id]));
+  for (const f of RENTOWN_FIELDS)
+    if (Number.isFinite(v[f.id]) && v[f.id] !== defaults[f.id]) params.set(f.id, String(v[f.id]));
   if (basis === 'today') params.set('dollars', 'today');
   if (view === 'unrealized') params.set('view', 'unrealized');
-  for (const id of Object.keys(RENTOWN_UNITS)) if (units[id] === 'usd') params.set(`${id}Unit`, 'usd');
+  for (const id of Object.keys(RENTOWN_UNITS))
+    if (units[id] === 'usd') params.set(`${id}Unit`, 'usd');
   return params.toString();
 }
 
@@ -729,8 +1505,11 @@ export function decodeUnits(text) {
   const units = defaultUnits();
   try {
     const params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, ''));
-    for (const id of Object.keys(RENTOWN_UNITS)) if (params.get(`${id}Unit`) === 'usd') units[id] = 'usd';
-  } catch { /* keep defaults */ }
+    for (const id of Object.keys(RENTOWN_UNITS))
+      if (params.get(`${id}Unit`) === 'usd') units[id] = 'usd';
+  } catch {
+    /* keep defaults */
+  }
   return units;
 }
 
@@ -738,11 +1517,21 @@ export function decodeUnits(text) {
 export function decodeRentOwn(text) {
   const v = rentOwnDefaults();
   let params;
-  try { params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')); } catch { return v; }
+  try {
+    params = new URLSearchParams(String(text ?? '').replace(/^[#?]/, ''));
+  } catch {
+    return v;
+  }
   for (const f of RENTOWN_FIELDS) {
     if (!params.has(f.id)) continue;
     const n = parseAmount(params.get(f.id));
-    if (!Number.isFinite(n) || n < f.min || (f.max != null && n > f.max) || (f.integer && !Number.isInteger(n))) continue;
+    if (
+      !Number.isFinite(n) ||
+      n < f.min ||
+      (f.max != null && n > f.max) ||
+      (f.integer && !Number.isInteger(n))
+    )
+      continue;
     v[f.id] = n;
   }
   return v;
@@ -750,10 +1539,22 @@ export function decodeRentOwn(text) {
 
 // The dollar basis named in a URL fragment or stored string; 'future' unless it says 'today'.
 export function decodeBasis(text) {
-  try { return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('dollars') === 'today' ? 'today' : 'future'; } catch { return 'future'; }
+  try {
+    return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('dollars') === 'today'
+      ? 'today'
+      : 'future';
+  } catch {
+    return 'future';
+  }
 }
 
 // Which net worth the results show: 'realized' (after selling costs and tax, the default) unless it says 'unrealized'.
 export function decodeView(text) {
-  try { return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('view') === 'unrealized' ? 'unrealized' : 'realized'; } catch { return 'realized'; }
+  try {
+    return new URLSearchParams(String(text ?? '').replace(/^[#?]/, '')).get('view') === 'unrealized'
+      ? 'unrealized'
+      : 'realized';
+  } catch {
+    return 'realized';
+  }
 }

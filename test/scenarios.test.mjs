@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_SCENARIOS, addScenario, compareScenarios, parseStored, removeScenario } from '../site/scenarios.js';
+import {
+  MAX_SCENARIOS,
+  addScenario,
+  compareScenarios,
+  parseStored,
+  removeScenario,
+} from '../site/scenarios.js';
 import { defaultValues } from '../site/inputs.js';
 
 test('adds, replaces by name, and caps the list', () => {
@@ -20,13 +26,19 @@ test('adds, replaces by name, and caps the list', () => {
 test('removes by name', () => {
   const v = defaultValues();
   const list = addScenario(addScenario([], 'A', v), 'B', v);
-  assert.deepEqual(removeScenario(list, 'A').map((s) => s.name), ['B']);
+  assert.deepEqual(
+    removeScenario(list, 'A').map((s) => s.name),
+    ['B'],
+  );
 });
 
 test('parseStored tolerates bad input', () => {
   assert.deepEqual(parseStored('nope'), []);
   assert.deepEqual(parseStored('{"a":1}'), []);
-  assert.deepEqual(parseStored('[{"name":"A","values":{"x":1}},{"bad":1}]').map((s) => s.name), ['A']);
+  assert.deepEqual(
+    parseStored('[{"name":"A","values":{"x":1}},{"bad":1}]').map((s) => s.name),
+    ['A'],
+  );
 });
 
 test('compares verdicts side by side', () => {

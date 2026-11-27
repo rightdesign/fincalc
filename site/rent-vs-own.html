@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rent vs own calculator</title>
-    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
-    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="styles.css" />
     <script type="module" src="menu.js"></script>
     <script type="module" src="rent-vs-own-app.js"></script>
   </head>
@@ -14,15 +14,55 @@
       <h1>Rent vs own</h1>
     </header>
     <main class="m-page">
-      <p>Compare buying a home with renting a similar one and investing the difference. Enter the home price and today's rent; the calculator shows which leaves you with more money after the years you plan to stay.</p>
+      <p>
+        Compare buying a home with renting a similar one and investing the difference. Enter the
+        home price and today's rent; the calculator shows which leaves you with more money after the
+        years you plan to stay.
+      </p>
       <div class="layout ro-layout">
         <div class="inputs-col">
-        <div class="no-print ro-presets" role="group" aria-label="Starting points"><span>Starting point:</span> <span id="rentown-presets"></span> <span class="ro-preset-name" id="rentown-preset-name" role="status"></span></div>
-        <p class="no-print ro-location"><label>ZIP code (optional) <input id="rentown-zip" inputmode="numeric" autocomplete="postal-code" maxlength="10" placeholder="e.g. 94103" aria-describedby="rentown-zip-note"></label> <button type="button" id="rentown-zip-clear">Clear</button> <span id="rentown-zip-note" role="status"></span></p>
-        <form id="rentown-inputs" class="input-list ro-inputs"></form>
-        <p class="ro-rate-source" id="rentown-rate-source" hidden></p>
-        <p class="ro-basis"><label>Show results in <select id="rentown-basis" form="rentown-inputs"><option value="future">Future dollars</option><option value="today">Today's dollars</option></select></label> <label>Net worth <select id="rentown-view" form="rentown-inputs"><option value="realized">Realized (after selling costs and tax)</option><option value="unrealized">Unrealized (on paper)</option></select></label></p>
-        <p class="no-print ro-actions"><button type="button" id="rentown-copy">Copy link to these inputs</button> <button type="button" id="rentown-print">Print&hellip;</button> <button type="button" id="rentown-reset">Reset to defaults</button> <span class="share-message" id="rentown-message" role="status"></span></p>
+          <div class="no-print ro-presets" role="group" aria-label="Starting points">
+            <span>Starting point:</span> <span id="rentown-presets"></span>
+            <span class="ro-preset-name" id="rentown-preset-name" role="status"></span>
+          </div>
+          <p class="no-print ro-location">
+            <label
+              >ZIP code (optional)
+              <input
+                id="rentown-zip"
+                inputmode="numeric"
+                autocomplete="postal-code"
+                maxlength="10"
+                placeholder="e.g. 94103"
+                aria-describedby="rentown-zip-note"
+            /></label>
+            <button type="button" id="rentown-zip-clear">Clear</button>
+            <span id="rentown-zip-note" role="status"></span>
+          </p>
+          <form id="rentown-inputs" class="input-list ro-inputs"></form>
+          <p class="ro-rate-source" id="rentown-rate-source" hidden></p>
+          <p class="ro-basis">
+            <label
+              >Show results in
+              <select id="rentown-basis" form="rentown-inputs">
+                <option value="future">Future dollars</option>
+                <option value="today">Today's dollars</option>
+              </select></label
+            >
+            <label
+              >Net worth
+              <select id="rentown-view" form="rentown-inputs">
+                <option value="realized">Realized (after selling costs and tax)</option>
+                <option value="unrealized">Unrealized (on paper)</option>
+              </select></label
+            >
+          </p>
+          <p class="no-print ro-actions">
+            <button type="button" id="rentown-copy">Copy link to these inputs</button>
+            <button type="button" id="rentown-print">Print&hellip;</button>
+            <button type="button" id="rentown-reset">Reset to defaults</button>
+            <span class="share-message" id="rentown-message" role="status"></span>
+          </p>
         </div>
         <div class="results-col">
           <section id="rentown-results" aria-live="polite"></section>
@@ -33,46 +73,306 @@
       <details>
         <summary>Methodology and assumptions</summary>
         <ul>
-          <li>Owning: you pay the down payment and closing costs, then the monthly mortgage payment (a standard fixed-rate loan) plus property tax, insurance and maintenance, each a percentage of the home's value that year (property tax is a percentage of the assessed value, which follows the home's value unless you enter a slower assessed growth rate; see below), plus any HOA dues and extra utilities (beyond what you would pay as a renter) that you enter in dollars per month and that rise once a year by their own growth rates. The home's value grows at the rate you enter. When you sell, selling costs are deducted, the loan is repaid and tax is paid on the gain. The gain is the sale price less selling costs less the price and closing costs you paid and any major repair you enter (a capital improvement that raises your basis); the primary-residence exclusion ($250,000 single, $500,000 married filing jointly; the filing status buttons set it and you can overtype it) comes off first, and only when you stay at least two years (the ownership-and-use test). The rest is taxed at the same capital gains rate as the renter's investments. Your net worth is what is left.</li>
-          <li>Renting: you pay rent (rising once a year by the rent growth) plus renter's insurance, and invest the down payment and closing costs you did not spend. Each month, whatever owning costs beyond renting is also invested; if renting costs more, the shortfall is taken from the investments, selling holdings in proportion and paying capital gains tax on the gain in what is sold. Investments grow at the return you enter, less a yearly tax drag (a percentage of the balance, never more than that month's gain). When you sell, capital gains tax is charged on the balance above the money you put in. Your net worth is the investment balance after that tax, plus your security deposit back. The deposit (one month's rent unless you enter another amount, $0 allowed) comes out of the same starting cash, so you invest that much less, and it is returned untaxed at the end of the stay; the return it would have earned is charged to renting. This is the equal-cash view, and the headline follows it.</li>
-          <li>The page also shows a pure net worth view: the renter keeps only the invested down payment and closing costs (less the security deposit, which comes back at the end), taxed the same way, and the monthly difference between owning and renting is not credited to either side. Because the principal the owner pays each month counts as equity but is not charged to the owner, and the renter gets nothing for the same cash, this view leans toward owning; read it as home equity against starting cash only. The two views can name different winners; the page says so when they do.</li>
-          <li>Inflation: future dollars are the amounts you would actually see in each year. Today's dollars divide each year's net worth, for both paths, by (1 + inflation) for every year that has passed, so they are comparable to money now. The inflation input only changes the today's-dollars view; the model's own growth rates are not tied to it. At 0% inflation the two views agree.</li>
-          <li>Your mortgage card lists each year of the stay: the mortgage payments made that year (principal plus interest, at the loan's actual rate), how much of them was principal and how much interest, and the loan balance left at year end.</li>
-          <li>Cash needed to buy is the down payment plus closing costs, moving costs and a reserve of months of owning costs you choose (default none). Moving costs also count against the owner in the comparison; the reserve does not, because that cash stays yours either way. If you enter cash saved and it is less than that total, the result says you are short instead of naming a winner, and estimates the months to close the gap by saving what owning would cost each month beyond rent (interest earned ignored).</li>
-          <li>The follow-through quotes the year 1 monthly difference between owning and renting (the amount a renter must invest each month, or the extra an owner pays). It is not the total difference spread over the stay. The checklist covers things the calculator does not model: how long you will stay, flexibility, maintenance and job or location risk.</li>
-          <li>The cost breakdown splits the gap at the end of your stay into four parts that add up to it: the down payment and closing costs; the recurring cost of owning beyond what renting would cost; the opportunity cost, which is the investment return that money would have earned if you had rented instead; and the money back when you sell, which is subtracted. Mortgage payments are counted in full, and the principal comes back through the loan payoff.</li>
-          <li>Rent, then buy: for the years you enter, this path is the equal-cash renter. Then it sells the investments (paying the capital gains tax), buys the same home at its appreciated price, pays closing costs on that price and puts what is left down, with a new loan on the balance at the rate you enter (blank: the mortgage rate above) over the same term. If the savings cover more than the price, the rest stays invested. After the purchase the monthly budget is still what buying now would cost, so a cheaper or dearer payment is invested or drawn from the investments just as the renter's difference is. It counts the home-sale tax from the purchase date (the exclusion needs two years in the home) and a major repair counts from the purchase. It does not check whether you would qualify for the loan. With 0 years it equals buying now; with the whole stay it equals renting.</li>
-          <li>The break-even price and rent are solved by searching for the home price (or monthly rent) at which the net worth gap at the end of your stay is $0, with every other input as you entered it. If several values qualify it shows the one nearest your entry; if none does within the search range it says so.</li>
-          <li>The price-to-rent line divides the home price by a year of rent and shows rent as a share of price. The rule of thumb is that renting wins when yearly rent is below a certain share of the price; here that share is the break-even rent from the search above, so it moves with your mortgage rate, stay and other inputs rather than being a fixed 5% or 7%. It is a quick screen that ignores everything else the model weighs, such as how fast rent and the home&rsquo;s value grow.</li>
-          <li>When the gap at the end of your stay is under $5,000, or under 5% of the larger side&rsquo;s net worth, the headline says &ldquo;Too close to call&rdquo; instead of naming a winner, because a small change in any growth rate would reverse it. The gap is still shown, and the table of what flips the verdict shows how far each assumption would have to move.</li>
-          <li>Income tax: mortgage interest plus property tax and any state income tax you enter are deductible together, with the state and local part limited by the SALT cap ($40,400 in 2026, growing 1% a year through 2029, then $10,000 from 2030; the higher cap is cut by 30% of the gross income you enter above $505,000, never below $10,000). Only the part above the standard deduction ($16,100 single, $32,200 married filing jointly in 2026, raised by inflation each year) counts, and only if you itemize; a renter who itemizes would deduct the state income tax too, so only the difference is credited to owning. The stay is assumed to start in 2026. The amount above that, times your marginal tax rate, is counted as a refund at the end of each year, so the renter invests that much less. It is part of the recurring cost in the breakdown. Set the rate to 0 to ignore taxes.</li>
-          <li>Break-even is the first year after which owning stays ahead through the end of your stay.</li>
-          <li>The chart runs to the break-even year or 30 years, whichever comes first, and marks your stay separately, so you can see where the lines cross even when that is after you plan to leave. The table lists the years of your stay.</li>
-          <li>The cases table reruns the comparison with the three growth rates moved together: the case good for owning raises home growth by 2 points and rent growth by 1 point and lowers the investment return by 1 point; the case bad for owning does the opposite. The expected case uses your inputs exactly.</li>
-          <li>Mortgage insurance (PMI) is a percentage of the original loan per year, charged each month until the loan balance is paid down to 78% of the original price, when lenders cancel it automatically (appreciation does not end it early) and counted in the monthly cost of owning.</li>
-          <li>Loan type: Conventional charges the PMI percentage described above. FHA charges an upfront mortgage insurance premium of 1.75% of the base loan, either added to the loan or paid in cash at closing (your choice), plus an annual premium of 0.55% of the base loan (0.50% when the loan is 90% or less of the price) paid monthly; it does not stop at 78% of the price, and lasts the life of the loan when the original loan is above 90% of the price and 11 years otherwise (HUD FHA Single Family Housing Policy Handbook 4000.1). VA charges a one-time funding fee, added to the loan or paid in cash, and no monthly insurance: 2.15% of the loan for first use (3.3% for subsequent use) with less than 5% down, 1.5% with 5% to under 10% down and 1.25% with 10% or more down (VA funding fee table). A cash fee is part of the cash needed to buy and of the money the renter would have invested instead. The PMI percentage input applies to conventional loans only. The presets do not change the loan type.</li>
-          <li>An optional one-time major repair (a roof, say) is paid by the owner in the first month of the year you choose, on top of the maintenance percentage; it reduces the Own net worth by its cost plus the investment return that money would have earned, and does not affect renting.</li>
-          <li>The monthly breakdown shows the first month of the first and last year of your stay; mortgage principal is shown separately because it builds your equity, so the true cost of owning leaves it out.</li>
-          <li>Mortgage type: Fixed rate (the default) uses one rate for the whole loan. Adjustable rate (ARM) uses the same reset rules as the <a href="mortgage.html">variable-rate mortgage calculator</a>: the starting rate holds for the months you enter, then at each reset the rate targets the index plus the margin (the index moving by your assumed change at every reset), limited by the cap on the first adjustment, the cap on each later one, the lifetime cap above the starting rate and the lowest possible rate. The payment is recalculated at each reset to repay the balance over the months left. With the ARM chosen, the cases table also shows the fixed-rate loan beside it.</li>
-          <li>Assessment caps: some places limit how fast the taxable value of a home can rise, whatever the market does. California's Proposition 13 (Article XIIIA of the state constitution) limits the yearly rise in assessed value to 2% until the home is sold; Florida's Save Our Homes cap is 3% for homesteads. Enter the cap as the assessed value growth (or use the one-click buttons) and each year's property tax is the tax rate times the assessed value. Left blank, the assessed value follows the home's value. The taxed value is never more than the home's market value, so a cap can lower the tax but never raise it. The model keeps the cap in force over the whole stay.</li>
-          <li>The default mortgage rate is the latest Freddie Mac Primary Mortgage Market Survey 30-year fixed average, kept in a data file that is refreshed on a regular schedule; the survey week and the date the defaults were last refreshed are shown under the inputs. If the file cannot be read, the calculator falls back to a built-in 6.5%. Any rate you enter, or that arrives in a shared link, replaces the default.</li>
-          <li>Realized and unrealized: the default, realized, is the net worth you would walk away with after selling, with selling costs and the tax on the sale deducted (the home-sale tax for owning, capital gains tax for the renter's investments); the verdict and the headline follow it. Unrealized is the paper number: owning is the home's value less the loan and any major repair, and renting is the investment balance, with no selling costs and no tax on a sale. The Net worth selector switches the whole page, including the break-even, chart, cases and cost breakdown, and the choice is saved in the link. Switching to unrealized favors owning, since selling costs are larger than the tax on the investments, and can change the winner.</li>
-          <li>The down payment can be entered as a percentage or in dollars, and maintenance as a percentage of value or dollars per month. The calculator keeps the percentage: a dollar amount is converted at the home price, and changing the price moves the dollar figure while the percentage stays put. The loan amount (price less down payment) is shown beside the down payment. The choice of units is saved in the link.</li>
-          <li>Affordability check: if you enter your after-tax salary (the same input as the 33% rule below, divided by 12 for monthly take-home pay), the first month&rsquo;s housing cost (principal and interest on a 15-year loan of the same amount, or your own term if shorter, plus property tax, insurance, PMI and HOA dues) is shown as a share of it and flagged above Dave Ramsey&rsquo;s 25% guideline, which assumes a 15-year fixed-rate mortgage with 20% down, after other debt is paid off and a 3&ndash;6 month emergency fund is built.</li>
-          <li>The 28/36 check (the rule of thumb Ramit Sethi teaches) appears when you enter a gross yearly income. Housing is the first month&rsquo;s mortgage interest and principal, property tax, insurance, mortgage insurance and HOA dues, compared with 28% of gross monthly income; total debt payments add the other monthly debt payments you enter (car, student loans, cards) and are compared with 36%. Each is flagged when it is over its cap. It does not change the verdict and does not check whether a lender would approve the loan.</li>
-          <li>If you enter both a gross income and an after-tax salary and the after-tax salary is the higher of the two, a warning appears above the affordability checks, because pay after tax cannot exceed pay before tax and the checks would otherwise disagree.</li>
-          <li>Not modelled: other itemized deductions (charity), and the ARM options of interest-only periods and extra payments.</li>
-          <li>The optional ZIP code sets the property tax rate, the rent growth and the home insurance, found from the first three digits of the ZIP. Property tax is the state&rsquo;s effective rate in the Tax Foundation&rsquo;s 2024 table (Census American Community Survey 5-year estimates). Rent growth is the state&rsquo;s annualised change in median gross rent between the Census ACS 5-year estimates for 2014&ndash;2018 and 2019&ndash;2023 (table B25064). It is a past change, not a forecast, and it is not adjusted for inflation between the two periods. Home insurance is the state&rsquo;s median yearly premium for owners with a mortgage (Census ACS 5-year estimates for 2019&ndash;2023, table B25141, interpolated from the published cost brackets) divided by the state&rsquo;s median home value (table B25077), shown as a percentage of home value; the survey is self-reported and premiums vary widely within a state, so treat it as a starting point. All three are statewide averages, not your county&rsquo;s. Clear the ZIP, or leave it blank, for the national defaults of 1.1% property tax, 3% rent growth and 0.35% insurance; a ZIP that is not recognised changes nothing. This product uses Census Bureau data but is not endorsed or certified by the Census Bureau.</li>
-          <li>The optional after-tax salary turns on the affordability check, based on Kevin O&rsquo;Leary&rsquo;s rule of thumb that housing costs should stay below one third (33%) of after-tax pay. Housing here is the first month&rsquo;s mortgage payment (interest and principal) plus property tax, home insurance, mortgage insurance and HOA dues; maintenance and utilities are left out. Above 33% it is flagged. With emergency savings entered, the job-loss stress test divides them by that same monthly payment to show how many months of payments they cover, and flags anything under six months. It is a guideline, not a lending rule, and it ignores your other debts and expenses.</li>
+          <li>
+            Owning: you pay the down payment and closing costs, then the monthly mortgage payment (a
+            standard fixed-rate loan) plus property tax, insurance and maintenance, each a
+            percentage of the home's value that year (property tax is a percentage of the assessed
+            value, which follows the home's value unless you enter a slower assessed growth rate;
+            see below), plus any HOA dues and extra utilities (beyond what you would pay as a
+            renter) that you enter in dollars per month and that rise once a year by their own
+            growth rates. The home's value grows at the rate you enter. When you sell, selling costs
+            are deducted, the loan is repaid and tax is paid on the gain. The gain is the sale price
+            less selling costs less the price and closing costs you paid and any major repair you
+            enter (a capital improvement that raises your basis); the primary-residence exclusion
+            ($250,000 single, $500,000 married filing jointly; the filing status buttons set it and
+            you can overtype it) comes off first, and only when you stay at least two years (the
+            ownership-and-use test). The rest is taxed at the same capital gains rate as the
+            renter's investments. Your net worth is what is left.
+          </li>
+          <li>
+            Renting: you pay rent (rising once a year by the rent growth) plus renter's insurance,
+            and invest the down payment and closing costs you did not spend. Each month, whatever
+            owning costs beyond renting is also invested; if renting costs more, the shortfall is
+            taken from the investments, selling holdings in proportion and paying capital gains tax
+            on the gain in what is sold. Investments grow at the return you enter, less a yearly tax
+            drag (a percentage of the balance, never more than that month's gain). When you sell,
+            capital gains tax is charged on the balance above the money you put in. Your net worth
+            is the investment balance after that tax, plus your security deposit back. The deposit
+            (one month's rent unless you enter another amount, $0 allowed) comes out of the same
+            starting cash, so you invest that much less, and it is returned untaxed at the end of
+            the stay; the return it would have earned is charged to renting. This is the equal-cash
+            view, and the headline follows it.
+          </li>
+          <li>
+            The page also shows a pure net worth view: the renter keeps only the invested down
+            payment and closing costs (less the security deposit, which comes back at the end),
+            taxed the same way, and the monthly difference between owning and renting is not
+            credited to either side. Because the principal the owner pays each month counts as
+            equity but is not charged to the owner, and the renter gets nothing for the same cash,
+            this view leans toward owning; read it as home equity against starting cash only. The
+            two views can name different winners; the page says so when they do.
+          </li>
+          <li>
+            Inflation: future dollars are the amounts you would actually see in each year. Today's
+            dollars divide each year's net worth, for both paths, by (1 + inflation) for every year
+            that has passed, so they are comparable to money now. The inflation input only changes
+            the today's-dollars view; the model's own growth rates are not tied to it. At 0%
+            inflation the two views agree.
+          </li>
+          <li>
+            Your mortgage card lists each year of the stay: the mortgage payments made that year
+            (principal plus interest, at the loan's actual rate), how much of them was principal and
+            how much interest, and the loan balance left at year end.
+          </li>
+          <li>
+            Cash needed to buy is the down payment plus closing costs, moving costs and a reserve of
+            months of owning costs you choose (default none). Moving costs also count against the
+            owner in the comparison; the reserve does not, because that cash stays yours either way.
+            If you enter cash saved and it is less than that total, the result says you are short
+            instead of naming a winner, and estimates the months to close the gap by saving what
+            owning would cost each month beyond rent (interest earned ignored).
+          </li>
+          <li>
+            The follow-through quotes the year 1 monthly difference between owning and renting (the
+            amount a renter must invest each month, or the extra an owner pays). It is not the total
+            difference spread over the stay. The checklist covers things the calculator does not
+            model: how long you will stay, flexibility, maintenance and job or location risk.
+          </li>
+          <li>
+            The cost breakdown splits the gap at the end of your stay into four parts that add up to
+            it: the down payment and closing costs; the recurring cost of owning beyond what renting
+            would cost; the opportunity cost, which is the investment return that money would have
+            earned if you had rented instead; and the money back when you sell, which is subtracted.
+            Mortgage payments are counted in full, and the principal comes back through the loan
+            payoff.
+          </li>
+          <li>
+            Rent, then buy: for the years you enter, this path is the equal-cash renter. Then it
+            sells the investments (paying the capital gains tax), buys the same home at its
+            appreciated price, pays closing costs on that price and puts what is left down, with a
+            new loan on the balance at the rate you enter (blank: the mortgage rate above) over the
+            same term. If the savings cover more than the price, the rest stays invested. After the
+            purchase the monthly budget is still what buying now would cost, so a cheaper or dearer
+            payment is invested or drawn from the investments just as the renter's difference is. It
+            counts the home-sale tax from the purchase date (the exclusion needs two years in the
+            home) and a major repair counts from the purchase. It does not check whether you would
+            qualify for the loan. With 0 years it equals buying now; with the whole stay it equals
+            renting.
+          </li>
+          <li>
+            The break-even price and rent are solved by searching for the home price (or monthly
+            rent) at which the net worth gap at the end of your stay is $0, with every other input
+            as you entered it. If several values qualify it shows the one nearest your entry; if
+            none does within the search range it says so.
+          </li>
+          <li>
+            The price-to-rent line divides the home price by a year of rent and shows rent as a
+            share of price. The rule of thumb is that renting wins when yearly rent is below a
+            certain share of the price; here that share is the break-even rent from the search
+            above, so it moves with your mortgage rate, stay and other inputs rather than being a
+            fixed 5% or 7%. It is a quick screen that ignores everything else the model weighs, such
+            as how fast rent and the home&rsquo;s value grow.
+          </li>
+          <li>
+            When the gap at the end of your stay is under $5,000, or under 5% of the larger
+            side&rsquo;s net worth, the headline says &ldquo;Too close to call&rdquo; instead of
+            naming a winner, because a small change in any growth rate would reverse it. The gap is
+            still shown, and the table of what flips the verdict shows how far each assumption would
+            have to move.
+          </li>
+          <li>
+            Income tax: mortgage interest plus property tax and any state income tax you enter are
+            deductible together, with the state and local part limited by the SALT cap ($40,400 in
+            2026, growing 1% a year through 2029, then $10,000 from 2030; the higher cap is cut by
+            30% of the gross income you enter above $505,000, never below $10,000). Only the part
+            above the standard deduction ($16,100 single, $32,200 married filing jointly in 2026,
+            raised by inflation each year) counts, and only if you itemize; a renter who itemizes
+            would deduct the state income tax too, so only the difference is credited to owning. The
+            stay is assumed to start in 2026. The amount above that, times your marginal tax rate,
+            is counted as a refund at the end of each year, so the renter invests that much less. It
+            is part of the recurring cost in the breakdown. Set the rate to 0 to ignore taxes.
+          </li>
+          <li>
+            Break-even is the first year after which owning stays ahead through the end of your
+            stay.
+          </li>
+          <li>
+            The chart runs to the break-even year or 30 years, whichever comes first, and marks your
+            stay separately, so you can see where the lines cross even when that is after you plan
+            to leave. The table lists the years of your stay.
+          </li>
+          <li>
+            The cases table reruns the comparison with the three growth rates moved together: the
+            case good for owning raises home growth by 2 points and rent growth by 1 point and
+            lowers the investment return by 1 point; the case bad for owning does the opposite. The
+            expected case uses your inputs exactly.
+          </li>
+          <li>
+            Mortgage insurance (PMI) is a percentage of the original loan per year, charged each
+            month until the loan balance is paid down to 78% of the original price, when lenders
+            cancel it automatically (appreciation does not end it early) and counted in the monthly
+            cost of owning.
+          </li>
+          <li>
+            Loan type: Conventional charges the PMI percentage described above. FHA charges an
+            upfront mortgage insurance premium of 1.75% of the base loan, either added to the loan
+            or paid in cash at closing (your choice), plus an annual premium of 0.55% of the base
+            loan (0.50% when the loan is 90% or less of the price) paid monthly; it does not stop at
+            78% of the price, and lasts the life of the loan when the original loan is above 90% of
+            the price and 11 years otherwise (HUD FHA Single Family Housing Policy Handbook 4000.1).
+            VA charges a one-time funding fee, added to the loan or paid in cash, and no monthly
+            insurance: 2.15% of the loan for first use (3.3% for subsequent use) with less than 5%
+            down, 1.5% with 5% to under 10% down and 1.25% with 10% or more down (VA funding fee
+            table). A cash fee is part of the cash needed to buy and of the money the renter would
+            have invested instead. The PMI percentage input applies to conventional loans only. The
+            presets do not change the loan type.
+          </li>
+          <li>
+            An optional one-time major repair (a roof, say) is paid by the owner in the first month
+            of the year you choose, on top of the maintenance percentage; it reduces the Own net
+            worth by its cost plus the investment return that money would have earned, and does not
+            affect renting.
+          </li>
+          <li>
+            The monthly breakdown shows the first month of the first and last year of your stay;
+            mortgage principal is shown separately because it builds your equity, so the true cost
+            of owning leaves it out.
+          </li>
+          <li>
+            Mortgage type: Fixed rate (the default) uses one rate for the whole loan. Adjustable
+            rate (ARM) uses the same reset rules as the
+            <a href="mortgage.html">variable-rate mortgage calculator</a>: the starting rate holds
+            for the months you enter, then at each reset the rate targets the index plus the margin
+            (the index moving by your assumed change at every reset), limited by the cap on the
+            first adjustment, the cap on each later one, the lifetime cap above the starting rate
+            and the lowest possible rate. The payment is recalculated at each reset to repay the
+            balance over the months left. With the ARM chosen, the cases table also shows the
+            fixed-rate loan beside it.
+          </li>
+          <li>
+            Assessment caps: some places limit how fast the taxable value of a home can rise,
+            whatever the market does. California's Proposition 13 (Article XIIIA of the state
+            constitution) limits the yearly rise in assessed value to 2% until the home is sold;
+            Florida's Save Our Homes cap is 3% for homesteads. Enter the cap as the assessed value
+            growth (or use the one-click buttons) and each year's property tax is the tax rate times
+            the assessed value. Left blank, the assessed value follows the home's value. The taxed
+            value is never more than the home's market value, so a cap can lower the tax but never
+            raise it. The model keeps the cap in force over the whole stay.
+          </li>
+          <li>
+            The default mortgage rate is the latest Freddie Mac Primary Mortgage Market Survey
+            30-year fixed average, kept in a data file that is refreshed on a regular schedule; the
+            survey week and the date the defaults were last refreshed are shown under the inputs. If
+            the file cannot be read, the calculator falls back to a built-in 6.5%. Any rate you
+            enter, or that arrives in a shared link, replaces the default.
+          </li>
+          <li>
+            Realized and unrealized: the default, realized, is the net worth you would walk away
+            with after selling, with selling costs and the tax on the sale deducted (the home-sale
+            tax for owning, capital gains tax for the renter's investments); the verdict and the
+            headline follow it. Unrealized is the paper number: owning is the home's value less the
+            loan and any major repair, and renting is the investment balance, with no selling costs
+            and no tax on a sale. The Net worth selector switches the whole page, including the
+            break-even, chart, cases and cost breakdown, and the choice is saved in the link.
+            Switching to unrealized favors owning, since selling costs are larger than the tax on
+            the investments, and can change the winner.
+          </li>
+          <li>
+            The down payment can be entered as a percentage or in dollars, and maintenance as a
+            percentage of value or dollars per month. The calculator keeps the percentage: a dollar
+            amount is converted at the home price, and changing the price moves the dollar figure
+            while the percentage stays put. The loan amount (price less down payment) is shown
+            beside the down payment. The choice of units is saved in the link.
+          </li>
+          <li>
+            Affordability check: if you enter your after-tax salary (the same input as the 33% rule
+            below, divided by 12 for monthly take-home pay), the first month&rsquo;s housing cost
+            (principal and interest on a 15-year loan of the same amount, or your own term if
+            shorter, plus property tax, insurance, PMI and HOA dues) is shown as a share of it and
+            flagged above Dave Ramsey&rsquo;s 25% guideline, which assumes a 15-year fixed-rate
+            mortgage with 20% down, after other debt is paid off and a 3&ndash;6 month emergency
+            fund is built.
+          </li>
+          <li>
+            The 28/36 check (the rule of thumb Ramit Sethi teaches) appears when you enter a gross
+            yearly income. Housing is the first month&rsquo;s mortgage interest and principal,
+            property tax, insurance, mortgage insurance and HOA dues, compared with 28% of gross
+            monthly income; total debt payments add the other monthly debt payments you enter (car,
+            student loans, cards) and are compared with 36%. Each is flagged when it is over its
+            cap. It does not change the verdict and does not check whether a lender would approve
+            the loan.
+          </li>
+          <li>
+            If you enter both a gross income and an after-tax salary and the after-tax salary is the
+            higher of the two, a warning appears above the affordability checks, because pay after
+            tax cannot exceed pay before tax and the checks would otherwise disagree.
+          </li>
+          <li>
+            Not modelled: other itemized deductions (charity), and the ARM options of interest-only
+            periods and extra payments.
+          </li>
+          <li>
+            The optional ZIP code sets the property tax rate, the rent growth and the home
+            insurance, found from the first three digits of the ZIP. Property tax is the
+            state&rsquo;s effective rate in the Tax Foundation&rsquo;s 2024 table (Census American
+            Community Survey 5-year estimates). Rent growth is the state&rsquo;s annualised change
+            in median gross rent between the Census ACS 5-year estimates for 2014&ndash;2018 and
+            2019&ndash;2023 (table B25064). It is a past change, not a forecast, and it is not
+            adjusted for inflation between the two periods. Home insurance is the state&rsquo;s
+            median yearly premium for owners with a mortgage (Census ACS 5-year estimates for
+            2019&ndash;2023, table B25141, interpolated from the published cost brackets) divided by
+            the state&rsquo;s median home value (table B25077), shown as a percentage of home value;
+            the survey is self-reported and premiums vary widely within a state, so treat it as a
+            starting point. All three are statewide averages, not your county&rsquo;s. Clear the
+            ZIP, or leave it blank, for the national defaults of 1.1% property tax, 3% rent growth
+            and 0.35% insurance; a ZIP that is not recognised changes nothing. This product uses
+            Census Bureau data but is not endorsed or certified by the Census Bureau.
+          </li>
+          <li>
+            The optional after-tax salary turns on the affordability check, based on Kevin
+            O&rsquo;Leary&rsquo;s rule of thumb that housing costs should stay below one third (33%)
+            of after-tax pay. Housing here is the first month&rsquo;s mortgage payment (interest and
+            principal) plus property tax, home insurance, mortgage insurance and HOA dues;
+            maintenance and utilities are left out. Above 33% it is flagged. With emergency savings
+            entered, the job-loss stress test divides them by that same monthly payment to show how
+            many months of payments they cover, and flags anything under six months. It is a
+            guideline, not a lending rule, and it ignores your other debts and expenses.
+          </li>
           <li>Inflation only changes the today's-dollars view.</li>
-          <li>The FAQ below the results answers common questions with the numbers currently on the page; its sources list gives the references behind the rules the model uses.</li>
+          <li>
+            The FAQ below the results answers common questions with the numbers currently on the
+            page; its sources list gives the references behind the rules the model uses.
+          </li>
           <li>The investment return is a steady assumption, not a forecast.</li>
-          <li>The sensitivity table moves each of five inputs on its own (mortgage rate 1 point, the growth and return rates 2 points, stay length 3 years) and shows the break-even year and the end-of-stay gap at each; the break-even year does not depend on your stay, so stay length moves only the gap.</li>
-          <li>The investment return presets are long-run planning averages in nominal terms, not forecasts: Aggressive 10% (100% stocks, in line with the S&amp;P 500&rsquo;s long-run average of about 10% nominal, or 7% after inflation), Moderate 8% (60% stocks, 40% bonds), Conservative 6% (20% stocks, 80% bonds) and Savings 4% (a savings account). Picking one also suggests an annual tax drag (0.7% to 1%, higher for the more conservative mixes whose return arrives as taxable interest). Both fields stay editable, and the defaults (5% and 0.4%) apply until you pick a preset.</li>
-          <li>The 5% Rule card is a rule of thumb from Ben Felix&rsquo;s PWL Capital research: unrecoverable ownership costs of about 5% of the home&rsquo;s value a year (1% property tax, 1% maintenance, 3% cost of capital), divided by 12 and shown next to your rent. It is a simplified gross figure that ignores appreciation, which the detailed model counts, so use it as a quick screen alongside the breakdown, not a replacement.</li>
+          <li>
+            The sensitivity table moves each of five inputs on its own (mortgage rate 1 point, the
+            growth and return rates 2 points, stay length 3 years) and shows the break-even year and
+            the end-of-stay gap at each; the break-even year does not depend on your stay, so stay
+            length moves only the gap.
+          </li>
+          <li>
+            The investment return presets are long-run planning averages in nominal terms, not
+            forecasts: Aggressive 10% (100% stocks, in line with the S&amp;P 500&rsquo;s long-run
+            average of about 10% nominal, or 7% after inflation), Moderate 8% (60% stocks, 40%
+            bonds), Conservative 6% (20% stocks, 80% bonds) and Savings 4% (a savings account).
+            Picking one also suggests an annual tax drag (0.7% to 1%, higher for the more
+            conservative mixes whose return arrives as taxable interest). Both fields stay editable,
+            and the defaults (5% and 0.4%) apply until you pick a preset.
+          </li>
+          <li>
+            The 5% Rule card is a rule of thumb from Ben Felix&rsquo;s PWL Capital research:
+            unrecoverable ownership costs of about 5% of the home&rsquo;s value a year (1% property
+            tax, 1% maintenance, 3% cost of capital), divided by 12 and shown next to your rent. It
+            is a simplified gross figure that ignores appreciation, which the detailed model counts,
+            so use it as a quick screen alongside the breakdown, not a replacement.
+          </li>
         </ul>
       </details>
     </section>
-    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real costs and returns differ; talk to a qualified professional before buying a home.</p>
+    <p class="disclaimer">
+      <strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and
+      simplifications described above. Real costs and returns differ; talk to a qualified
+      professional before buying a home.
+    </p>
   </body>
 </html>

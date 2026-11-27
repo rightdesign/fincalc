@@ -6,7 +6,7 @@ const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b
 // Pinned numbers were recorded with the old 0.7% tax drag default (FINC-186 lowered it to 0.4%).
 const base = () => ({ ...rentOwnDefaults(), investDrag: 0.7 });
 
-test('inflation defaults to 2.5% and today\'s dollars shrink the gap', () => {
+test("inflation defaults to 2.5% and today's dollars shrink the gap", () => {
   assert.equal(rentOwnDefaults().inflation, 2.5);
   const r = compareRentOwn({ ...base(), deposit: 0 });
   near(r.final.difference, -12002, 1);

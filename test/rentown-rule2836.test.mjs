@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { rule2836, compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults } from '../site/rentown.js';
+import {
+  rule2836,
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+} from '../site/rentown.js';
 import { rule2836Card } from '../site/rentown/rule2836.js';
 
 const base = () => rentOwnDefaults();
@@ -20,7 +27,10 @@ test('28/36 ratios and flags', () => {
   assert.ok(Math.abs(a.housing - housing) < 0.01);
   assert.ok(Math.abs(a.housingRatio - (housing / 10000) * 100) < 1e-9);
   assert.ok(Math.abs(a.debtRatio - ((housing + 500) / 10000) * 100) < 1e-9);
-  const low = rule2836({ ...v, income: 1000000, otherDebt: 0 }, compareRentOwn({ ...v, income: 1000000, otherDebt: 0 }));
+  const low = rule2836(
+    { ...v, income: 1000000, otherDebt: 0 },
+    compareRentOwn({ ...v, income: 1000000, otherDebt: 0 }),
+  );
   assert.equal(low.housingOver, false);
   assert.equal(low.debtOver, false);
   const tight = rule2836({ ...v, income: 60000 }, compareRentOwn({ ...v, income: 60000 }));

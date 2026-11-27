@@ -15,7 +15,9 @@ test('six to eight questions, each answer two to four sentences', () => {
 });
 
 test('the answers quote the live defaults', () => {
-  const text = faqItems(ctx).map((i) => i.a).join(' ');
+  const text = faqItems(ctx)
+    .map((i) => i.a)
+    .join(' ');
   const { v, r } = ctx;
   if (r.breakEven != null) assert.ok(text.includes(monthPoint(r.breakEvenMonth)));
   assert.ok(text.includes(`${v.investment}%`));
@@ -26,7 +28,9 @@ test('the answers quote the live defaults', () => {
 
 test('the answers follow the inputs', () => {
   const other = buildContext({ ...rentOwnDefaults(), rate: 4, investment: 9 }, 'future');
-  const text = faqItems(other).map((i) => i.a).join(' ');
+  const text = faqItems(other)
+    .map((i) => i.a)
+    .join(' ');
   assert.ok(text.includes('4%') && text.includes('9%'));
 });
 
@@ -34,6 +38,12 @@ test('sources have links and as-of dates, and the card renders', () => {
   assert.ok(FAQ_SOURCES.length >= 5);
   for (const s of FAQ_SOURCES) assert.match(s.url, /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\/[^\s]*$/);
   const html = renderCards(ctx);
-  assert.ok(FAQ_SOURCES.some((s) => s.url === 'https://www.hud.gov/hud-partners/single-family-handbook-4000-1'));
-  assert.ok(html.includes('ro-faq') && html.includes('freddiemac.com/pmms') && html.includes('as of'));
+  assert.ok(
+    FAQ_SOURCES.some(
+      (s) => s.url === 'https://www.hud.gov/hud-partners/single-family-handbook-4000-1',
+    ),
+  );
+  assert.ok(
+    html.includes('ro-faq') && html.includes('freddiemac.com/pmms') && html.includes('as of'),
+  );
 });

@@ -22,8 +22,12 @@ export function groupWhileTyping(input) {
     const at = input.selectionStart;
     const v = input.value;
     // Moving the caret here does not change what the browser deletes, so do the delete ourselves.
-    const gone = e.inputType === 'deleteContentBackward' && v[at - 1] === ',' ? at - 2
-      : e.inputType === 'deleteContentForward' && v[at] === ',' ? at + 1 : -1;
+    const gone =
+      e.inputType === 'deleteContentBackward' && v[at - 1] === ','
+        ? at - 2
+        : e.inputType === 'deleteContentForward' && v[at] === ','
+          ? at + 1
+          : -1;
     if (gone < 0 || gone >= v.length) return;
     e.preventDefault();
     const next = v.slice(0, gone) + v.slice(gone + 1);

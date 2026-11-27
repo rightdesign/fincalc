@@ -9,9 +9,10 @@ export function ratioLine(v) {
   const ratio = `${(Math.round((v.price / annual) * 10) / 10).toFixed(1)}×`;
   const share = (annual / v.price) * 100;
   const tie = solveBreakEven(v, 'rent');
-  const rule = tie == null
-    ? 'no rent from $50 to $50,000 a month ties owning and renting on these inputs'
-    : `renting wins below ~${pct(((tie * 12) / v.price) * 100)}/yr`;
+  const rule =
+    tie == null
+      ? 'no rent from $50 to $50,000 a month ties owning and renting on these inputs'
+      : `renting wins below ~${pct(((tie * 12) / v.price) * 100)}/yr`;
   const rateText = v.arm === 1 ? `${v.armRate}% adjustable starting rate` : `${v.rate}% rate`;
   return `Price-to-rent ${ratio} · rent is ${pct(share)} of price/yr · rule of thumb at your ${rateText}: ${rule}`;
 }

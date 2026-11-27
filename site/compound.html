@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Compound interest calculator</title>
-    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
-    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="styles.css" />
     <script type="module" src="menu.js"></script>
     <script type="module" src="compound-app.js"></script>
   </head>
@@ -14,23 +14,44 @@
       <h1>Compound interest calculator</h1>
     </header>
     <main class="m-page">
-      <p class="m-intro">See how a starting balance and regular contributions grow over time when the interest you earn earns interest too. Enter what you have, what you add, the return you expect and how long you will wait.</p>
+      <p class="m-intro">
+        See how a starting balance and regular contributions grow over time when the interest you
+        earn earns interest too. Enter what you have, what you add, the return you expect and how
+        long you will wait.
+      </p>
       <div class="m-layout" id="compound-layout">
         <section id="compound-hero" class="m-hero-slot" aria-live="polite"></section>
         <div class="m-inputs-col">
-          <form id="compound-inputs" class="m-inputs" onsubmit="return false">
-            <fieldset class="m-group"><legend>Your savings</legend>
+          <form id="compound-inputs" class="m-inputs" onsubmit="return false;">
+            <fieldset class="m-group">
+              <legend>Your savings</legend>
               <p class="m-presets-label" id="compound-presets-label">Start from an example</p>
-              <div class="m-presets" id="compound-presets" role="group" aria-labelledby="compound-presets-label"></div>
+              <div
+                class="m-presets"
+                id="compound-presets"
+                role="group"
+                aria-labelledby="compound-presets-label"
+              ></div>
             </fieldset>
           </form>
-          <p class="no-print m-actions"><button type="button" id="compound-copy" class="ghost">Copy link to these inputs</button> <button type="button" id="compound-reset" class="ghost">Reset</button> <span id="compound-message" role="status"></span></p>
+          <p class="no-print m-actions">
+            <button type="button" id="compound-copy" class="ghost">
+              Copy link to these inputs
+            </button>
+            <button type="button" id="compound-reset" class="ghost">Reset</button>
+            <span id="compound-message" role="status"></span>
+          </p>
         </div>
         <div class="m-results-col" id="compound-results-col">
           <section id="compound-results" aria-live="polite"></section>
         </div>
       </div>
-      <section class="m-explainer" id="compound-explainer" aria-labelledby="compound-explainer-title" hidden>
+      <section
+        class="m-explainer"
+        id="compound-explainer"
+        aria-labelledby="compound-explainer-title"
+        hidden
+      >
         <h2 id="compound-explainer-title">Why compounding is so powerful</h2>
         <div id="compound-explainer-body"></div>
       </section>
@@ -39,30 +60,216 @@
       <details>
         <summary>Methodology and assumptions</summary>
         <ul>
-          <li>By default contributions are monthly and made at the end of each month (other frequencies are described next), so the first one starts earning in month two. Choose &ldquo;Beginning of period&rdquo; and each contribution is added before that period's interest, so it earns one extra period of growth; the formula above then gains a factor of (1 + r/12) on the contribution term.</li>
-          <li><strong>Contribution frequency and annual lump sum:</strong> the regular contribution can be made weekly (52 a year), biweekly (26), semimonthly (24), monthly (12), quarterly (4) or annually (1), and each deposit is placed at its real time in the year: at the end of its period, or at the start with Beginning of period. A deposit that lands inside a compounding period earns simple interest for the part of the period left, which joins the balance when the period ends, so weekly deposits earn slightly more than the same total added at month end. The optional annual lump sum is a separate yearly deposit, at the start of each year with Beginning of period and at the end of the year otherwise. It has its own yearly increase, applied the same way as the regular one, and both stop with Contribute for. The formulas below are written for monthly contributions; other frequencies are run period by period.</li>
-          <li><strong>Effective or nominal return:</strong> by default the Annual return is an effective annual rate (APY): the balance grows by exactly that percent over a year at any compounding frequency, so 9% turns $100 into $109. Internally the nominal rate r used in the formulas below is then <code>r = m &times; ((1 + e)<sup>1/m</sup> &minus; 1)</code> for e the effective rate and m compounding periods a year (<code>ln(1 + e)</code> for continuous). Choose Nominal rate (APR) to use the rate as quoted by a loan or CD, where 9% compounded monthly grows 9.38% a year.</li>
-          <li><strong>Monthly compounding:</strong> each month the balance earns the annual return divided by 12, and then your contribution is added. The future value is <code>FV = S &times; (1 + r/12)<sup>n</sup> + C &times; ((1 + r/12)<sup>n</sup> &minus; 1) / (r/12)</code>, where S is the starting balance, C the monthly contribution, r the annual return and n the number of months. At a 0% return it is S + C &times; n.</li>
-          <li><strong>Annual compounding:</strong> the balance at the start of each year earns the full annual return once, at year end. Contributions made during the year earn simple interest for the months they were invested, and join the balance at year end.</li>
-          <li><strong>Semiannual and quarterly compounding:</strong> the same rule with shorter periods. The balance at the start of each period earns the annual return divided by 2 (or 4) once, at period end, and contributions made during the period earn simple interest for the months left in it.</li>
-          <li><strong>Daily and continuous compounding:</strong> the balance grows by the equivalent of a month of daily compounding, (1 + r/365)<sup>365/12</sup>, each month (or e<sup>r/12</sup> for continuous), and contributions are added at the end or beginning of the month as above. Deposits inside a month earn simple interest for the rest of the month, so these differ from monthly compounding only by the growth within each month.</li>
-          <li><strong>Two phases:</strong> when Contribute for is shorter than Years, the plan runs in two phases. For the first N years (the contribution months) the formula above applies with n = 12 &times; N, giving the balance B. For the remaining M years there are no contributions, so the balance only compounds: <code>FV = B &times; (1 + r/12)<sup>12M</sup></code>. In the formula, the contribution term runs for the contribution months only; the starting balance compounds for all the months.</li>
-          <li><strong>Yearly increase:</strong> when Increase contribution each year is above 0%, the monthly contribution in year k is <code>C &times; (1 + g)<sup>k&minus;1</sup></code>, where g is the increase: it steps up once at the start of each year and is level within a year. Year 1 uses the amount you entered. The increases apply only while contributing, so they stop with Contribute for. The formula above then applies year by year rather than as a single closed form. At 0% the contribution is flat.</li>
-          <li><strong>Years and months:</strong> the term is Years plus Months (0&ndash;11), at least 1 month and at most 100 years. The year-by-year table covers each whole year, then ends with a partial final row for the leftover months (for example 1 year 6 months gives year 1 and then a 6-month row). Contribute for takes years and months the same way. Deposits that would fall after the end of the term are not made (an annual lump sum at the end of the year is skipped in a partial final year). With annual, semiannual or quarterly compounding, a compounding period cut short by the end of the term earns interest pro rata. The contribution step-up applies at the start of each 12-month year of the term. The chart marks &ldquo;Contributions stop&rdquo; at the end of the year in which they stop.</li>
-          <li>Total contributed is the starting balance plus every regular contribution and annual lump sum. If you set Contribute for to fewer years than Years, the contributions stop after that many years and the balance keeps compounding, with no new money, until the end. Interest earned is the future value minus total contributed.</li>
-          <li><strong>Cost of waiting:</strong> the comparison reruns your plan with ten fewer years (same starting balance, contribution, step-up, return and compounding; the later plan restarts the contribution schedule in its first year and the starting balance sits idle at 0% until it begins) and ends on the same date, so the difference is what ten extra years of saving adds. It appears when the term is more than 10 years. If Contribute for is shorter than the horizon, both sides stop contributing after the same number of years (or when their horizon ends, if sooner). In today's dollars, both end balances are divided by (1 + inflation)<sup>years</sup> and the difference is recomputed from them; contributions stay as paid.</li>
-          <li>The return is a constant yearly rate. Real returns vary. Accepted ranges: annual return &minus;20% to 30%, yearly contribution increase 0% to 20% (the same for the annual lump sum), withdrawal increase 0% to 20%, start withdrawing in year 1 to 100, return range 0 to 15 percentage points, and inflation &minus;10% to 30%; a negative return or inflation models a losing investment or falling prices.</li>
-                    <li><strong>Annual fees:</strong> at 0% (the default) no fee is charged. Set a fee f (a fund's expense ratio plus any advisory fee, as a percent of the balance per year) and each month, after that month's interest and contribution, f/12 percent of the whole balance is taken out, so the fee also stops that money compounding. With annual, semiannual or quarterly compounding the fee for the months in each period is taken when the period ends. The balances, interest and every comparison on the page are then after fees; the year-by-year interest is net of the fees paid. Accepted range 0% to 10%. It does not model fees charged as a flat dollar amount or on contributions.</li>
-          <li><strong>Account type and tax rate:</strong> the tax rate is applied according to the account type, and every balance and comparison on the page is after tax. <em>Taxable: interest</em> (the default; at a 0% rate nothing is taxed): each period's interest (each month's with monthly, daily or continuous compounding; each period's with annual, semiannual or quarterly) is multiplied by (1 &minus; t) before it joins the balance, so the rate that compounds is r &times; (1 &minus; t). <em>Tax-deferred</em> (401(k), traditional IRA): the money grows untaxed, and each year's balance is shown as B &times; (1 &minus; t), what you would keep after withdrawing it. <em>Tax-free</em> (Roth): nothing is taxed. <em>Taxable: stocks</em>: a dividend of 2% of the balance is taxed at t each year and the remainder is reinvested; a balance shown for any year is the balance less t times the gain over what you paid in (contributions plus reinvested dividends), as if sold that year. It uses one rate for dividends and gains, and does not model a rate that changes over time, early-withdrawal penalties or required distributions.</li>
-          <li><strong>Return range:</strong> optional, 0 by default. When set, the plan is run two more times at the return minus and plus this many percentage points (a 9% return with a range of 2 gives 7% and 11%) (the lower rate never goes below &minus;20%), each still a constant yearly rate. The chart shades the area between those two balances and the results state the resulting range. It is a what-if range, not a statistical confidence interval: real returns can land outside it.</li>
-          <li><strong>Volatility:</strong> optional, 0 by default. When set to a standard deviation s, the plan is run 2,000 times, each with its own random sequence of yearly returns. A year's growth is (1 + return) &times; exp(s &times; Z &minus; s<sup>2</sup>/2) with Z a standard normal draw, so the average growth stays at your stated return, a bad year can lose money but never more than everything, and the order of good and bad years matters. The same inputs always give the same simulation. The chart shades the 10th to 90th percentile balance of each year, and the results state the 10th, 50th and 90th percentile end balances. When volatility is set it replaces the fixed return variance range. It is an illustration under a simple model (independent yearly returns drawn from one distribution), not a forecast; real markets have fatter tails and runs of good or bad years.</li>
-          <li><strong>Today's dollars:</strong> the result at the top always shows the final balance both ways: the plain future-dollar amount and its value in today's dollars at your inflation rate. When Show results in is set to Today's dollars, each year's balance is divided by (1 + inflation)<sup>year</sup>, so it shows what that balance could buy at today's prices. Total contributed stays in the dollars you paid in, and the interest line becomes the restated balance minus that (it can be negative if inflation outruns the return). The year-by-year interest columns are unchanged. Switching views never changes the future-dollar figures.</li>
-          <li><strong>Withdrawals:</strong> a withdrawal W (default 0) taken every month, quarter, half year or year (the last month of each, or the first when contributions are at the beginning of the month), or instead a percent of the balance at that moment, or of the interest earned since the previous withdrawal (the percent modes ignore W and the yearly increase, and never run out). A fixed withdrawal W starts in the chosen year and is taken at the same point in the month as contributions (end or beginning), so contributions and withdrawals can overlap. With a yearly withdrawal increase g, the withdrawal in year k after the start is <code>W &times; (1 + g)<sup>k&minus;1</sup></code>, level within a year. Each withdrawal is capped at the balance that is left, so the balance never goes below zero; the first month it falls short is reported as the year the money runs out, and nothing further is taken. With a withdrawal set, interest earned is total earned, the future value plus money taken out minus money put in, so it can be larger than the final balance. The cost-of-waiting comparison is hidden while a withdrawal is set. The FAQ's stop-contributing, increase-contribution, tax and compounding comparisons rerun the plan with the same withdrawals on both sides.</li>
-          <li><strong>Target balance:</strong> optional, 0 (off) by default, in the dollars the results are shown in. When set, each answer changes one input and leaves the rest as entered, then searches for the smallest value whose ending balance reaches the target: the contribution per period (to the cent, rounded up, keeping any yearly increase and the annual lump sum as entered), the number of whole years up to 100 (extra months are dropped; contributions run to the end unless Contribute for was shorter, in which case it stays as entered), and the annual return (to 0.01 points, between &minus;20% and 30%). Each search works because the ending balance only rises as the contribution, the years or the return rises. A line says so when no value in range reaches it, or when the plan as entered already does. The chart's dashed line marks the target.</li>
-          <li>The FAQ below the results answers common questions with the numbers currently on the page; its sources list gives the references behind the rules the model uses.</li>
+          <li>
+            By default contributions are monthly and made at the end of each month (other
+            frequencies are described next), so the first one starts earning in month two. Choose
+            &ldquo;Beginning of period&rdquo; and each contribution is added before that period's
+            interest, so it earns one extra period of growth; the formula above then gains a factor
+            of (1 + r/12) on the contribution term.
+          </li>
+          <li>
+            <strong>Contribution frequency and annual lump sum:</strong> the regular contribution
+            can be made weekly (52 a year), biweekly (26), semimonthly (24), monthly (12), quarterly
+            (4) or annually (1), and each deposit is placed at its real time in the year: at the end
+            of its period, or at the start with Beginning of period. A deposit that lands inside a
+            compounding period earns simple interest for the part of the period left, which joins
+            the balance when the period ends, so weekly deposits earn slightly more than the same
+            total added at month end. The optional annual lump sum is a separate yearly deposit, at
+            the start of each year with Beginning of period and at the end of the year otherwise. It
+            has its own yearly increase, applied the same way as the regular one, and both stop with
+            Contribute for. The formulas below are written for monthly contributions; other
+            frequencies are run period by period.
+          </li>
+          <li>
+            <strong>Effective or nominal return:</strong> by default the Annual return is an
+            effective annual rate (APY): the balance grows by exactly that percent over a year at
+            any compounding frequency, so 9% turns $100 into $109. Internally the nominal rate r
+            used in the formulas below is then
+            <code>r = m &times; ((1 + e)<sup>1/m</sup> &minus; 1)</code> for e the effective rate
+            and m compounding periods a year (<code>ln(1 + e)</code> for continuous). Choose Nominal
+            rate (APR) to use the rate as quoted by a loan or CD, where 9% compounded monthly grows
+            9.38% a year.
+          </li>
+          <li>
+            <strong>Monthly compounding:</strong> each month the balance earns the annual return
+            divided by 12, and then your contribution is added. The future value is
+            <code
+              >FV = S &times; (1 + r/12)<sup>n</sup> + C &times; ((1 + r/12)<sup>n</sup> &minus; 1)
+              / (r/12)</code
+            >, where S is the starting balance, C the monthly contribution, r the annual return and
+            n the number of months. At a 0% return it is S + C &times; n.
+          </li>
+          <li>
+            <strong>Annual compounding:</strong> the balance at the start of each year earns the
+            full annual return once, at year end. Contributions made during the year earn simple
+            interest for the months they were invested, and join the balance at year end.
+          </li>
+          <li>
+            <strong>Semiannual and quarterly compounding:</strong> the same rule with shorter
+            periods. The balance at the start of each period earns the annual return divided by 2
+            (or 4) once, at period end, and contributions made during the period earn simple
+            interest for the months left in it.
+          </li>
+          <li>
+            <strong>Daily and continuous compounding:</strong> the balance grows by the equivalent
+            of a month of daily compounding, (1 + r/365)<sup>365/12</sup>, each month (or e<sup
+              >r/12</sup
+            >
+            for continuous), and contributions are added at the end or beginning of the month as
+            above. Deposits inside a month earn simple interest for the rest of the month, so these
+            differ from monthly compounding only by the growth within each month.
+          </li>
+          <li>
+            <strong>Two phases:</strong> when Contribute for is shorter than Years, the plan runs in
+            two phases. For the first N years (the contribution months) the formula above applies
+            with n = 12 &times; N, giving the balance B. For the remaining M years there are no
+            contributions, so the balance only compounds:
+            <code>FV = B &times; (1 + r/12)<sup>12M</sup></code
+            >. In the formula, the contribution term runs for the contribution months only; the
+            starting balance compounds for all the months.
+          </li>
+          <li>
+            <strong>Yearly increase:</strong> when Increase contribution each year is above 0%, the
+            monthly contribution in year k is <code>C &times; (1 + g)<sup>k&minus;1</sup></code
+            >, where g is the increase: it steps up once at the start of each year and is level
+            within a year. Year 1 uses the amount you entered. The increases apply only while
+            contributing, so they stop with Contribute for. The formula above then applies year by
+            year rather than as a single closed form. At 0% the contribution is flat.
+          </li>
+          <li>
+            <strong>Years and months:</strong> the term is Years plus Months (0&ndash;11), at least
+            1 month and at most 100 years. The year-by-year table covers each whole year, then ends
+            with a partial final row for the leftover months (for example 1 year 6 months gives year
+            1 and then a 6-month row). Contribute for takes years and months the same way. Deposits
+            that would fall after the end of the term are not made (an annual lump sum at the end of
+            the year is skipped in a partial final year). With annual, semiannual or quarterly
+            compounding, a compounding period cut short by the end of the term earns interest pro
+            rata. The contribution step-up applies at the start of each 12-month year of the term.
+            The chart marks &ldquo;Contributions stop&rdquo; at the end of the year in which they
+            stop.
+          </li>
+          <li>
+            Total contributed is the starting balance plus every regular contribution and annual
+            lump sum. If you set Contribute for to fewer years than Years, the contributions stop
+            after that many years and the balance keeps compounding, with no new money, until the
+            end. Interest earned is the future value minus total contributed.
+          </li>
+          <li>
+            <strong>Cost of waiting:</strong> the comparison reruns your plan with ten fewer years
+            (same starting balance, contribution, step-up, return and compounding; the later plan
+            restarts the contribution schedule in its first year and the starting balance sits idle
+            at 0% until it begins) and ends on the same date, so the difference is what ten extra
+            years of saving adds. It appears when the term is more than 10 years. If Contribute for
+            is shorter than the horizon, both sides stop contributing after the same number of years
+            (or when their horizon ends, if sooner). In today's dollars, both end balances are
+            divided by (1 + inflation)<sup>years</sup> and the difference is recomputed from them;
+            contributions stay as paid.
+          </li>
+          <li>
+            The return is a constant yearly rate. Real returns vary. Accepted ranges: annual return
+            &minus;20% to 30%, yearly contribution increase 0% to 20% (the same for the annual lump
+            sum), withdrawal increase 0% to 20%, start withdrawing in year 1 to 100, return range 0
+            to 15 percentage points, and inflation &minus;10% to 30%; a negative return or inflation
+            models a losing investment or falling prices.
+          </li>
+          <li>
+            <strong>Annual fees:</strong> at 0% (the default) no fee is charged. Set a fee f (a
+            fund's expense ratio plus any advisory fee, as a percent of the balance per year) and
+            each month, after that month's interest and contribution, f/12 percent of the whole
+            balance is taken out, so the fee also stops that money compounding. With annual,
+            semiannual or quarterly compounding the fee for the months in each period is taken when
+            the period ends. The balances, interest and every comparison on the page are then after
+            fees; the year-by-year interest is net of the fees paid. Accepted range 0% to 10%. It
+            does not model fees charged as a flat dollar amount or on contributions.
+          </li>
+          <li>
+            <strong>Account type and tax rate:</strong> the tax rate is applied according to the
+            account type, and every balance and comparison on the page is after tax.
+            <em>Taxable: interest</em> (the default; at a 0% rate nothing is taxed): each period's
+            interest (each month's with monthly, daily or continuous compounding; each period's with
+            annual, semiannual or quarterly) is multiplied by (1 &minus; t) before it joins the
+            balance, so the rate that compounds is r &times; (1 &minus; t).
+            <em>Tax-deferred</em> (401(k), traditional IRA): the money grows untaxed, and each
+            year's balance is shown as B &times; (1 &minus; t), what you would keep after
+            withdrawing it. <em>Tax-free</em> (Roth): nothing is taxed. <em>Taxable: stocks</em>: a
+            dividend of 2% of the balance is taxed at t each year and the remainder is reinvested; a
+            balance shown for any year is the balance less t times the gain over what you paid in
+            (contributions plus reinvested dividends), as if sold that year. It uses one rate for
+            dividends and gains, and does not model a rate that changes over time, early-withdrawal
+            penalties or required distributions.
+          </li>
+          <li>
+            <strong>Return range:</strong> optional, 0 by default. When set, the plan is run two
+            more times at the return minus and plus this many percentage points (a 9% return with a
+            range of 2 gives 7% and 11%) (the lower rate never goes below &minus;20%), each still a
+            constant yearly rate. The chart shades the area between those two balances and the
+            results state the resulting range. It is a what-if range, not a statistical confidence
+            interval: real returns can land outside it.
+          </li>
+          <li>
+            <strong>Volatility:</strong> optional, 0 by default. When set to a standard deviation s,
+            the plan is run 2,000 times, each with its own random sequence of yearly returns. A
+            year's growth is (1 + return) &times; exp(s &times; Z &minus; s<sup>2</sup>/2) with Z a
+            standard normal draw, so the average growth stays at your stated return, a bad year can
+            lose money but never more than everything, and the order of good and bad years matters.
+            The same inputs always give the same simulation. The chart shades the 10th to 90th
+            percentile balance of each year, and the results state the 10th, 50th and 90th
+            percentile end balances. When volatility is set it replaces the fixed return variance
+            range. It is an illustration under a simple model (independent yearly returns drawn from
+            one distribution), not a forecast; real markets have fatter tails and runs of good or
+            bad years.
+          </li>
+          <li>
+            <strong>Today's dollars:</strong> the result at the top always shows the final balance
+            both ways: the plain future-dollar amount and its value in today's dollars at your
+            inflation rate. When Show results in is set to Today's dollars, each year's balance is
+            divided by (1 + inflation)<sup>year</sup>, so it shows what that balance could buy at
+            today's prices. Total contributed stays in the dollars you paid in, and the interest
+            line becomes the restated balance minus that (it can be negative if inflation outruns
+            the return). The year-by-year interest columns are unchanged. Switching views never
+            changes the future-dollar figures.
+          </li>
+          <li>
+            <strong>Withdrawals:</strong> a withdrawal W (default 0) taken every month, quarter,
+            half year or year (the last month of each, or the first when contributions are at the
+            beginning of the month), or instead a percent of the balance at that moment, or of the
+            interest earned since the previous withdrawal (the percent modes ignore W and the yearly
+            increase, and never run out). A fixed withdrawal W starts in the chosen year and is
+            taken at the same point in the month as contributions (end or beginning), so
+            contributions and withdrawals can overlap. With a yearly withdrawal increase g, the
+            withdrawal in year k after the start is
+            <code>W &times; (1 + g)<sup>k&minus;1</sup></code
+            >, level within a year. Each withdrawal is capped at the balance that is left, so the
+            balance never goes below zero; the first month it falls short is reported as the year
+            the money runs out, and nothing further is taken. With a withdrawal set, interest earned
+            is total earned, the future value plus money taken out minus money put in, so it can be
+            larger than the final balance. The cost-of-waiting comparison is hidden while a
+            withdrawal is set. The FAQ's stop-contributing, increase-contribution, tax and
+            compounding comparisons rerun the plan with the same withdrawals on both sides.
+          </li>
+          <li>
+            <strong>Target balance:</strong> optional, 0 (off) by default, in the dollars the
+            results are shown in. When set, each answer changes one input and leaves the rest as
+            entered, then searches for the smallest value whose ending balance reaches the target:
+            the contribution per period (to the cent, rounded up, keeping any yearly increase and
+            the annual lump sum as entered), the number of whole years up to 100 (extra months are
+            dropped; contributions run to the end unless Contribute for was shorter, in which case
+            it stays as entered), and the annual return (to 0.01 points, between &minus;20% and
+            30%). Each search works because the ending balance only rises as the contribution, the
+            years or the return rises. A line says so when no value in range reaches it, or when the
+            plan as entered already does. The chart's dashed line marks the target.
+          </li>
+          <li>
+            The FAQ below the results answers common questions with the numbers currently on the
+            page; its sources list gives the references behind the rules the model uses.
+          </li>
         </ul>
       </details>
     </section>
-    <p class="disclaimer"><strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and simplifications described above. Real investments do not grow at a steady rate; talk to a qualified professional before making decisions.</p>
+    <p class="disclaimer">
+      <strong>Not financial advice.</strong> This calculator gives estimates based on the inputs and
+      simplifications described above. Real investments do not grow at a steady rate; talk to a
+      qualified professional before making decisions.
+    </p>
   </body>
 </html>

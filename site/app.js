@@ -5,10 +5,31 @@
 import { groupAmount, parseAmount } from './mortgage.js';
 import { groupWhileTyping } from './grouping.js';
 import { FIELDS, defaultHorizon, defaultValues, parseRepairs, parseValue } from './inputs.js';
-import { MAX_SCENARIOS, STORAGE_KEY, addScenario, compareScenarios, parseStored, removeScenario } from './scenarios.js';
+import {
+  MAX_SCENARIOS,
+  STORAGE_KEY,
+  addScenario,
+  compareScenarios,
+  parseStored,
+  removeScenario,
+} from './scenarios.js';
 import { csvFilename, tableCsv } from './export.js';
 import { INPUTS_KEY, decodeInputs, encodeInputs } from './share.js';
-import { buildResults, changedInputs, headlineHtml, heroHtml, downsizeWaterfall, downsizeWaterfallHtml, sensitivityHtml, costSummaryHtml, cardHtml, cardText, chartHtml, hoverPoints, tableHtml } from './results.js';
+import {
+  buildResults,
+  changedInputs,
+  headlineHtml,
+  heroHtml,
+  downsizeWaterfall,
+  downsizeWaterfallHtml,
+  sensitivityHtml,
+  costSummaryHtml,
+  cardHtml,
+  cardText,
+  chartHtml,
+  hoverPoints,
+  tableHtml,
+} from './results.js';
 
 export const root = document.getElementById('calculator');
 
@@ -89,7 +110,10 @@ function renderField(field, value) {
       input.value = amountText(field, slider.value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    input.addEventListener('input', () => { const n = parseAmount(input.value); if (Number.isFinite(n)) slider.value = n; });
+    input.addEventListener('input', () => {
+      const n = parseAmount(input.value);
+      if (Number.isFinite(n)) slider.value = n;
+    });
     label.classList.add('has-slider');
     label.append(text, slider, input);
     if (label.hintText) label.append(label.hintText);
@@ -109,7 +133,8 @@ function renderRepairs() {
   box.className = 'repairs';
   const note = document.createElement('p');
   note.className = 'hint-note';
-  note.textContent = 'Optional. Lump-sum costs such as a new roof or HVAC, in that year\'s dollars. They are added to your owning costs in the year you choose.';
+  note.textContent =
+    "Optional. Lump-sum costs such as a new roof or HVAC, in that year's dollars. They are added to your owning costs in the year you choose.";
   const list = document.createElement('div');
   list.className = 'repair-list';
   const add = document.createElement('button');
@@ -187,7 +212,11 @@ function openGroup(form, title) {
     g.querySelector('.group-toggle').setAttribute('aria-expanded', String(open));
     g.querySelector('.group-body').hidden = !open;
   }
-  try { localStorage.setItem(GROUP_KEY, title); } catch { /* storage unavailable */ }
+  try {
+    localStorage.setItem(GROUP_KEY, title);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 function renderForm(container) {
@@ -208,11 +237,15 @@ function renderForm(container) {
   const titles = [...new Set(FIELDS.map((f) => GROUP_TITLES[f.group] ?? f.group))];
   const bodies = {};
   for (const title of titles) {
-    const { group, body } = makeGroup(title, FIELDS.filter((f) => (GROUP_TITLES[f.group] ?? f.group) === title).length);
+    const { group, body } = makeGroup(
+      title,
+      FIELDS.filter((f) => (GROUP_TITLES[f.group] ?? f.group) === title).length,
+    );
     bodies[title] = body;
     form.append(group);
   }
-  for (const field of FIELDS) bodies[GROUP_TITLES[field.group] ?? field.group].append(renderField(field, values[field.id]));
+  for (const field of FIELDS)
+    bodies[GROUP_TITLES[field.group] ?? field.group].append(renderField(field, values[field.id]));
 
   const waterfall = document.createElement('div');
   waterfall.className = 'waterfall table-wrap';
@@ -229,14 +262,25 @@ function renderForm(container) {
     if (toggle) openGroup(form, toggle.closest('.group').dataset.group);
   });
   let remembered = null;
-  try { remembered = localStorage.getItem(GROUP_KEY); } catch { /* storage unavailable */ }
-  openGroup(form, form.querySelector(`.group[data-group="${CSS.escape(remembered ?? '')}"]`) ? remembered : DEFAULT_GROUP);
+  try {
+    remembered = localStorage.getItem(GROUP_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  openGroup(
+    form,
+    form.querySelector(`.group[data-group="${CSS.escape(remembered ?? '')}"]`)
+      ? remembered
+      : DEFAULT_GROUP,
+  );
 
   // The horizon follows the mortgage term until the user sets it themselves.
   const term = form.elements.mortgageTerm;
   const horizon = form.elements.horizon;
   let horizonEdited = false;
-  horizon.addEventListener('input', () => { horizonEdited = true; });
+  horizon.addEventListener('input', () => {
+    horizonEdited = true;
+  });
   term.addEventListener('input', () => {
     if (!horizonEdited) horizon.value = defaultHorizon(term.value);
   });
@@ -265,7 +309,10 @@ export function readInputs(form) {
   const out = {};
   for (const field of FIELDS) {
     const el = form.elements[field.id];
-    out[field.id] = parseValue(field, field.kind === 'checkbox' ? (el.checked ? '1' : '0') : el.value);
+    out[field.id] = parseValue(
+      field,
+      field.kind === 'checkbox' ? (el.checked ? '1' : '0') : el.value,
+    );
   }
   const rows = [...form.querySelectorAll('.repair-row')].map((r) => ({
     year: r.querySelector('[name="repair-year"]').value,
@@ -299,7 +346,11 @@ function writeInputs(form, values) {
   syncProceedsFields(form);
 }
 
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const esc = (s) =>
+  String(s).replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+  );
 
 // Saved named scenarios as chips at the top of the rail: "Current" (the live
 // inputs) plus up to MAX_SCENARIOS saved ones. Loading a scenario keeps the
@@ -309,15 +360,30 @@ function mountScenarios(form, update) {
   const box = document.createElement('section');
   box.className = 'scenarios';
   const state = { list: [] };
-  try { state.list = parseStored(localStorage.getItem(STORAGE_KEY)); } catch { /* storage unavailable */ }
-  const persist = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.list)); } catch { /* storage unavailable */ } };
+  try {
+    state.list = parseStored(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    /* storage unavailable */
+  }
+  const persist = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.list));
+    } catch {
+      /* storage unavailable */
+    }
+  };
   let active = null;
   let stash = null;
   let saving = false;
   let message = '';
 
   const render = () => {
-    const chips = state.list.map((s) => `<span class="chip-group"><button type="button" class="chip" data-act="load" data-name="${esc(s.name)}" aria-pressed="${active === s.name}">${esc(s.name)}</button><button type="button" class="chip-remove" data-act="remove" data-name="${esc(s.name)}" aria-label="Remove scenario ${esc(s.name)}">&times;</button></span>`).join('');
+    const chips = state.list
+      .map(
+        (s) =>
+          `<span class="chip-group"><button type="button" class="chip" data-act="load" data-name="${esc(s.name)}" aria-pressed="${active === s.name}">${esc(s.name)}</button><button type="button" class="chip-remove" data-act="remove" data-name="${esc(s.name)}" aria-label="Remove scenario ${esc(s.name)}">&times;</button></span>`,
+      )
+      .join('');
     const full = state.list.length >= MAX_SCENARIOS;
     box.innerHTML = `<div class="scenario-chips"><strong>Scenario</strong> <button type="button" class="chip" data-act="current" aria-pressed="${active == null}">Current</button>${chips} <button type="button" data-act="save-open"${saving ? ' hidden' : ''}>Save as&hellip;</button></div>
       <div class="scenario-save"${saving ? '' : ' hidden'}><label class="field"><span>Scenario name</span><input type="text" name="scenario-name" maxlength="40"></label><button type="button" data-act="save">Save</button><button type="button" data-act="save-cancel">Cancel</button></div>
@@ -326,15 +392,22 @@ function mountScenarios(form, update) {
     message = '';
   };
   box.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.name === 'scenario-name') { e.preventDefault(); box.querySelector('[data-act="save"]').click(); }
-    if (e.key === 'Escape' && saving) { saving = false; render(); }
+    if (e.key === 'Enter' && e.target.name === 'scenario-name') {
+      e.preventDefault();
+      box.querySelector('[data-act="save"]').click();
+    }
+    if (e.key === 'Escape' && saving) {
+      saving = false;
+      render();
+    }
   });
   box.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
     const { act, name } = btn.dataset;
     if (act === 'save-open') {
-      if (state.list.length >= MAX_SCENARIOS) message = `You can keep up to ${MAX_SCENARIOS} scenarios. Remove one first.`;
+      if (state.list.length >= MAX_SCENARIOS)
+        message = `You can keep up to ${MAX_SCENARIOS} scenarios. Remove one first.`;
       else saving = true;
       render();
     } else if (act === 'save-cancel') {
@@ -343,9 +416,19 @@ function mountScenarios(form, update) {
     } else if (act === 'save') {
       const values = readInputs(form);
       const missing = FIELDS.some((f) => values[f.id] == null) || values.repairs == null;
-      if (missing) { message = 'Fix the inputs before saving; some values are missing or invalid.'; return render(); }
-      const next = addScenario(state.list, box.querySelector('[name="scenario-name"]').value, values);
-      if (next.error) { message = next.error; return render(); }
+      if (missing) {
+        message = 'Fix the inputs before saving; some values are missing or invalid.';
+        return render();
+      }
+      const next = addScenario(
+        state.list,
+        box.querySelector('[name="scenario-name"]').value,
+        values,
+      );
+      if (next.error) {
+        message = next.error;
+        return render();
+      }
       state.list = next;
       persist();
       saving = false;
@@ -359,7 +442,8 @@ function mountScenarios(form, update) {
       if (!s) return;
       if (active == null) {
         const current = readInputs(form);
-        stash = FIELDS.some((f) => current[f.id] == null) || current.repairs == null ? null : current;
+        stash =
+          FIELDS.some((f) => current[f.id] == null) || current.repairs == null ? null : current;
       }
       active = s.name;
       writeInputs(form, s.values);
@@ -416,7 +500,18 @@ function showShortfall(form, text, cls = 'shortfall-notice') {
 }
 
 // Inputs the sale-proceeds breakdown reads; it shows once these are all valid.
-const DOWNSIZE_INPUTS = ['homeValue', 'sellingCostsPct', 'costBasis', 'exclusion', 'taxRate', 'mortgageBalance', 'newHomePrice', 'newBuyingCostsPct', 'newMortgageAmount', 'movingCosts'];
+const DOWNSIZE_INPUTS = [
+  'homeValue',
+  'sellingCostsPct',
+  'costBasis',
+  'exclusion',
+  'taxRate',
+  'mortgageBalance',
+  'newHomePrice',
+  'newBuyingCostsPct',
+  'newMortgageAmount',
+  'movingCosts',
+];
 
 // The sections last rendered, so a CSV button can find its table.
 let shown = [];
@@ -446,14 +541,16 @@ function selectTab(container, id, focus = false) {
     if (on && focus) btn.focus();
     if (on) revealTab(btn);
   }
-  for (const panel of container.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.dataset.tab !== id;
+  for (const panel of container.querySelectorAll('[role="tabpanel"]'))
+    panel.hidden = panel.dataset.tab !== id;
 }
 
 // Keeps a tab inside the strip's visible range (the strip has no scrollbar).
 function revealTab(btn) {
   const strip = btn.parentElement;
   if (btn.offsetLeft < strip.scrollLeft) strip.scrollLeft = btn.offsetLeft;
-  else if (btn.offsetLeft + btn.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = btn.offsetLeft + btn.offsetWidth - strip.clientWidth;
+  else if (btn.offsetLeft + btn.offsetWidth > strip.scrollLeft + strip.clientWidth)
+    strip.scrollLeft = btn.offsetLeft + btn.offsetWidth - strip.clientWidth;
 }
 
 // Shows the edge indicators only on a side that has more tabs hidden past it.
@@ -468,11 +565,16 @@ function renderResults(container, form, scenarios, hero) {
   const values = readInputs(form);
   const inDownsize = (f) => (GROUP_TITLES[f.group] ?? f.group) === 'If you downsize';
   const missing = FIELDS.filter((f) => values[f.id] == null && !inDownsize(f)).map((f) => f.label);
-  if (values.repairs == null) missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
+  if (values.repairs == null)
+    missing.push('Major repairs (each needs a whole year of 1 or more and a cost)');
   // A new mortgage needs a term; a term of 0 is only tolerated while there is no new mortgage.
-  const termInvalid = values.newMortgageAmount > 0 && values.newMortgageTerm != null && values.newMortgageTerm < 1;
-  const downsizeBad = FIELDS.filter((f) => values[f.id] == null && inDownsize(f)).map((f) => f.label);
-  if (termInvalid) downsizeBad.push('New mortgage term (years) (at least 1 when there is a new mortgage amount)');
+  const termInvalid =
+    values.newMortgageAmount > 0 && values.newMortgageTerm != null && values.newMortgageTerm < 1;
+  const downsizeBad = FIELDS.filter((f) => values[f.id] == null && inDownsize(f)).map(
+    (f) => f.label,
+  );
+  if (termInvalid)
+    downsizeBad.push('New mortgage term (years) (at least 1 when there is a new mortgage amount)');
   // Invalid downsize inputs only take the downsize path out; stay and sell still show.
   const downsizeUnavailable = downsizeBad.length > 0 && !missing.length;
   if (!downsizeUnavailable) missing.push(...downsizeBad);
@@ -480,10 +582,18 @@ function renderResults(container, form, scenarios, hero) {
   const downsizeMissing = DOWNSIZE_INPUTS.some((id) => values[id] == null);
   waterfall.innerHTML = downsizeMissing ? '' : downsizeWaterfallHtml(downsizeWaterfall(values));
   // A group header shows a dot while its inputs are invalid or it carries a notice, even when closed.
-  const flag = (title, on) => { const dot = form.querySelector(`.group[data-group="${title}"] .group-dot`); if (dot) dot.hidden = !on; };
+  const flag = (title, on) => {
+    const dot = form.querySelector(`.group[data-group="${title}"] .group-dot`);
+    if (dot) dot.hidden = !on;
+  };
   for (const g of form.querySelectorAll('.group')) {
     const title = g.dataset.group;
-    flag(title, FIELDS.some((f) => (GROUP_TITLES[f.group] ?? f.group) === title && values[f.id] == null) || (title === 'If you downsize' && termInvalid) || (title === 'Major repairs' && values.repairs == null));
+    flag(
+      title,
+      FIELDS.some((f) => (GROUP_TITLES[f.group] ?? f.group) === title && values[f.id] == null) ||
+        (title === 'If you downsize' && termInvalid) ||
+        (title === 'Major repairs' && values.repairs == null),
+    );
   }
   if (missing.length) {
     showShortfall(form, '');
@@ -493,15 +603,25 @@ function renderResults(container, form, scenarios, hero) {
     shown = [];
     return;
   }
-  const standIn = downsizeUnavailable ? { ...defaultValues(), ...values, ...Object.fromEntries(FIELDS.filter((f) => inDownsize(f)).map((f) => [f.id, defaultValues()[f.id]])) } : values;
-  const { sections, sensitivity, costSummary, shortfallNotice, noMortgageNotice, headline } = buildResults(standIn, { downsizeUnavailable });
+  const standIn = downsizeUnavailable
+    ? {
+        ...defaultValues(),
+        ...values,
+        ...Object.fromEntries(
+          FIELDS.filter((f) => inDownsize(f)).map((f) => [f.id, defaultValues()[f.id]]),
+        ),
+      }
+    : values;
+  const { sections, sensitivity, costSummary, shortfallNotice, noMortgageNotice, headline } =
+    buildResults(standIn, { downsizeUnavailable });
   shown = sections;
   showShortfall(form, shortfallNotice);
   showShortfall(form, noMortgageNotice, 'no-mortgage-notice');
   if (shortfallNotice) flag('If you downsize', true);
   const changed = changedInputs(values, FIELDS, defaultValues());
   const printSummary = `<section class="print-summary"><h2>Scenario inputs (changed from default)</h2>${changed.length ? `<ul>${changed.map(([l, v]) => `<li>${esc(l)}: ${esc(v)}</li>`).join('')}</ul>` : '<p>All inputs are at their defaults.</p>'}</section>`;
-  const chartPanel = (s) => `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details class="chart-table"><summary>Show table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`;
+  const chartPanel = (s) =>
+    `<section class="result" id="${s.id}"><h2>${s.title}</h2><p>${s.summary}</p>${chartHtml(s)}<details class="chart-table"><summary>Show table</summary>${tableHtml(s)}</details><p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`;
   const panels = {
     'net-worth': chartPanel(sections[0]),
     'pure-net-worth': chartPanel(sections[4]),
@@ -511,13 +631,27 @@ function renderResults(container, form, scenarios, hero) {
     'equal-cash': chartPanel(sections[5]),
     'cost-summary': costSummaryHtml(costSummary) + sensitivityHtml(sensitivity),
     compare: compareHtml(scenarios.state.list),
-    tables: sections.map((s) => `<section class="result"><h2>${s.title}</h2>${tableHtml(s)}<p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`).join(''),
+    tables: sections
+      .map(
+        (s) =>
+          `<section class="result"><h2>${s.title}</h2>${tableHtml(s)}<p class="no-print"><button type="button" data-csv="${s.id}">Download CSV</button></p></section>`,
+      )
+      .join(''),
   };
-  const tabs = TABS.map(([id, label]) => `<button type="button" role="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`).join('');
-  const body = TABS.map(([id]) => `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`).join('');
+  const tabs = TABS.map(
+    ([id, label]) =>
+      `<button type="button" role="tab" id="tab-${id}" data-tab="${id}" aria-controls="panel-${id}">${label}</button>`,
+  ).join('');
+  const body = TABS.map(
+    ([id]) =>
+      `<div role="tabpanel" class="tab-panel${id === 'tables' || (id === 'compare' && !scenarios.state.list.length) ? ' print-skip' : ''}" id="panel-${id}" data-tab="${id}" aria-labelledby="tab-${id}" tabindex="0">${panels[id]}</div>`,
+  ).join('');
   const stripLeft = container.querySelector('.tabs')?.scrollLeft ?? 0;
-  const more = (side, label, glyph) => `<button type="button" class="tabs-more tabs-more-${side}" data-scroll="${side === 'start' ? -1 : 1}" aria-label="${label}" tabindex="-1" hidden>${glyph}</button>`;
-  const unavailableNote = downsizeUnavailable ? `<p class="placeholder downsize-unavailable" role="status">Downsize results are unavailable. Enter a valid value for: ${esc(downsizeBad.join(', '))}.</p>` : '';
+  const more = (side, label, glyph) =>
+    `<button type="button" class="tabs-more tabs-more-${side}" data-scroll="${side === 'start' ? -1 : 1}" aria-label="${label}" tabindex="-1" hidden>${glyph}</button>`;
+  const unavailableNote = downsizeUnavailable
+    ? `<p class="placeholder downsize-unavailable" role="status">Downsize results are unavailable. Enter a valid value for: ${esc(downsizeBad.join(', '))}.</p>`
+    : '';
   hero.innerHTML = heroHtml(headline);
   container.innerHTML = `${unavailableNote}${headlineHtml(headline)}${printSummary}<div class="tabs-bar no-print">${more('start', 'Show earlier tabs', '&lsaquo;')}<div role="tablist" class="tabs m-tabs" aria-label="Results">${tabs}</div>${more('end', 'Show later tabs', '&rsaquo;')}</div>${body}`;
   const bar = container.querySelector('.tabs-bar');
@@ -526,15 +660,19 @@ function renderResults(container, form, scenarios, hero) {
   strip.addEventListener('scroll', () => updateTabIndicators(bar), { passive: true });
   new ResizeObserver(() => updateTabIndicators(bar)).observe(strip);
   // A vertical wheel pans the strip sideways; sideways input (trackpad, Shift+wheel) is left to the browser.
-  strip.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-    const max = strip.scrollWidth - strip.clientWidth;
-    if (max < 1) return;
-    const next = Math.min(max, Math.max(0, strip.scrollLeft + e.deltaY));
-    if (next === strip.scrollLeft) return;
-    strip.scrollLeft = next;
-    e.preventDefault();
-  }, { passive: false });
+  strip.addEventListener(
+    'wheel',
+    (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const max = strip.scrollWidth - strip.clientWidth;
+      if (max < 1) return;
+      const next = Math.min(max, Math.max(0, strip.scrollLeft + e.deltaY));
+      if (next === strip.scrollLeft) return;
+      strip.scrollLeft = next;
+      e.preventDefault();
+    },
+    { passive: false },
+  );
   sections.forEach((s) => attachHover(container.querySelector(`#${s.id} .chart-wrap`), s));
   selectTab(container, ui.tab);
   updateTabIndicators(bar);
@@ -542,7 +680,9 @@ function renderResults(container, form, scenarios, hero) {
 
 // Saves one section's table as a CSV file.
 function downloadCsv(section) {
-  const url = URL.createObjectURL(new Blob([tableCsv(section)], { type: 'text/csv;charset=utf-8' }));
+  const url = URL.createObjectURL(
+    new Blob([tableCsv(section)], { type: 'text/csv;charset=utf-8' }),
+  );
   const a = document.createElement('a');
   a.href = url;
   a.download = csvFilename(section);
@@ -560,11 +700,16 @@ function mountPrinting(container) {
   const opened = [];
   window.addEventListener('beforeprint', () => {
     if (!document.body.classList.contains('print-tables')) return;
-    container.querySelectorAll('details:not([open])').forEach((d) => { d.open = true; opened.push(d); });
+    container.querySelectorAll('details:not([open])').forEach((d) => {
+      d.open = true;
+      opened.push(d);
+    });
   });
   window.addEventListener('afterprint', () => {
     document.body.classList.remove('print-tables');
-    opened.splice(0).forEach((d) => { d.open = false; });
+    opened.splice(0).forEach((d) => {
+      d.open = false;
+    });
   });
 }
 
@@ -608,7 +753,9 @@ function attachHover(wrap, section) {
     const rect = svg.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * width;
     let best = 0;
-    points.forEach((p, i) => { if (Math.abs(p.x - x) < Math.abs(points[best].x - x)) best = i; });
+    points.forEach((p, i) => {
+      if (Math.abs(p.x - x) < Math.abs(points[best].x - x)) best = i;
+    });
     return best;
   };
 
@@ -617,7 +764,12 @@ function attachHover(wrap, section) {
   wrap.addEventListener('pointerleave', hide);
   wrap.addEventListener('keydown', (e) => {
     const last = points.length - 1;
-    const next = { ArrowRight: active == null ? 0 : Math.min(last, active + 1), ArrowLeft: active == null ? last : Math.max(0, active - 1), Home: 0, End: last }[e.key];
+    const next = {
+      ArrowRight: active == null ? 0 : Math.min(last, active + 1),
+      ArrowLeft: active == null ? last : Math.max(0, active - 1),
+      Home: 0,
+      End: last,
+    }[e.key];
     if (e.key === 'Escape') hide();
     else if (next != null) {
       e.preventDefault();
@@ -633,7 +785,9 @@ function mountSharing(form, update) {
   box.className = 'share';
   box.innerHTML = `<details class="share-menu"><summary>Share &amp; export</summary><div class="share-items"><button type="button" data-act="copy">Copy link to these inputs</button><button type="button" data-act="reset">Reset to defaults</button><div class="print-options"><label><input type="checkbox" id="print-tables"> Include data tables</label><button type="button" data-act="print">Print&hellip;</button></div></div></details><span class="share-message" role="status"></span>`;
   const message = box.querySelector('.share-message');
-  const say = (text) => { message.textContent = text; };
+  const say = (text) => {
+    message.textContent = text;
+  };
 
   const restore = (text) => {
     writeInputs(form, decodeInputs(text));
@@ -642,7 +796,11 @@ function mountSharing(form, update) {
     update();
   };
   let stored = null;
-  try { stored = localStorage.getItem(INPUTS_KEY); } catch { /* storage unavailable */ }
+  try {
+    stored = localStorage.getItem(INPUTS_KEY);
+  } catch {
+    /* storage unavailable */
+  }
   const fromLink = location.hash.length > 1;
   if (fromLink || stored) restore(fromLink ? location.hash : stored);
 
@@ -650,16 +808,26 @@ function mountSharing(form, update) {
     const values = readInputs(form);
     if (FIELDS.some((f) => values[f.id] == null) || values.repairs == null) return;
     const text = encodeInputs(values);
-    try { localStorage.setItem(INPUTS_KEY, text); } catch { /* storage unavailable */ }
+    try {
+      localStorage.setItem(INPUTS_KEY, text);
+    } catch {
+      /* storage unavailable */
+    }
     // The tab rides along in the address (not in the stored inputs).
     const params = new URLSearchParams(text);
     if (ui.tab !== TABS[0][0]) params.set('tab', ui.tab);
     const hash = params.toString();
-    try { history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search); } catch { /* not allowed here */ }
+    try {
+      history.replaceState(null, '', hash ? `#${hash}` : location.pathname + location.search);
+    } catch {
+      /* not allowed here */
+    }
   };
   form.addEventListener('input', save);
   form.addEventListener('change', save);
-  window.addEventListener('hashchange', () => { if (location.hash.length > 1) restore(location.hash); });
+  window.addEventListener('hashchange', () => {
+    if (location.hash.length > 1) restore(location.hash);
+  });
   save();
   box.save = save;
 
@@ -667,7 +835,12 @@ function mountSharing(form, update) {
     const act = e.target.closest('button[data-act]')?.dataset.act;
     if (act === 'copy') {
       save();
-      try { await navigator.clipboard.writeText(location.href); say('Link copied.'); } catch { say('Copy failed; copy the address from the browser bar instead.'); }
+      try {
+        await navigator.clipboard.writeText(location.href);
+        say('Link copied.');
+      } catch {
+        say('Copy failed; copy the address from the browser bar instead.');
+      }
     } else if (act === 'print') {
       document.body.classList.toggle('print-tables', box.querySelector('#print-tables').checked);
       window.print();
@@ -695,16 +868,26 @@ if (root) {
   hero.className = 'm-hero-slot';
   hero.setAttribute('aria-live', 'polite');
   const update = () => renderResults(results, form, scenarios, hero);
-  scenarios = mountScenarios(form, () => { update(); sharing.save(); });
+  scenarios = mountScenarios(form, () => {
+    update();
+    sharing.save();
+  });
   results.addEventListener('click', (e) => {
     const more = e.target.closest('.tabs-more');
     if (more) {
       const strip = results.querySelector('.tabs');
-      strip.scrollBy({ left: Number(more.dataset.scroll) * strip.clientWidth * 0.75, behavior: 'smooth' });
+      strip.scrollBy({
+        left: Number(more.dataset.scroll) * strip.clientWidth * 0.75,
+        behavior: 'smooth',
+      });
       return;
     }
     const tab = e.target.closest('[role="tab"]');
-    if (tab) { selectTab(results, tab.dataset.tab); sharing.save(); return; }
+    if (tab) {
+      selectTab(results, tab.dataset.tab);
+      sharing.save();
+      return;
+    }
     const id = e.target.closest('button[data-csv]')?.dataset.csv;
     const section = shown.find((s) => s.id === id);
     if (section) downloadCsv(section);
@@ -715,7 +898,12 @@ if (root) {
     if (!tab) return;
     const ids = TABS.map(([id]) => id);
     const i = ids.indexOf(tab.dataset.tab);
-    const next = { ArrowRight: ids[(i + 1) % ids.length], ArrowLeft: ids[(i + ids.length - 1) % ids.length], Home: ids[0], End: ids[ids.length - 1] }[e.key];
+    const next = {
+      ArrowRight: ids[(i + 1) % ids.length],
+      ArrowLeft: ids[(i + ids.length - 1) % ids.length],
+      Home: ids[0],
+      End: ids[ids.length - 1],
+    }[e.key];
     if (!next) return;
     e.preventDefault();
     selectTab(results, next, true);

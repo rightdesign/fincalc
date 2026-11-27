@@ -25,12 +25,25 @@ test('T0 ($450,000, 20% down, 6.5%, 30 years, $2,300 rent, 7 years) keeps its re
 
 test('the proceeds waterfall for a $5.5M home reconciles', () => {
   assert.equal(5500000 - 357500 - 1732000 - 435000 - 20000, 2955500);
-  const v = { ...defaultValues(), homeValue: 5500000, sellingCostsPct: 6.5, mortgageBalance: 435000, movingCosts: 20000, newHomePrice: 100000, newBuyingCostsPct: 0, newMortgageAmount: 0 };
+  const v = {
+    ...defaultValues(),
+    homeValue: 5500000,
+    sellingCostsPct: 6.5,
+    mortgageBalance: 435000,
+    movingCosts: 20000,
+    newHomePrice: 100000,
+    newBuyingCostsPct: 0,
+    newMortgageAmount: 0,
+  };
   const sale = netSaleProceeds(v);
   near(sale.sellingCosts, 357500);
   const w = downsizeWaterfall(v);
   const at = w.steps.findIndex((x) => x.label === 'Net proceeds');
-  near(w.steps.slice(0, at).reduce((t, x) => t + x.amount, 0), w.steps[at].amount, 1e-6);
+  near(
+    w.steps.slice(0, at).reduce((t, x) => t + x.amount, 0),
+    w.steps[at].amount,
+    1e-6,
+  );
 });
 
 test('the main calculator still has the two lenses and the "What drives the verdict" thresholds', () => {
@@ -41,7 +54,11 @@ test('the main calculator still has the two lenses and the "What drives the verd
 });
 
 test('rent-vs-own keeps its break-even definition and its drivers', () => {
-  assert.ok(prose('rent-vs-own.html').includes('Break-even is the first year after which owning stays ahead through the end of your stay.'));
+  assert.ok(
+    prose('rent-vs-own.html').includes(
+      'Break-even is the first year after which owning stays ahead through the end of your stay.',
+    ),
+  );
   assert.ok(rentOwnThresholds(rentOwnDefaults()).length >= 3);
 });
 
@@ -55,7 +72,10 @@ test('Copy link, Print and Reset exist on both pages', () => {
 });
 
 test('the calculators stay linked from the menu, compound interest first', () => {
-  assert.deepEqual(CALCULATORS.map((c) => c.href), ['compound.html', 'index.html', 'rent-vs-own.html', 'mortgage.html']);
+  assert.deepEqual(
+    CALCULATORS.map((c) => c.href),
+    ['compound.html', 'index.html', 'rent-vs-own.html', 'mortgage.html'],
+  );
 });
 
 test('the "Not modelled" list does not claim what is modelled', () => {

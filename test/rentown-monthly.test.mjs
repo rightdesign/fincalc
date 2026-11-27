@@ -26,11 +26,19 @@ test('monthly breakdown: displayed components sum to the displayed totals in eve
   for (const down of [3, 10, 20]) {
     const r = compareRentOwn({ ...base(), down });
     for (const tbl of monthlyCard({ r }).split('<table').slice(1)) {
-      const rows = [...tbl.matchAll(/<th scope="row">([^<]*)<\/th><td>(?:<strong>)?([^<]*)/g)].map((x) => [x[1].replace(/&rsquo;/g, "'"), n(x[2])]);
+      const rows = [...tbl.matchAll(/<th scope="row">([^<]*)<\/th><td>(?:<strong>)?([^<]*)/g)].map(
+        (x) => [x[1].replace(/&rsquo;/g, "'"), n(x[2])],
+      );
       const at = rows.findIndex((x) => x[0] === 'Total to own');
       const own = rows.slice(0, at);
-      assert.equal(own.reduce((a, x) => a + x[1], 0), rows[at][1]);
-      assert.equal(own.filter((x) => !x[0].startsWith('Mortgage principal')).reduce((a, x) => a + x[1], 0), rows[at + 1][1]);
+      assert.equal(
+        own.reduce((a, x) => a + x[1], 0),
+        rows[at][1],
+      );
+      assert.equal(
+        own.filter((x) => !x[0].startsWith('Mortgage principal')).reduce((a, x) => a + x[1], 0),
+        rows[at + 1][1],
+      );
     }
   }
 });

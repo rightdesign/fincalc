@@ -6,7 +6,7 @@ const near = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b
 // Written for a single filer's $250,000 exclusion; the app default is now married filing jointly ($500,000).
 const base = () => ({ ...rentOwnDefaults(), exclusion: 250000, investDrag: 0.7 });
 
-test('taxing the renter\'s investments narrows the renting lead', () => {
+test("taxing the renter's investments narrows the renting lead", () => {
   const lead = (extra) => -compareRentOwn({ ...base(), ...extra }).final.difference;
   const untaxed = lead({ investDrag: 0, capGains: 0 });
   assert.ok(lead({ investDrag: 1, capGains: 0 }) < untaxed);
@@ -55,12 +55,16 @@ test('an assessment cap above the home growth never raises property tax', () => 
 });
 
 test('assessed growth is optional, range-checked and kept in the link', async () => {
-  const { invalidRentOwn, encodeRentOwn, decodeRentOwn, RENTOWN_TAX_CAPS } = await import('../site/rentown.js');
+  const { invalidRentOwn, encodeRentOwn, decodeRentOwn, RENTOWN_TAX_CAPS } =
+    await import('../site/rentown.js');
   assert.deepEqual(invalidRentOwn(base()), []);
   assert.equal(invalidRentOwn({ ...base(), assessed: 99 }).length, 1);
   assert.equal(encodeRentOwn(base()).includes('assessed'), false);
   assert.equal(decodeRentOwn(encodeRentOwn({ ...base(), assessed: 2 })).assessed, 2);
-  assert.deepEqual(RENTOWN_TAX_CAPS.map((c) => c.values.assessed), [2, 3]);
+  assert.deepEqual(
+    RENTOWN_TAX_CAPS.map((c) => c.values.assessed),
+    [2, 3],
+  );
 });
 
 test('the home sale is taxed above the primary-residence exclusion', () => {
@@ -73,7 +77,11 @@ test('the home sale is taxed above the primary-residence exclusion', () => {
   const long = { ...base(), years: 15, growth: 5 };
   near(compareRentOwn(long).final.homeTax, 24883, 1);
   near(compareRentOwn({ ...long, exclusion: 500000 }).final.homeTax, 0);
-  near(compareRentOwn(long).final.difference, compareRentOwn({ ...long, exclusion: 1e9 }).final.difference - 24883, 1);
+  near(
+    compareRentOwn(long).final.difference,
+    compareRentOwn({ ...long, exclusion: 1e9 }).final.difference - 24883,
+    1,
+  );
 });
 
 test('the exclusion needs a two-year stay', () => {
@@ -93,7 +101,11 @@ test('T0 verdict is unchanged by the home-sale tax', () => {
 test('income tax lens: joint filers at T0 get no benefit, single filers do, and 0% or the standard deduction give none', () => {
   const joint = compareRentOwn({ ...base(), marginalTaxRate: 22 });
   assert.equal(joint.firstTaxBenefit, 0);
-  near(joint.final.difference, compareRentOwn({ ...base(), marginalTaxRate: 0 }).final.difference, 1e-6);
+  near(
+    joint.final.difference,
+    compareRentOwn({ ...base(), marginalTaxRate: 0 }).final.difference,
+    1e-6,
+  );
   const single = compareRentOwn({ ...base(), filing: 1 });
   near(single.firstTaxBenefit, 2684, 1);
   assert.ok(single.firstTaxBenefit < 0.22 * (23300 + 4950));
@@ -111,10 +123,13 @@ test('the SALT cap limits the property tax deduction', () => {
 
 test('a renter whose deposit exceeds the cash put in owes at the mortgage rate and the debt earns no investment return', () => {
   // Owning costing more than renting is the only other way into the account, and it only adds to it.
-  const debt = (extra) => compareRentOwn({ ...base(), down: 0, closing: 0, deposit: 500000, years: 20, ...extra });
+  const debt = (extra) =>
+    compareRentOwn({ ...base(), down: 0, closing: 0, deposit: 500000, years: 20, ...extra });
   const r = debt({});
   assert.ok(r.final.rent < 0);
-  assert.ok(r.years.every((y, i) => y.dragPaid >= 0 && (i === 0 || y.dragPaid >= r.years[i - 1].dragPaid)));
+  assert.ok(
+    r.years.every((y, i) => y.dragPaid >= 0 && (i === 0 || y.dragPaid >= r.years[i - 1].dragPaid)),
+  );
   near(debt({ investment: 20 }).final.rent, r.final.rent, 1e-6);
 });
 
@@ -132,7 +147,16 @@ test('mortgage interest is deductible only on the first $750,000 of debt', () =>
 });
 
 test('a major repair raises the home basis, so it lowers the home-sale tax', () => {
-  const v = { ...rentOwnDefaults(), price: 2000000, down: 70, capGains: 30, exclusion: 0, growth: 4.7, years: 20, repairYear: 5 };
+  const v = {
+    ...rentOwnDefaults(),
+    price: 2000000,
+    down: 70,
+    capGains: 30,
+    exclusion: 0,
+    growth: 4.7,
+    years: 20,
+    repairYear: 5,
+  };
   const taxOf = (cost) => compareRentOwn({ ...v, repairCost: cost }).waterfall.moneyBack.homeTax;
   near(taxOf(0) - taxOf(100000), 100000 * 0.3, 1);
 });

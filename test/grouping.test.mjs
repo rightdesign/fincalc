@@ -6,16 +6,32 @@ import { groupWhileTyping } from '../site/grouping.js';
 function fakeInput(value, caret) {
   const handlers = {};
   const input = {
-    type: 'text', value, selectionStart: caret, selectionEnd: caret, inputs: 0,
-    addEventListener(name, fn) { handlers[name] = fn; },
-    setSelectionRange(a, b) { this.selectionStart = a; this.selectionEnd = b; },
-    dispatchEvent() { this.inputs++; },
+    type: 'text',
+    value,
+    selectionStart: caret,
+    selectionEnd: caret,
+    inputs: 0,
+    addEventListener(name, fn) {
+      handlers[name] = fn;
+    },
+    setSelectionRange(a, b) {
+      this.selectionStart = a;
+      this.selectionEnd = b;
+    },
+    dispatchEvent() {
+      this.inputs++;
+    },
   };
   globalThis.Event ??= class {};
   groupWhileTyping(input);
   input.press = (inputType) => {
     let prevented = false;
-    handlers.beforeinput({ inputType, preventDefault() { prevented = true; } });
+    handlers.beforeinput({
+      inputType,
+      preventDefault() {
+        prevented = true;
+      },
+    });
     return prevented;
   };
   return input;

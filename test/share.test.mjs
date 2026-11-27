@@ -10,7 +10,17 @@ test('default inputs encode to an empty string and decode back to defaults', () 
 });
 
 test('changed values round-trip, including choices and repairs', () => {
-  const v = { ...defaultValues(), homeValue: 650000, exclusion: 'married', mortgageTerm: 10, horizon: 20, repairs: [{ year: 3, amount: 12000 }, { year: 8, amount: 5500.5 }] };
+  const v = {
+    ...defaultValues(),
+    homeValue: 650000,
+    exclusion: 'married',
+    mortgageTerm: 10,
+    horizon: 20,
+    repairs: [
+      { year: 3, amount: 12000 },
+      { year: 8, amount: 5500.5 },
+    ],
+  };
   const text = encodeInputs(v);
   assert.match(text, /homeValue=650000/);
   assert.deepEqual(decodeInputs(`#${text}`), v);
@@ -24,7 +34,9 @@ test('horizon follows the mortgage term unless it was changed', () => {
 
 test('invalid, unknown and malicious entries fall back to defaults', () => {
   const d = defaultValues();
-  const v = decodeInputs('homeValue=abc&rent=-5&exclusion=bogus&unknown=1&repairs=0:5,x:y&__proto__=1');
+  const v = decodeInputs(
+    'homeValue=abc&rent=-5&exclusion=bogus&unknown=1&repairs=0:5,x:y&__proto__=1',
+  );
   assert.equal(v.homeValue, d.homeValue);
   assert.equal(v.rent, d.rent);
   assert.equal(v.exclusion, d.exclusion);

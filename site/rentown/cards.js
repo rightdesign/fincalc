@@ -25,24 +25,52 @@ import { faqCard } from './faq.js';
 
 // The results tabs, in order; each lists the cards it holds. Hidden panels stay in the page so printing shows them all.
 export const TABS = [
-  { id: 'networth', label: 'Net worth', cards: [(c) => netWorthChart(c), lensesCard, lensesDisagreeCard, laterCard] },
-  { id: 'monthly', label: 'Monthly cost', cards: [(c) => monthlyChart(c), mortgageCard, monthlyCard, pwlCard] },
+  {
+    id: 'networth',
+    label: 'Net worth',
+    cards: [(c) => netWorthChart(c), lensesCard, lensesDisagreeCard, laterCard],
+  },
+  {
+    id: 'monthly',
+    label: 'Monthly cost',
+    cards: [(c) => monthlyChart(c), mortgageCard, monthlyCard, pwlCard],
+  },
   { id: 'difference', label: 'Where the difference comes from', cards: [waterfallCard] },
-  { id: 'moves', label: 'What moves it', cards: [driversCard, tornadoCard, solveCard, scenariosCard] },
+  {
+    id: 'moves',
+    label: 'What moves it',
+    cards: [driversCard, tornadoCard, solveCard, scenariosCard],
+  },
   { id: 'table', label: 'Table', cards: [tablePanel] },
 ];
 
 // The answer, the three tiles and the quick screen sit above the tabs; the cash, follow-through, checklist and FAQ below.
 export const ABOVE = [headlineCard, tilesCard, ratioCard];
-export const BELOW = [cashCard, incomeConflictCard, affordabilityCard, affordCard, rule2836Card, followCard, checklistCard, inputsCard, faqCard];
+export const BELOW = [
+  cashCard,
+  incomeConflictCard,
+  affordabilityCard,
+  affordCard,
+  rule2836Card,
+  followCard,
+  checklistCard,
+  inputsCard,
+  faqCard,
+];
 
 const join = (cards, ctx) => cards.map((card) => card(ctx)).join('\n    ');
 
 // Each card takes the context from context.js and returns its markup.
 export function renderCards(ctx, tab = TABS[0].id) {
   const active = TABS.some((t) => t.id === tab) ? tab : TABS[0].id;
-  const tabs = TABS.map((t) => `<button type="button" role="tab" id="ro-tab-${t.id}" aria-selected="${t.id === active}" aria-controls="ro-panel-${t.id}" tabindex="${t.id === active ? 0 : -1}">${t.label}</button>`).join('');
-  const panels = TABS.map((t) => `<div role="tabpanel" id="ro-panel-${t.id}" aria-labelledby="ro-tab-${t.id}" class="results-panel"${t.id === active ? '' : ' hidden'}><h3 class="print-title">${t.label}</h3>${join(t.cards, ctx)}</div>`).join('\n    ');
+  const tabs = TABS.map(
+    (t) =>
+      `<button type="button" role="tab" id="ro-tab-${t.id}" aria-selected="${t.id === active}" aria-controls="ro-panel-${t.id}" tabindex="${t.id === active ? 0 : -1}">${t.label}</button>`,
+  ).join('');
+  const panels = TABS.map(
+    (t) =>
+      `<div role="tabpanel" id="ro-panel-${t.id}" aria-labelledby="ro-tab-${t.id}" class="results-panel"${t.id === active ? '' : ' hidden'}><h3 class="print-title">${t.label}</h3>${join(t.cards, ctx)}</div>`,
+  ).join('\n    ');
   return `\n    ${join(ABOVE, ctx)}
     <div class="panel-box"><div class="tab-strip" role="tablist" aria-label="Results">${tabs}</div>
     ${panels}</div>

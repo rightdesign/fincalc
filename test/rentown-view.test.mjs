@@ -19,7 +19,10 @@ test('unrealized owning is home value less loan and repairs, with no selling cos
   const { value, balance } = realized.waterfall.moneyBack;
   assert.ok(sellingCosts > 0);
   assert.ok(Math.abs(unrealized.final.own - (value - balance)) < 1e-6);
-  assert.ok(Math.abs(unrealized.final.own - (realized.final.own + sellingCosts + realized.final.homeTax)) < 1e-6);
+  assert.ok(
+    Math.abs(unrealized.final.own - (realized.final.own + sellingCosts + realized.final.homeTax)) <
+      1e-6,
+  );
   assert.equal(unrealized.final.homeTax, 0);
   assert.equal(unrealized.final.saleTax, 0);
   assert.equal(unrealized.waterfall.moneyBack.sellingCosts, 0);
@@ -50,7 +53,10 @@ test('unrealized results never claim selling costs or sale tax were deducted', a
   const { renderCards } = await import('../site/rentown/cards.js');
   const html = (view) => renderCards(buildContext(base(), 'future', view));
   const paperHtml = html('unrealized');
-  assert.ok(!/selling costs/i.test(paperHtml.replace(/no selling costs|Selling costs when you sell/gi, '')), 'mentions selling costs');
+  assert.ok(
+    !/selling costs/i.test(paperHtml.replace(/no selling costs|Selling costs when you sell/gi, '')),
+    'mentions selling costs',
+  );
   assert.ok(!/after selling/i.test(paperHtml));
   assert.ok(!/sale price less/i.test(paperHtml));
   assert.match(paperHtml, /not counted in the unrealized view/);
@@ -64,7 +70,12 @@ test('a break-even after year 1 interpolates the cost wording in both views', ()
       const html = headlineCard(ctx);
       assert.ok(!html.includes('${'), `${view} ${price}: literal placeholder`);
       if (ctx.r.breakEven > 1) {
-        assert.match(html, view === 'unrealized' ? /mostly because of closing costs\./ : /mostly because of closing and selling costs\./);
+        assert.match(
+          html,
+          view === 'unrealized'
+            ? /mostly because of closing costs\./
+            : /mostly because of closing and selling costs\./,
+        );
       }
     }
   }

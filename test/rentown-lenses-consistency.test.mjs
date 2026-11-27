@@ -9,8 +9,22 @@ import { tableRows } from '../site/rentown/chart.js';
 // summary's winner, gap and break-even are read back out of the rendered card and checked against the
 // table rows the page shows.
 const LENSES = [
-  { title: 'Equal-cash view', col: 3, key: 'difference', breakEven: 'breakEven', month: 'breakEvenMonth', final: 'difference' },
-  { title: 'Pure net worth view', col: 6, key: 'pureDifference', breakEven: 'pureBreakEven', month: 'pureBreakEvenMonth', final: 'pureDifference' },
+  {
+    title: 'Equal-cash view',
+    col: 3,
+    key: 'difference',
+    breakEven: 'breakEven',
+    month: 'breakEvenMonth',
+    final: 'difference',
+  },
+  {
+    title: 'Pure net worth view',
+    col: 6,
+    key: 'pureDifference',
+    breakEven: 'pureBreakEven',
+    month: 'pureBreakEvenMonth',
+    final: 'pureDifference',
+  },
 ];
 
 const INPUTS = [
@@ -31,7 +45,11 @@ const INPUTS = [
   { years: 7, inflation: 6 },
 ];
 
-const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&mdash;/g, '—').replace(/\s+/g, ' ');
+const text = (html) =>
+  html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&mdash;/g, '—')
+    .replace(/\s+/g, ' ');
 const lastBehind = (rows, col) => rows.map((row) => row[col] < 0).lastIndexOf(true);
 
 for (const input of INPUTS) {
@@ -53,7 +71,10 @@ for (const input of INPUTS) {
           else {
             assert.ok(gap, `${name} ${l.title}: ${sentence}`);
             assert.equal(gap[1], diff > 0 ? 'Owning' : 'Renting', `${name} ${l.title} winner`);
-            assert.ok(Math.abs(Number(gap[2].replace(/,/g, '')) - Math.abs(diff)) <= 1, `${name} ${l.title} gap ${gap[2]} vs ${diff}`);
+            assert.ok(
+              Math.abs(Number(gap[2].replace(/,/g, '')) - Math.abs(diff)) <= 1,
+              `${name} ${l.title} gap ${gap[2]} vs ${diff}`,
+            );
           }
           // Break-even: the first table year after which owning stays ahead, and the month inside it.
           const behind = lastBehind(rows, l.col);
@@ -64,7 +85,11 @@ for (const input of INPUTS) {
             const m = sentence.match(/year (\d+), month (\d+) \(year (\d+) on a yearly basis\)/);
             assert.ok(m, `${name} ${l.title}: ${sentence}`);
             assert.equal(Number(m[3]), year, `${name} ${l.title} yearly basis`);
-            assert.equal(Number(m[1]), year, `${name} ${l.title} month falls in the table's break-even year`);
+            assert.equal(
+              Number(m[1]),
+              year,
+              `${name} ${l.title} month falls in the table's break-even year`,
+            );
             assert.equal(r[l.month], (Number(m[1]) - 1) * 12 + Number(m[2]), name);
           }
         }

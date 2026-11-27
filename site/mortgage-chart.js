@@ -4,7 +4,11 @@ const W = 480;
 const H = 220;
 const PAD = { l: 64, r: 16, t: 20, b: 28 };
 
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const escape = (s) =>
+  String(s).replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+  );
 
 // years: [{ year, ... }]. key picks the plotted value, fmt formats it.
 // Returns { svg, description }.
@@ -18,7 +22,8 @@ export function mortgageChart(years, { key, title, fmt }) {
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
   const yMin = Math.max(0, lo - pad);
   const yMax = hi + pad;
-  const sx = (x) => PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r));
+  const sx = (x) =>
+    PAD.l + (xMax === xMin ? 0 : ((x - xMin) / (xMax - xMin)) * (W - PAD.l - PAD.r));
   const sy = (y) => H - PAD.b - ((y - yMin) / (yMax - yMin)) * (H - PAD.t - PAD.b);
   const f = (n) => n.toFixed(1);
 
@@ -86,18 +91,29 @@ export function mortgageScenarioChart(series, { key, title, fmt, resetYear }) {
   const ends = [];
   for (const s of series) {
     const line = LINES[s.style];
-    const path = s.years.map((y, i) => `${i ? 'L' : 'M'}${f(sx(y.year))},${f(sy(y[key]))}`).join('');
+    const path = s.years
+      .map((y, i) => `${i ? 'L' : 'M'}${f(sx(y.year))},${f(sy(y[key]))}`)
+      .join('');
     svg += `<path d="${path}" fill="none" style="stroke:${line.color}" stroke-width="2.5"${line.dash}/>`;
     const last = s.years[s.years.length - 1];
-    ends.push({ name: s.name, bold: s.style === 'expected', color: line.color, x: sx(last.year), y: sy(last[key]) });
+    ends.push({
+      name: s.name,
+      bold: s.style === 'expected',
+      color: line.color,
+      x: sx(last.year),
+      y: sy(last[key]),
+    });
   }
   // Nudge labels apart so equal end values (a flat best case) do not overprint.
   ends.sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12);
-  for (const e of ends) svg += `<text x="${f(e.x + 6)}" y="${f(e.y + 4)}" font-size="12"${e.bold ? ' font-weight="700"' : ''} style="fill:${e.color}">${escape(e.name)}</text>`;
+  for (const e of ends)
+    svg += `<text x="${f(e.x + 6)}" y="${f(e.y + 4)}" font-size="12"${e.bold ? ' font-weight="700"' : ''} style="fill:${e.color}">${escape(e.name)}</text>`;
   svg += '</svg>';
 
-  const summary = series.map((s) => `${s.name.toLowerCase()} ends at ${fmt(s.years[s.years.length - 1][key])}`).join(', ');
+  const summary = series
+    .map((s) => `${s.name.toLowerCase()} ends at ${fmt(s.years[s.years.length - 1][key])}`)
+    .join(', ');
   const description = `${title} line chart with best, expected and worst cases from year ${xMin} to year ${xMax}: ${summary}.${resetYear ? ` The first rate change is in year ${resetYear}.` : ''} The full values for every year are in the table tab.`;
   return { svg, description };
 }

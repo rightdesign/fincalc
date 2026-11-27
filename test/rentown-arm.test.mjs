@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareMortgageTypes, compareRentOwn, decodeRentOwn, encodeRentOwn, invalidRentOwn, rentOwnDefaults, rentOwnThresholds } from '../site/rentown.js';
+import {
+  compareMortgageTypes,
+  compareRentOwn,
+  decodeRentOwn,
+  encodeRentOwn,
+  invalidRentOwn,
+  rentOwnDefaults,
+  rentOwnThresholds,
+} from '../site/rentown.js';
 import { payment, rateAfter } from '../site/mortgage.js';
 
 const arm = (extra = {}) => ({ ...rentOwnDefaults(), arm: 1, ...extra });
@@ -25,9 +33,22 @@ test('ARM year-1 payment uses the starting rate and the fixed period holds it', 
 test('ARM resets follow the variable-rate caps', () => {
   const v = arm({ years: 12, armIndexChange: 1 });
   const r = compareRentOwn(v);
-  const loan = { rateBasis: 'index', initialRate: v.armRate, indexRate: v.armIndexRate, margin: v.armMargin, indexChange: v.armIndexChange, firstCap: v.armFirstCap, periodicCap: v.armPeriodicCap, lifetimeCap: v.armLifetimeCap, floor: v.armFloor };
+  const loan = {
+    rateBasis: 'index',
+    initialRate: v.armRate,
+    indexRate: v.armIndexRate,
+    margin: v.armMargin,
+    indexChange: v.armIndexChange,
+    firstCap: v.armFirstCap,
+    periodicCap: v.armPeriodicCap,
+    lifetimeCap: v.armLifetimeCap,
+    floor: v.armFloor,
+  };
   const resets = Math.floor((12 * 12 - 1 - v.armFixedMonths) / v.armAdjustMonths) + 1;
-  assert.equal(r.peakRate, Math.max(...Array.from({ length: resets + 1 }, (_, k) => rateAfter(loan, k))));
+  assert.equal(
+    r.peakRate,
+    Math.max(...Array.from({ length: resets + 1 }, (_, k) => rateAfter(loan, k))),
+  );
   assert.ok(r.peakRate <= v.armRate + v.armLifetimeCap);
 });
 

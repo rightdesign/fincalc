@@ -7,11 +7,16 @@ const file = new URL('../site/data/rates.json', import.meta.url);
 
 // The newest row of a FRED CSV that has a number in it (missing weeks are ".").
 export function latestObservation(csv) {
-  const rows = String(csv).trim().split(/\r?\n/).slice(1).map((line) => line.split(','));
+  const rows = String(csv)
+    .trim()
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => line.split(','));
   for (let i = rows.length - 1; i >= 0; i--) {
     const [date, value] = rows[i];
     const rate = Number(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && value !== '' && Number.isFinite(rate)) return { week: date, rate };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && value !== '' && Number.isFinite(rate))
+      return { week: date, rate };
   }
   return null;
 }

@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { amortizationByYear, inTodaysDollars, monthlyPayment, downsizeFunding, netSaleProceeds, project, housingTaxSavings, terminalDriven } from '../site/engine.js';
+import {
+  amortizationByYear,
+  inTodaysDollars,
+  monthlyPayment,
+  downsizeFunding,
+  netSaleProceeds,
+  project,
+  housingTaxSavings,
+  terminalDriven,
+} from '../site/engine.js';
 import { defaultValues } from '../site/inputs.js';
 
 const close = (a, b, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} !~ ${b}`);
@@ -14,16 +23,30 @@ test('monthly payment matches the standard amortization formula', () => {
 });
 
 test('amortization splits interest and principal and pays off at term', () => {
-  const years = amortizationByYear({ mortgageBalance: 200000, mortgageRate: 6, mortgageTerm: 30, horizon: 30 });
+  const years = amortizationByYear({
+    mortgageBalance: 200000,
+    mortgageRate: 6,
+    mortgageTerm: 30,
+    horizon: 30,
+  });
   const payment = monthlyPayment(200000, 6, 30);
   close(years[0].interest + years[0].principal, payment * 12, 0.01);
   assert.ok(years[0].interest > years[0].principal);
   close(years[29].balance, 0);
-  close(years.reduce((s, y) => s + y.principal, 0), 200000, 0.01);
+  close(
+    years.reduce((s, y) => s + y.principal, 0),
+    200000,
+    0.01,
+  );
 });
 
 test('amortization stops after the term when the horizon is longer', () => {
-  const years = amortizationByYear({ mortgageBalance: 50000, mortgageRate: 5, mortgageTerm: 5, horizon: 8 });
+  const years = amortizationByYear({
+    mortgageBalance: 50000,
+    mortgageRate: 5,
+    mortgageTerm: 5,
+    horizon: 8,
+  });
   assert.equal(years[5].interest, 0);
   assert.equal(years[7].principal, 0);
   assert.equal(years[7].balance, 0);
@@ -31,8 +54,12 @@ test('amortization stops after the term when the horizon is longer', () => {
 
 test('net sale proceeds follow the chain, with exclusion and taxes', () => {
   const s = netSaleProceeds({
-    homeValue: 500000, sellingCostsPct: 6, costBasis: 300000, exclusion: 'single',
-    taxRate: 20, mortgageBalance: 200000,
+    homeValue: 500000,
+    sellingCostsPct: 6,
+    costBasis: 300000,
+    exclusion: 'single',
+    taxRate: 20,
+    mortgageBalance: 200000,
   });
   assert.equal(s.sellingCosts, 30000);
   assert.equal(s.netSales, 470000);
@@ -42,8 +69,12 @@ test('net sale proceeds follow the chain, with exclusion and taxes', () => {
   assert.equal(s.netProceeds, 270000);
 
   const none = netSaleProceeds({
-    homeValue: 500000, sellingCostsPct: 6, costBasis: 300000, exclusion: 'none',
-    taxRate: 20, mortgageBalance: 200000,
+    homeValue: 500000,
+    sellingCostsPct: 6,
+    costBasis: 300000,
+    exclusion: 'none',
+    taxRate: 20,
+    mortgageBalance: 200000,
   });
   assert.equal(none.taxesDue, 34000);
   assert.equal(none.netProceeds, 236000);
@@ -51,8 +82,12 @@ test('net sale proceeds follow the chain, with exclusion and taxes', () => {
 
 test('a loss on the sale owes no tax', () => {
   const s = netSaleProceeds({
-    homeValue: 300000, sellingCostsPct: 6, costBasis: 400000, exclusion: 'none',
-    taxRate: 20, mortgageBalance: 0,
+    homeValue: 300000,
+    sellingCostsPct: 6,
+    costBasis: 400000,
+    exclusion: 'none',
+    taxRate: 20,
+    mortgageBalance: 0,
   });
   assert.equal(s.taxesDue, 0);
   assert.equal(s.netProceeds, 282000);
@@ -70,7 +105,14 @@ test('unrecoverable cost excludes principal and rent grows yearly', () => {
 });
 
 test('property tax, insurance and maintenance each grow at their own rate', () => {
-  const v = { ...defaultValues(), horizon: 3, propertyTaxGrowth: 2, insuranceGrowth: 10, maintenanceGrowth: 0, appreciation: 7 };
+  const v = {
+    ...defaultValues(),
+    horizon: 3,
+    propertyTaxGrowth: 2,
+    insuranceGrowth: 10,
+    maintenanceGrowth: 0,
+    appreciation: 7,
+  };
   const { rows } = project(v);
   close(rows[1].propertyTax, v.propertyTax);
   close(rows[3].propertyTax, v.propertyTax * 1.02 ** 2);
@@ -81,7 +123,10 @@ test('property tax, insurance and maintenance each grow at their own rate', () =
 test('monthly own cost includes tax, insurance, maintenance, principal and interest', () => {
   const v = { ...defaultValues(), horizon: 1 };
   const y1 = project(v).rows[1];
-  close(y1.monthlyOwnCost * 12, v.propertyTax + v.homeValue * 0.015 + y1.mortgageInterest + y1.mortgagePrincipal);
+  close(
+    y1.monthlyOwnCost * 12,
+    v.propertyTax + v.homeValue * 0.015 + y1.mortgageInterest + y1.mortgagePrincipal,
+  );
 });
 
 test('investment capital compounds with the owning-vs-renting difference', () => {
@@ -90,12 +135,18 @@ test('investment capital compounds with the owning-vs-renting difference', () =>
   const y1 = rows[1];
   close(
     y1.investmentCapital,
-    sale.netProceeds * (1 + 0.06 * 0.85) + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost,
+    sale.netProceeds * (1 + 0.06 * 0.85) +
+      y1.unrecoverableCost +
+      y1.mortgagePrincipal -
+      y1.rentCost,
   );
   const w = { ...v, investmentWithdrawal: 4 };
   const r1 = project(w).rows[1];
   close(r1.investmentIncome, sale.netProceeds * 0.04);
-  close(project({ ...w, withdrawalTaxRate: 25 }).rows[1].investmentIncome, sale.netProceeds * 0.04 * 0.75);
+  close(
+    project({ ...w, withdrawalTaxRate: 25 }).rows[1].investmentIncome,
+    sale.netProceeds * 0.04 * 0.75,
+  );
   close(r1.monthlyInvestmentIncome, r1.investmentIncome / 12);
 });
 
@@ -104,14 +155,25 @@ test('the withdrawal is spent: it leaves the portfolio and stops compounding', (
   const none = project({ ...v, investmentWithdrawal: 0 });
   const y1 = project(v).rows[1];
   // the gross withdrawal leaves the portfolio; the part applied to rent spares the household that much out of pocket
-  close(y1.investmentCapital, none.rows[1].investmentCapital - none.rows[0].investmentCapital * 0.04 + Math.min(y1.investmentIncome, y1.rentCost));
+  close(
+    y1.investmentCapital,
+    none.rows[1].investmentCapital -
+      none.rows[0].investmentCapital * 0.04 +
+      Math.min(y1.investmentIncome, y1.rentCost),
+  );
   const dGross = Math.max(0, y1 && project(v).rows[0].downsizeInvestmentCapital) * 0.04;
   const dApplied = Math.min(Math.max(0, y1.downsizeInvestmentIncome), y1.monthlyDownsizeCost * 12);
   close(y1.downsizeInvestmentCapital, none.rows[1].downsizeInvestmentCapital - dGross + dApplied);
 });
 
 test('with withdraw-to-cover-rent the rent is deducted once, plus tax on the withdrawal', () => {
-  const v = { ...defaultValues(), horizon: 1, investmentGrowth: 0, investmentWithdrawal: 0, withdrawalTaxRate: 0 };
+  const v = {
+    ...defaultValues(),
+    horizon: 1,
+    investmentGrowth: 0,
+    investmentWithdrawal: 0,
+    withdrawalTaxRate: 0,
+  };
   const base = project(v).rows[1];
   const free = project({ ...v, withdrawToCoverRent: 1 }).rows[1];
   close(free.investmentCapital, base.investmentCapital);
@@ -133,9 +195,21 @@ test('stay net worth compounds before tax until the final year, which is after s
 });
 
 test('strong investment growth against a flat home reaches breakeven; weak never does', () => {
-  const strong = project({ ...defaultValues(), appreciation: 0, investmentGrowth: 10, investmentWithdrawal: 0, horizon: 30 });
+  const strong = project({
+    ...defaultValues(),
+    appreciation: 0,
+    investmentGrowth: 10,
+    investmentWithdrawal: 0,
+    horizon: 30,
+  });
   assert.ok(strong.breakevenYear > 0);
-  const weak = project({ ...defaultValues(), appreciation: 8, investmentGrowth: 0, rent: 6000, horizon: 30 });
+  const weak = project({
+    ...defaultValues(),
+    appreciation: 8,
+    investmentGrowth: 0,
+    rent: 6000,
+    horizon: 30,
+  });
   assert.equal(weak.breakevenYear, null);
 });
 
@@ -156,7 +230,7 @@ test('the SALT cap limits the property tax that is deductible', () => {
   close(housingTaxSavings(v, 5000), (5000 + 10000) * 0.2);
 });
 
-test('tax savings reduce the owner\'s unrecoverable cost and monthly cost', () => {
+test("tax savings reduce the owner's unrecoverable cost and monthly cost", () => {
   const v = { ...defaultValues(), mortgageBalance: 400000, standardDeduction: 10000, horizon: 1 };
   const y1 = project(v).rows[1];
   const gross = v.propertyTax + v.homeValue * 0.015 + y1.mortgageInterest;
@@ -172,7 +246,10 @@ test('tax on investment growth lowers the capital it compounds to', () => {
   const taxed = project({ ...v, investmentTaxRate: 25 }).rows[10].investmentCapital;
   assert.ok(taxed < untaxed);
   const y1 = project({ ...v, horizon: 1, investmentTaxRate: 100 }).rows[1];
-  close(y1.investmentCapital, project(v).sale.netProceeds + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost);
+  close(
+    y1.investmentCapital,
+    project(v).sale.netProceeds + y1.unrecoverableCost + y1.mortgagePrincipal - y1.rentCost,
+  );
 });
 
 test('tax on investment growth does not cushion a loss', () => {
@@ -198,7 +275,10 @@ test('moving costs and rental upfront cash reduce the starting investment', () =
   const costly = project({ ...v, movingCosts: 5000, rentalUpfront: 7500 });
   close(costly.rows[0].investmentCapital, base.rows[0].investmentCapital - 12500);
   close(costly.rows[0].netWorthGainLoss, base.rows[0].netWorthGainLoss - 12500);
-  close(costly.rows[1].investmentCapital, base.rows[1].investmentCapital - 12500 * (1 + 0.06 * 0.85));
+  close(
+    costly.rows[1].investmentCapital,
+    base.rows[1].investmentCapital - 12500 * (1 + 0.06 * 0.85),
+  );
 });
 
 test('HOA dues grow yearly, count as owning cost and are not tax deductible', () => {
@@ -215,7 +295,14 @@ test('HOA dues grow yearly, count as owning cost and are not tax deductible', ()
 test('major repairs add to the owning cost in their year only, untaxed, and may stack', () => {
   const v = { ...defaultValues(), horizon: 3 };
   const base = project(v).rows;
-  const { rows } = project({ ...v, repairs: [{ year: 2, amount: 12000 }, { year: 2, amount: 3000 }, { year: 9, amount: 99999 }] });
+  const { rows } = project({
+    ...v,
+    repairs: [
+      { year: 2, amount: 12000 },
+      { year: 2, amount: 3000 },
+      { year: 9, amount: 99999 },
+    ],
+  });
   close(rows[1].repairs, 0);
   close(rows[2].repairs, 15000);
   close(rows[2].unrecoverableCost - base[2].unrecoverableCost, 15000);
@@ -226,11 +313,15 @@ test('major repairs add to the owning cost in their year only, untaxed, and may 
   close(project(v).rows[2].repairs, 0);
 });
 
-test('stay net worth in the final year nets selling costs and capital-gains tax on that year\'s value', () => {
+test("stay net worth in the final year nets selling costs and capital-gains tax on that year's value", () => {
   const v = { ...defaultValues(), exclusion: 'none', horizon: 5 };
   const { rows } = project(v);
   const r = rows[5];
-  const sale = netSaleProceeds({ ...v, homeValue: r.homeValue, mortgageBalance: r.mortgageBalance });
+  const sale = netSaleProceeds({
+    ...v,
+    homeValue: r.homeValue,
+    mortgageBalance: r.mortgageBalance,
+  });
   close(r.stayNetWorth, sale.netProceeds);
   assert.ok(sale.taxesDue > 0);
   close(r.stayNetWorth, r.homeValue * 0.94 - sale.taxesDue - r.mortgageBalance);
@@ -238,7 +329,14 @@ test('stay net worth in the final year nets selling costs and capital-gains tax 
 });
 
 test('downsize path: year 0 buys the new home from proceeds and invests the rest', () => {
-  const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000 };
+  const v = {
+    ...defaultValues(),
+    horizon: 5,
+    newHomePrice: 200000,
+    newBuyingCostsPct: 2,
+    newMortgageAmount: 0,
+    movingCosts: 5000,
+  };
   const { rows, sale } = project(v);
   // 270,000 net proceeds - 5,000 moving - (200,000 + 4,000 buying) = 61,000 invested.
   close(rows[0].downsizeInvestmentCapital, sale.netProceeds - 5000 - 204000);
@@ -251,10 +349,17 @@ test('downsize path: year 0 buys the new home from proceeds and invests the rest
 test('downsize path: a new mortgage lowers the cash paid and adds interest and principal', () => {
   const base = { ...defaultValues(), horizon: 10, newHomePrice: 250000 };
   const cash = project({ ...base, newMortgageAmount: 0 });
-  const loan = project({ ...base, newMortgageAmount: 100000, newMortgageRate: 6, newMortgageTerm: 30 });
+  const loan = project({
+    ...base,
+    newMortgageAmount: 100000,
+    newMortgageRate: 6,
+    newMortgageTerm: 30,
+  });
   close(loan.rows[0].downsizeInvestmentCapital - cash.rows[0].downsizeInvestmentCapital, 100000);
   assert.equal(cash.rows[3].monthlyDownsizeCost < loan.rows[3].monthlyDownsizeCost, true);
-  assert.ok(loan.rows[10].downsizeMortgageBalance > 0 && loan.rows[10].downsizeMortgageBalance < 100000);
+  assert.ok(
+    loan.rows[10].downsizeMortgageBalance > 0 && loan.rows[10].downsizeMortgageBalance < 100000,
+  );
 });
 
 test('downsize path invests the difference between the stay and downsize cash outlay', () => {
@@ -267,7 +372,8 @@ test('downsize path invests the difference between the stay and downsize cash ou
 
 test('downsize breakeven is the first year it is at or ahead of staying', () => {
   const r = project({ ...defaultValues(), horizon: 30 });
-  if (r.downsizeBreakevenYear == null) assert.ok(r.rows.slice(1).every((x) => x.downsizeGainLoss < 0));
+  if (r.downsizeBreakevenYear == null)
+    assert.ok(r.rows.slice(1).every((x) => x.downsizeGainLoss < 0));
   else {
     assert.ok(r.rows[r.downsizeBreakevenYear].downsizeGainLoss >= 0);
     assert.ok(r.rows.slice(1, r.downsizeBreakevenYear).every((x) => x.downsizeGainLoss < 0));
@@ -276,7 +382,16 @@ test('downsize breakeven is the first year it is at or ahead of staying', () => 
 
 test('reports the downsize shortfall when proceeds and new mortgage do not cover the purchase', () => {
   const v = {
-    ...defaultValues(), horizon: 3, homeValue: 5500000, sellingCostsPct: 0, costBasis: 5500000, mortgageBalance: 2443000, newHomePrice: 3000000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 20000,
+    ...defaultValues(),
+    horizon: 3,
+    homeValue: 5500000,
+    sellingCostsPct: 0,
+    costBasis: 5500000,
+    mortgageBalance: 2443000,
+    newHomePrice: 3000000,
+    newBuyingCostsPct: 2,
+    newMortgageAmount: 0,
+    movingCosts: 20000,
   };
   const p = project(v);
   assert.equal(p.sale.netProceeds, 3057000);
@@ -287,7 +402,15 @@ test('reports the downsize shortfall when proceeds and new mortgage do not cover
 });
 
 test('downsize path: with useProceeds off the full net proceeds are invested', () => {
-  const v = { ...defaultValues(), horizon: 5, newHomePrice: 200000, newBuyingCostsPct: 2, newMortgageAmount: 0, movingCosts: 5000, useProceeds: 0 };
+  const v = {
+    ...defaultValues(),
+    horizon: 5,
+    newHomePrice: 200000,
+    newBuyingCostsPct: 2,
+    newMortgageAmount: 0,
+    movingCosts: 5000,
+    useProceeds: 0,
+  };
   const { rows, sale } = project(v);
   close(rows[0].downsizeInvestmentCapital, sale.netProceeds - 5000);
   // The 204,000 paid from outside funds is excluded: year 0 net worth is level with the checked mode.
@@ -302,7 +425,14 @@ test('downsize path: with useProceeds off the full net proceeds are invested', (
 });
 
 test('downsize path: a proceeds cap keeps the rest invested and leaves the remainder to outside funds', () => {
-  const v = { ...defaultValues(), horizon: 5, newHomePrice: 400000, newBuyingCostsPct: 2, newMortgageAmount: 100000, movingCosts: 5000 };
+  const v = {
+    ...defaultValues(),
+    horizon: 5,
+    newHomePrice: 400000,
+    newBuyingCostsPct: 2,
+    newMortgageAmount: 100000,
+    movingCosts: 5000,
+  };
   const { sale } = project(v);
   const needed = 408000 - 100000;
   const all = downsizeFunding(v);
@@ -314,12 +444,25 @@ test('downsize path: a proceeds cap keeps the rest invested and leaves the remai
   const pctCap = downsizeFunding({ ...v, proceedsMode: 'percent', proceedsPercent: 50 });
   close(pctCap.invested, sale.netProceeds - 5000 - sale.netProceeds * 0.5);
   // A cap above what is needed changes nothing; useProceeds off ignores the cap.
-  close(downsizeFunding({ ...v, proceedsMode: 'amount', proceedsAmount: 1e9 }).invested, all.invested);
-  close(downsizeFunding({ ...v, useProceeds: 0, proceedsMode: 'amount', proceedsAmount: 1 }).invested, sale.netProceeds - 5000);
+  close(
+    downsizeFunding({ ...v, proceedsMode: 'amount', proceedsAmount: 1e9 }).invested,
+    all.invested,
+  );
+  close(
+    downsizeFunding({ ...v, useProceeds: 0, proceedsMode: 'amount', proceedsAmount: 1 }).invested,
+    sale.netProceeds - 5000,
+  );
 });
 
 test('downsize path: outside funds are excluded from net worth when a proceeds cap is set, keeping year 0 level', () => {
-  const v = { ...defaultValues(), horizon: 5, newHomePrice: 400000, newBuyingCostsPct: 2, newMortgageAmount: 100000, movingCosts: 5000 };
+  const v = {
+    ...defaultValues(),
+    horizon: 5,
+    newHomePrice: 400000,
+    newBuyingCostsPct: 2,
+    newMortgageAmount: 100000,
+    movingCosts: 5000,
+  };
   const all = project(v).rows;
   const capped = project({ ...v, proceedsMode: 'amount', proceedsAmount: 200000 }).rows;
   close(capped[0].downsizeNetWorth, all[0].downsizeNetWorth);
@@ -375,26 +518,44 @@ test('equal cash contribution: withdrawals pay housing and leave the portfolio, 
   const r = p.rows[1];
   // Withdrawals cover the rent exactly, so the whole contribution is invested.
   const start = p.rows[0].investmentCapital;
-  close(r.equalSellNetWorth, start * (1 + p.investmentGrowth) + r.monthlyEqualContribution * 12 - r.rentCost);
+  close(
+    r.equalSellNetWorth,
+    start * (1 + p.investmentGrowth) + r.monthlyEqualContribution * 12 - r.rentCost,
+  );
   const rich = project({ ...v, withdrawToCoverRent: 0, investmentWithdrawal: 100 }).rows[1];
   // A 100% withdrawal still only takes out the rent.
-  close(rich.equalSellNetWorth, start * (1 + p.investmentGrowth) + rich.monthlyEqualContribution * 12 - rich.rentCost);
+  close(
+    rich.equalSellNetWorth,
+    start * (1 + p.investmentGrowth) + rich.monthlyEqualContribution * 12 - rich.rentCost,
+  );
 });
 
 test('pure net worth spends withdrawals and credits no cash-flow difference', () => {
-  const v = { ...defaultValues(), investmentWithdrawal: 4, withdrawalTaxRate: 0, investmentTaxRate: 0 };
+  const v = {
+    ...defaultValues(),
+    investmentWithdrawal: 4,
+    withdrawalTaxRate: 0,
+    investmentTaxRate: 0,
+  };
   const { rows, investmentGrowth } = project(v);
   assert.equal(rows[0].pureSellNetWorth, rows[0].investmentCapital);
   const r1 = rows[1];
-  const expected = rows[0].investmentCapital * (1 + investmentGrowth) - rows[0].investmentCapital * 0.04;
+  const expected =
+    rows[0].investmentCapital * (1 + investmentGrowth) - rows[0].investmentCapital * 0.04;
   assert.ok(Math.abs(r1.pureSellNetWorth - expected) < 1e-6);
   assert.equal(r1.pureSellGainLoss, r1.pureSellNetWorth - r1.stayNetWorth);
   const off = project({ ...v, investmentWithdrawal: 0 }).rows[1];
-  assert.ok(Math.abs(off.pureSellNetWorth - rows[0].investmentCapital * (1 + investmentGrowth)) < 1e-6);
+  assert.ok(
+    Math.abs(off.pureSellNetWorth - rows[0].investmentCapital * (1 + investmentGrowth)) < 1e-6,
+  );
 });
 
 test('rent is paid once: portfolio is charged the withdrawal, the household the out-of-pocket rest', () => {
-  for (const extra of [{ investmentWithdrawal: 4 }, { investmentWithdrawal: 0 }, { withdrawToCoverRent: 1 }]) {
+  for (const extra of [
+    { investmentWithdrawal: 4 },
+    { investmentWithdrawal: 0 },
+    { withdrawToCoverRent: 1 },
+  ]) {
     const v = { ...defaultValues(), horizon: 3, ...extra };
     const { rows, investmentGrowth } = project(v);
     for (let y = 1; y < rows.length; y++) {
@@ -404,15 +565,24 @@ test('rent is paid once: portfolio is charged the withdrawal, the household the 
       const income = Math.max(0, r.investmentIncome);
       // household pays rent less withdrawals; the withdrawals come from the portfolio
       close(oop + Math.min(income, r.rentCost), r.rentCost);
-      const gross = extra.withdrawToCoverRent ? income / (1 - v.withdrawalTaxRate / 100) : Math.max(0, prev.investmentCapital) * v.investmentWithdrawal / 100;
-      const expected = prev.investmentCapital * (1 + investmentGrowth) + (r.unrecoverableCost + r.mortgagePrincipal - oop) - gross;
+      const gross = extra.withdrawToCoverRent
+        ? income / (1 - v.withdrawalTaxRate / 100)
+        : (Math.max(0, prev.investmentCapital) * v.investmentWithdrawal) / 100;
+      const expected =
+        prev.investmentCapital * (1 + investmentGrowth) +
+        (r.unrecoverableCost + r.mortgagePrincipal - oop) -
+        gross;
       close(r.investmentCapital, expected);
     }
   }
 });
 
-test('cash-needed contribution columns are what feeds each path\'s investment, with and without withdrawals', () => {
-  for (const extra of [{ investmentWithdrawal: 0 }, { investmentWithdrawal: 4 }, { withdrawToCoverRent: 1 }]) {
+test("cash-needed contribution columns are what feeds each path's investment, with and without withdrawals", () => {
+  for (const extra of [
+    { investmentWithdrawal: 0 },
+    { investmentWithdrawal: 4 },
+    { withdrawToCoverRent: 1 },
+  ]) {
     const v = { ...defaultValues(), horizon: 5, ...extra };
     const { rows, investmentGrowth } = project(v);
     for (let y = 1; y < rows.length; y++) {
@@ -422,8 +592,13 @@ test('cash-needed contribution columns are what feeds each path\'s investment, w
       close(r.monthlyStayOutOfPocket - r.monthlySellOutOfPocket, r.monthlySellContribution);
       close(r.monthlyStayOutOfPocket - r.monthlyDownsizeOutOfPocket, r.monthlyDownsizeContribution);
       // capital change, growth removed, is the contribution less the gross withdrawal
-      const sellGross = extra.withdrawToCoverRent ? Math.max(0, r.investmentIncome) / (1 - v.withdrawalTaxRate / 100) : Math.max(0, prev.investmentCapital) * v.investmentWithdrawal / 100;
-      close(r.investmentCapital - prev.investmentCapital * (1 + investmentGrowth), r.monthlySellContribution * 12 - sellGross);
+      const sellGross = extra.withdrawToCoverRent
+        ? Math.max(0, r.investmentIncome) / (1 - v.withdrawalTaxRate / 100)
+        : (Math.max(0, prev.investmentCapital) * v.investmentWithdrawal) / 100;
+      close(
+        r.investmentCapital - prev.investmentCapital * (1 + investmentGrowth),
+        r.monthlySellContribution * 12 - sellGross,
+      );
     }
   }
 });

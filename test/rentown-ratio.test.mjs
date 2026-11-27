@@ -7,11 +7,15 @@ import { buildContext } from '../site/rentown/context.js';
 
 test('defaults: 16.3x, rent 6.1% of price, rule recomputed', () => {
   const line = ratioLine(rentOwnDefaults());
-  assert.match(line, /^Price-to-rent 16\.3× · rent is 6\.1% of price\/yr · rule of thumb at your 6\.5% rate: renting wins below ~\d+\.\d%\/yr$/);
+  assert.match(
+    line,
+    /^Price-to-rent 16\.3× · rent is 6\.1% of price\/yr · rule of thumb at your 6\.5% rate: renting wins below ~\d+\.\d%\/yr$/,
+  );
 });
 
 test('the rule share moves with the mortgage rate', () => {
-  const share = (rate) => Number(ratioLine({ ...rentOwnDefaults(), rate }).match(/below ~([\d.]+)%/)[1]);
+  const share = (rate) =>
+    Number(ratioLine({ ...rentOwnDefaults(), rate }).match(/below ~([\d.]+)%/)[1]);
   assert.ok(share(8) > share(4));
 });
 

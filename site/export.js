@@ -11,7 +11,9 @@ function csvCell(text) {
 }
 
 export function tableCsv(section) {
-  return [section.columns, ...section.rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  return (
+    [section.columns, ...section.rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n'
+  );
 }
 
 export const csvFilename = (section) => `fincalc-${section.id}.csv`;

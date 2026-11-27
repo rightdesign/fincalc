@@ -3,8 +3,19 @@ import { money } from './format.js';
 // Totals are summed from the rounded dollar amounts shown, so the column always adds up on the page.
 const r0 = Math.round;
 const shownTotals = (m) => {
-  const ownCost = r0(m.interest) + r0(m.tax) + r0(m.insurance) + r0(m.pmi) + r0(m.maintenance) + r0(m.hoa) + r0(m.utilities);
-  return { ownCost, ownTotal: ownCost + r0(m.principal), rentTotal: r0(m.rent) + r0(m.renterInsurance) };
+  const ownCost =
+    r0(m.interest) +
+    r0(m.tax) +
+    r0(m.insurance) +
+    r0(m.pmi) +
+    r0(m.maintenance) +
+    r0(m.hoa) +
+    r0(m.utilities);
+  return {
+    ownCost,
+    ownTotal: ownCost + r0(m.principal),
+    rentTotal: r0(m.rent) + r0(m.renterInsurance),
+  };
 };
 
 const breakdown = (src, label, insurance) => {
