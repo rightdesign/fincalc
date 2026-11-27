@@ -411,7 +411,7 @@ test('tax on interest: annual compounding taxes the year\'s interest; 100% leave
 test('tax rate is validated 0-100 and survives encode/decode', () => {
   const v = { ...compoundDefaults(), taxRate: 24 };
   assert.deepEqual(invalidCompound(v), []);
-  assert.deepEqual(invalidCompound({ ...v, taxRate: 101 }), ['Tax on interest (%)']);
+  assert.deepEqual(invalidCompound({ ...v, taxRate: 101 }), ['Tax rate (%)']);
   assert.equal(decodeCompound(encodeCompound(v)).taxRate, 24);
   assert.ok(!encodeCompound(compoundDefaults()).includes('taxRate'));
 });
@@ -562,6 +562,27 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
+});
+
+test('account types: tax-free ignores the rate, deferred taxes the balance, stocks taxes dividends and gain', () => {
+  const v = { ...compoundDefaults(), start: 1000, monthly: 0, rate: 10, years: 10, frequency: 'annually', timing: 'end' };
+  const plain = simulateCompound({ ...v, taxRate: 0 }).futureValue;
+  assert.equal(simulateCompound({ ...v, accountType: 'free', taxRate: 30 }).futureValue, plain);
+  assert.ok(Math.abs(simulateCompound({ ...v, accountType: 'deferred', taxRate: 30 }).futureValue - plain * 0.7) < 1e-9);
+  const stocks = simulateCompound({ ...v, accountType: 'stocks', taxRate: 20 });
+  assert.ok(stocks.futureValue < plain && stocks.futureValue > plain * 0.7);
+  assert.equal(simulateCompound({ ...v, accountType: 'stocks', taxRate: 0 }).futureValue, plain);
+  const one = simulateCompound({ ...v, years: 1, accountType: 'stocks', taxRate: 20 });
+  // 1100 balance; dividend 22 taxed 4.4 -> 1095.6, basis 1000 + 17.6; gain tax 20% of 78
+  assert.ok(Math.abs(one.futureValue - (1095.6 - 0.2 * (1095.6 - 1017.6))) < 1e-9);
+});
+
+test('account type is a choice that round-trips and defaults to taxable interest', () => {
+  assert.equal(compoundDefaults().accountType, 'interest');
+  const v = { ...compoundDefaults(), accountType: 'deferred', taxRate: 22 };
+  assert.deepEqual(invalidCompound({ ...v, accountType: 'bogus' }), ['Account type']);
+  assert.equal(decodeCompound(encodeCompound(v)).accountType, 'deferred');
+  assert.ok(!encodeCompound(compoundDefaults()).includes('accountType'));
 });
 
 test('monthly schedule: 12 rows a year, each December matches its year row, in every compounding mode', () => {

@@ -17,6 +17,9 @@ export const LIMITS = {
 // Text for the allowed range of a limited input, e.g. "-20 to 30".
 export const limitText = (id) => `${LIMITS[id].min} to ${LIMITS[id].max}`;
 
+// Yearly dividend, as a percent of the balance, that a taxable stock account pays and is taxed on.
+export const DIVIDEND_YIELD = 2;
+
 // slider.curve: 2 makes the slider non-linear (finer at the low end) so a wide range stays usable.
 // kind: 'money' ($), 'percent' (%), 'years', 'choice'. slider adds a range input beside the box.
 export const COMPOUND_FIELDS = [
@@ -45,7 +48,12 @@ export const COMPOUND_FIELDS = [
     hint: 'End of month: each contribution lands after that month\'s interest, so it starts earning the next month. Beginning of month: it lands first and earns interest for the whole month, worth about one extra month of growth per contribution.',
     options: [{ value: 'end', label: 'End of month' }, { value: 'start', label: 'Beginning of month' }],
   },
-  { id: 'taxRate', label: 'Tax on interest (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your marginal tax rate on the interest and dividends a taxable account pays out. Each period\'s interest is reduced by this rate before it compounds forward, so the results are after tax. Leave at 0 for a tax-free or tax-deferred account, or to ignore tax. 0–100%.' },
+  {
+    id: 'accountType', label: 'Account type', kind: 'choice', default: 'interest',
+    hint: 'How the money is taxed. Taxable, interest: each period\'s interest is taxed as it is earned (a savings account, CD or bonds). Tax-free: nothing is taxed (a Roth IRA). Tax-deferred: nothing is taxed until you withdraw, so the whole balance is taxed at the end (a 401(k) or traditional IRA). Taxable, stocks: a small yearly dividend (' + DIVIDEND_YIELD + '% of the balance) is taxed each year and the rest of the gain is taxed when you sell at the end. Results are the after-tax balance.',
+    options: [{ value: 'interest', label: 'Taxable: interest' }, { value: 'stocks', label: 'Taxable: stocks' }, { value: 'deferred', label: 'Tax-deferred (401(k), traditional IRA)' }, { value: 'free', label: 'Tax-free (Roth)' }],
+  },
+  { id: 'taxRate', label: 'Tax rate (%)', kind: 'percent', default: 0, slider: { min: 0, max: 50, step: 1 }, hint: 'Your tax rate for the account type above: on each period\'s interest (taxable, interest), on the dividends and the final gain (taxable, stocks), or on the whole balance at the end (tax-deferred). Ignored for tax-free. At 0 nothing is taxed. 0–100%.' },
   { id: 'inflation', label: 'Inflation (% per year)', kind: 'percent', default: 3, slider: { min: 0, max: 10, step: 0.1 }, hint: "Used only for the today's-dollars view: each year's balance is divided by (1 + inflation) for every year that has passed. The long-run US average is about 3%. Negative is allowed for deflation (-10 to 30)." },
   {
     id: 'basis', label: 'Show results in', kind: 'choice', default: 'future',
@@ -129,10 +137,13 @@ export function effectiveAnnualRate(v) {
   return 100 * (k === Infinity ? Math.expm1(nom) : (1 + nom / k) ** k - 1);
 }
 
+// The percent of each period's interest taken as tax: only a taxable interest account is taxed as it grows.
+export const interestTax = (v) => ((v.accountType ?? 'interest') === 'interest' ? (v.taxRate ?? 0) : 0);
+
 // Years for a lump sum to double at the effective annual rate, after tax on the interest
 // (null when the rate leaves nothing to compound).
 export function yearsToDouble(v) {
-  const net = (effectiveAnnualRate(v) / 100) * (1 - (v.taxRate ?? 0) / 100);
+  const net = (effectiveAnnualRate(v) / 100) * (1 - interestTax(v) / 100);
   return net > 0 ? Math.log(2) / Math.log1p(net) : null;
 }
 
@@ -142,7 +153,7 @@ export function doubleTileText(v) {
   if (years === null) return { value: 'Never', caption: 'Needs a positive return after tax' };
   return {
     value: `${years < 10 ? years.toFixed(1) : Math.round(years)} years`,
-    caption: `Money invested at the ${effectiveAnnualRate(v).toFixed(2)}% effective rate${v.taxRate > 0 ? ', after tax' : ''}`,
+    caption: `Money invested at the ${effectiveAnnualRate(v).toFixed(2)}% effective rate${interestTax(v) > 0 ? ', after tax' : ''}`,
   };
 }
 
@@ -160,7 +171,14 @@ export function doubleTileText(v) {
 export function simulateCompound(v) {
   const k = PERIODS_PER_YEAR[v.frequency];
   const r = nominalRate(v.rate / 100, k, v.rateBasis);
-  const keep = 1 - (v.taxRate ?? 0) / 100;
+  const keep = 1 - interestTax(v) / 100;
+  const type = v.accountType ?? 'interest';
+  const t = (v.taxRate ?? 0) / 100;
+  const div = type === 'stocks' ? DIVIDEND_YIELD / 100 : 0;
+  // Value after the tax a sale or withdrawal would trigger; basis is what has been paid in (plus reinvested dividends).
+  const after = (bal, basis) => (type === 'deferred' ? bal * (1 - t) : type === 'stocks' ? bal - t * Math.max(0, bal - basis) : bal);
+  let basis = v.start;
+  let shown = after(v.start, basis);
   const early = v.timing === 'start';
   const payYears = contributionYears(v);
   // Interest rate earned over one month when compounding at least monthly.
@@ -247,7 +265,17 @@ export function simulateCompound(v) {
     }
     contributed += added;
     withdrawn += taken;
-    years.push({ year: y, contributions: added, withdrawals: taken, interest, balance, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: balance - contributed + withdrawn });
+    basis += added;
+    if (div > 0) {
+      // Dividends are taxed each year; what is left is reinvested and counts as money paid in.
+      const paid = balance * div;
+      balance -= paid * t;
+      basis += paid * (1 - t);
+    }
+    const value = after(balance, basis);
+    if (type === 'deferred' || type === 'stocks') interest = value - shown - added + taken;
+    shown = value;
+    years.push({ year: y, contributions: added, withdrawals: taken, interest, balance: value, totalContributed: contributed, totalWithdrawn: withdrawn, totalInterest: value - contributed + withdrawn });
   }
   const last = years[years.length - 1];
   return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
@@ -443,10 +471,10 @@ export function compoundingExplainer(v, r) {
   });
   if (v.rate > 0) {
     // The rate the model actually compounds at: after tax, and after inflation in today's dollars.
-    const afterTax = v.rate * (1 - (v.taxRate ?? 0) / 100);
+    const afterTax = v.rate * (1 - interestTax(v) / 100);
     const eff = v.basis === 'today' ? ((1 + afterTax / 100) / (1 + v.inflation / 100) - 1) * 100 : afterTax;
     const pct = (n) => String(Math.round(n * 100) / 100);
-    const adjusts = [v.taxRate > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean);
+    const adjusts = [interestTax(v) > 0 && 'tax', v.basis === 'today' && 'inflation'].filter(Boolean);
     const used = eff === v.rate ? `${pct(v.rate)}%` : `${pct(eff)}% (your ${pct(v.rate)}% return after ${adjusts.join(' and ')})`;
     const intro = 'Divide 72 by the return and you get roughly how many years it takes money to double';
     if (eff > 0) {
