@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, simulateCompound, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -515,6 +515,22 @@ test('Rule of 72 uses the rate the model compounds at: after tax, and after infl
   assert.match(explain({ rate: 9, taxRate: 40, basis: 'today' })['rule-of-72'], /after tax and inflation\)/);
   assert.match(explain({ rate: 2, basis: 'today', inflation: 3 })['rule-of-72'], /never doubles/);
   assert.match(explain({ rate: 7 })['rule-of-72'], /At 7% your money/);
+});
+
+test('every compound slider covers the allowed input range for years and holds its default', async () => {
+  const { COMPOUND_FIELDS, MAX_YEARS } = await import('../site/compound.js');
+  for (const f of COMPOUND_FIELDS.filter((x) => x.slider)) assert.ok(f.default >= f.slider.min && f.default <= f.slider.max, f.id);
+  for (const id of ['years', 'contributeYears']) assert.equal(COMPOUND_FIELDS.find((f) => f.id === id).slider.max, MAX_YEARS);
+});
+
+test('curved sliders map a typed value to the right thumb position and back', () => {
+  const f = (id) => COMPOUND_FIELDS.find((x) => x.id === id);
+  assert.equal(sliderPos(f('start'), 1000000), Math.round(Math.sqrt(0.1) * SLIDER_STEPS));
+  assert.equal(sliderPos(f('monthly'), 50000), Math.round(Math.sqrt(0.5) * SLIDER_STEPS));
+  assert.equal(sliderPos(f('start'), 20000000), SLIDER_STEPS);
+  for (const id of ['start', 'monthly']) for (const p of [0, 30, 50, 250, 500, 999, SLIDER_STEPS]) {
+    assert.ok(Math.abs(sliderPos(f(id), sliderValue(f(id), p)) - p) <= 20, `${id} ${p}`);
+  }
 });
 
 test('yearsToDouble uses the effective rate after tax', () => {

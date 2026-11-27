@@ -1043,3 +1043,6 @@ fieldset, .group, .kpi, .chip, .ro-pair > input, .ro-pair > select, .ro-return-p
   .m-stack td { display: flex; justify-content: space-between; gap: 0.75rem; }
   .m-stack td::before { content: attr(data-label); text-align: left; color: var(--muted); overflow-wrap: break-word; min-width: 0; }
 }
+
+/* A typed value outside the slider's range: the thumb is held at the end and dimmed so it is not mistaken for the value. */
+input[type="range"].out-of-range { accent-color: var(--muted); opacity: 0.6; }

@@ -3,7 +3,7 @@ import { faqCard } from './compound-faq.js';
 import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYear } from './compound-chart.js';
 import { groupWhileTyping } from './grouping.js';
 import { groupAmount } from './mortgage.js';
-import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS } from './compound.js';
+import { COMPOUND_FIELDS, LIMITS, limitText, choiceEffects, frequencyLabel, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, returnRange, simulateCompound, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -28,6 +28,15 @@ placeHero();
 const presetsLabel = document.getElementById('compound-presets-label');
 const sliders = {};
 const inputs = {};
+// Moves a slider to a typed value; a value outside its range pins the thumb at the end and says so.
+function setSlider(f, n) {
+  const s = sliders[f.id];
+  s.value = sliderPos(f, n);
+  const over = n > f.slider.max, under = n < f.slider.min;
+  s.classList.toggle('out-of-range', over || under);
+  s.title = over || under ? `The value is ${over ? 'above' : 'below'} this slider's range (${f.slider.min}–${f.slider.max}); the slider is held at its end.` : '';
+  s.setAttribute('aria-valuetext', over || under ? `${n}, ${over ? 'above' : 'below'} the slider range` : String(n));
+}
 // "Contribute for" follows Years until the user sets it shorter; it never runs past Years.
 let follow = true;
 for (const f of COMPOUND_FIELDS) {
@@ -48,16 +57,17 @@ for (const f of COMPOUND_FIELDS) {
   input.id = `field-${f.id}`;
   label.append(text, input);
   inputs[f.id] = input;
+  const curved = Boolean(f.slider?.curve);
   const show = (n) => (f.kind === 'money' ? usd.format(n) : String(n));
   if (f.slider) {
     const slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = f.slider.min;
-    slider.max = f.slider.max;
-    slider.step = f.slider.step;
+    slider.min = curved ? 0 : f.slider.min;
+    slider.max = curved ? SLIDER_STEPS : f.slider.max;
+    slider.step = curved ? 1 : f.slider.step;
     slider.id = `slider-${f.id}`;
     slider.setAttribute('aria-label', `${f.label} slider`);
-    slider.addEventListener('input', () => { input.value = show(Number(slider.value)); if (f.id === 'contributeYears') markFollow(); render(); persist(); });
+    slider.addEventListener('input', () => { input.value = show(sliderValue(f, slider.value)); if (f.id === 'contributeYears') markFollow(); render(); persist(); });
     label.append(slider);
     sliders[f.id] = slider;
   }
@@ -98,8 +108,8 @@ function syncContribute() {
   const y = parseNumber(inputs.years.value);
   if (!Number.isFinite(y)) return;
   const n = parseNumber(inputs.contributeYears.value);
-  if (follow || n > y) { inputs.contributeYears.value = y; sliders.contributeYears.value = y; }
-  sliders.contributeYears.max = Math.max(1, Math.min(y, 60));
+  if (follow || n > y) { inputs.contributeYears.value = y; setSlider(COMPOUND_FIELDS.find((x) => x.id === 'contributeYears'), y); }
+  sliders.contributeYears.max = Math.max(1, Math.min(y, MAX_YEARS));
 }
 
 function values() {
@@ -112,7 +122,7 @@ function writeValues(v) {
   for (const f of COMPOUND_FIELDS) {
     inputs[f.id].value = f.kind === 'money' ? usd.format(v[f.id]) : v[f.id];
     const s = sliders[f.id];
-    if (s) s.value = v[f.id];
+    if (s) setSlider(f, v[f.id]);
   }
   follow = v.contributeYears >= v.years;
 }
@@ -141,7 +151,6 @@ function render() {
     out.innerHTML = `<p class="placeholder" role="alert">Enter a valid value for: ${bad.map((l) => { const f = COMPOUND_FIELDS.find((x) => x.label === l); return f && LIMITS[f.id] ? `${l} (${limitText(f.id)})` : l; }).join(', ')}.</p>`;
     return;
   }
-  for (const f of COMPOUND_FIELDS) if (sliders[f.id]) sliders[f.id].value = v[f.id];
   const nominal = simulateCompound(v);
   const today = v.basis === 'today';
   const r = today ? inTodaysDollars(nominal, v.inflation) : nominal;
@@ -265,7 +274,7 @@ form.addEventListener('input', () => {
   for (const f of COMPOUND_FIELDS) {
     const s = sliders[f.id];
     const n = parseNumber(inputs[f.id].value);
-    if (s && Number.isFinite(n)) s.value = n;
+    if (s && Number.isFinite(n)) setSlider(f, n);
   }
   render();
   persist();

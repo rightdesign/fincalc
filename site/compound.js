@@ -15,11 +15,12 @@ export const LIMITS = {
 // Text for the allowed range of a limited input, e.g. "-20 to 30".
 export const limitText = (id) => `${LIMITS[id].min} to ${LIMITS[id].max}`;
 
+// slider.curve: 2 makes the slider non-linear (finer at the low end) so a wide range stays usable.
 // kind: 'money' ($), 'percent' (%), 'years', 'choice'. slider adds a range input beside the box.
 export const COMPOUND_FIELDS = [
-  { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 500000, step: 1000 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
-  { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 5000, step: 50 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
-  { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: 60, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
+  { id: 'start', label: 'Starting balance', kind: 'money', default: 10000, slider: { min: 0, max: 10000000, step: 1000, curve: 2 }, hint: 'What you have invested today. Enter 0 if you are starting from nothing.' },
+  { id: 'monthly', label: 'Monthly contribution', kind: 'money', default: 500, slider: { min: 0, max: 100000, step: 50, curve: 2 }, hint: 'What you add every month (end or beginning, set below). Enter 0 for a one-time lump sum.' },
+  { id: 'contributeYears', label: 'Contribute for (years)', kind: 'years', default: 30, slider: { min: 0, max: MAX_YEARS, step: 1 }, hint: 'How many years you keep adding the monthly contribution. After that the balance keeps compounding, with no new money, until the end of Years. It follows Years unless you change it, and cannot be longer than Years.' },
   { id: 'stepUp', label: 'Increase contribution each year (%)', kind: 'percent', default: 0, slider: { min: 0, max: 10, step: 0.5 }, hint: 'Raises the monthly contribution by this percent at the start of each year after the first, like a raise or a cost-of-living bump. 0 keeps it flat. It only applies while you are still contributing.' },
   { id: 'rate', label: 'Annual return (%)', kind: 'percent', default: 7, slider: { min: 0, max: 15, step: 0.1 }, hint: 'The yearly growth you expect before inflation and taxes. Negative is allowed for a losing investment (-20 to 30). Stocks have averaged about 7–10% over the long run; savings accounts earn far less. Typical planning range 3–8%.' },
   {
@@ -28,7 +29,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
   },
   { id: 'variance', label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
-  { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: 60, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
+  { id: 'years', label: 'Years', kind: 'years', default: 30, slider: { min: 1, max: MAX_YEARS, step: 1 }, hint: `How long the money stays invested. Whole years, 1–${MAX_YEARS}.` },
   {
     id: 'frequency', label: 'Compounding', kind: 'choice', default: 'monthly',
     hint: 'How often interest is added to the balance. An effective annual return grows by that percent over a year whatever you pick here; with a nominal rate, monthly adds one twelfth of the rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
@@ -47,6 +48,21 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'future', label: 'Future dollars' }, { value: 'today', label: "Today's dollars" }],
   },
 ];
+
+// A curved slider is positions 0..SLIDER_STEPS mapped to min..max along a power curve.
+export const SLIDER_STEPS = 1000;
+export function sliderValue(f, pos) {
+  const { min, max, step, curve } = f.slider;
+  if (!curve) return Number(pos);
+  const raw = min + (max - min) * (Number(pos) / SLIDER_STEPS) ** curve;
+  return Math.min(max, Math.max(min, Math.round(raw / step) * step));
+}
+export function sliderPos(f, n) {
+  const { min, max, curve } = f.slider;
+  if (!curve) return n;
+  const t = Math.min(1, Math.max(0, (n - min) / (max - min)));
+  return Math.round(t ** (1 / curve) * SLIDER_STEPS);
+}
 
 // A preset sets only the inputs it names (its label spells them out) and leaves the rest as the user had them.
 export const COMPOUND_PRESETS = [
