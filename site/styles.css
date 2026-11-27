@@ -971,6 +971,8 @@ body {
 .cc-wrap { position: relative; touch-action: pan-y; }
 .cc-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cc-chart { min-height: 18rem; }
+.cc-target { stroke: var(--series-3); stroke-width: 2; }
+.cc-target-label { fill: var(--series-3); }
 .cc-cross-dot { fill: var(--bg); stroke: currentColor; stroke-width: 3; }
 .cc-stop-dot { fill: var(--bg); stroke: currentColor; stroke-width: 3; }
 .cc-hover-dot { fill: var(--bg); stroke: currentColor; stroke-width: 2; }

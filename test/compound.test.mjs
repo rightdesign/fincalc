@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, withdrawsOn, yearsCaption, yearsToDouble } from '../site/compound.js';
+import { COMPOUND_FIELDS, COMPOUND_PRESETS, balanceBreakdown, choiceEffects, compareStartingLater, compoundDefaults as modelDefaults, compoundingExplainer, decodeCompound, doublingMilestones, doubleTileText, effectiveAnnualRate, encodeCompound, headline, inTodaysDollars, invalidCompound, leverTable, roundedMoney, growthRates, interestTax, SLIDER_STEPS, sliderPos, sliderValue, simulateCompound, solveGoal, withdrawsOn, yearsCaption, yearsToDouble } from '../site/compound.js';
 
 // The closed forms below are written for a nominal (APR) rate; the effective default has its own tests.
 const compoundDefaults = () => ({ ...modelDefaults(), rateBasis: 'nominal' });
@@ -563,6 +563,70 @@ test('compound chart y-axis uses round ticks with compact labels and tops out at
   const html = compoundChartHtml(simulateCompound({ start: 100000, monthly: 534, rate: 9, years: 26, frequency: 'monthly' }).years, (n) => `$${Math.round(n)}`);
   const labels = [...html.matchAll(/text-anchor="end" font-size="13">([^<]*)</g)].map((m) => m[1]);
   assert.deepEqual(labels.slice(0, 5), ['$0', '$500k', '$1M', '$1.5M', '$2M']);
+});
+
+test('goal seek: each answer reaches the target and a smaller step does not', () => {
+  const v = { ...modelDefaults(), target: 2000000, years: 26, contributeYears: 26 };
+  const g = solveGoal(v);
+  const end = (x) => simulateCompound(x).futureValue;
+  assert.equal(g.met, false);
+  assert.equal(g.monthly.status, 'ok');
+  assert.ok(end({ ...v, monthly: g.monthly.value }) >= 2000000);
+  assert.ok(end({ ...v, monthly: g.monthly.value - 0.02 }) < 2000000);
+  assert.equal(g.years.status, 'ok');
+  assert.ok(end({ ...v, years: g.years.value, contributeYears: g.years.value }) >= 2000000);
+  assert.ok(end({ ...v, years: g.years.value - 1, contributeYears: g.years.value - 1 }) < 2000000);
+  assert.equal(g.rate.status, 'ok');
+  assert.ok(end({ ...v, rate: g.rate.value }) >= 2000000);
+  assert.ok(end({ ...v, rate: g.rate.value - 0.02 }) < 2000000);
+});
+
+test('goal seek: no target is null; a met target needs nothing more; unreachable ones say none', () => {
+  assert.equal(solveGoal(modelDefaults()), null);
+  const met = solveGoal({ ...modelDefaults(), target: 100000 });
+  assert.equal(met.met, true);
+  assert.ok(met.monthly.status === 'ok' && met.monthly.value < 500);
+  assert.ok(met.years.value < 30);
+  const idle = solveGoal({ ...modelDefaults(), start: 0, monthly: 0, target: 1000 });
+  assert.equal(idle.monthly.status, 'ok');
+  assert.equal(idle.years.status, 'none');
+  assert.equal(idle.rate.status, 'none');
+  const grows = solveGoal({ ...modelDefaults(), target: 5000 });
+  assert.equal(grows.monthly.status, 'already');
+  assert.equal(grows.rate.status, 'already');
+  const stopped = solveGoal({ ...modelDefaults(), target: 1e9, contributeYears: 0 });
+  assert.equal(stopped.monthly.status, 'none');
+  assert.equal(solveGoal({ ...modelDefaults(), target: 1e12 }).rate.status, 'none');
+});
+
+test('goal seek follows the contribution frequency and a term in months', () => {
+  const v = { ...modelDefaults(), target: 100000, years: 3, months: 6, contribFrequency: 'weekly', annual: 1000 };
+  const g = solveGoal(v);
+  const end = (x) => simulateCompound(x).futureValue;
+  assert.equal(g.monthly.status, 'ok');
+  assert.ok(end({ ...v, monthly: g.monthly.value }) >= 100000);
+  assert.ok(end({ ...v, monthly: g.monthly.value - 0.02 }) < 100000);
+  assert.equal(g.years.status, 'ok');
+  assert.ok(end({ ...v, years: g.years.value, months: 0 }) >= 100000);
+});
+
+test("goal seek in today's dollars, and the target round-trips through the link", () => {
+  const v = { ...modelDefaults(), basis: 'today', target: 500000 };
+  const g = solveGoal(v);
+  const end = (x) => inTodaysDollars(simulateCompound(x), x.inflation).futureValue;
+  assert.ok(end({ ...v, monthly: g.monthly.value }) >= 500000);
+  assert.ok(end({ ...v, monthly: g.monthly.value - 0.02 }) < 500000);
+  assert.equal(decodeCompound(encodeCompound(v)).target, 500000);
+  assert.equal(decodeCompound('').target, 0);
+  assert.deepEqual(invalidCompound({ ...modelDefaults(), target: -1 }), ['Target balance (optional)']);
+});
+
+test('chart marks the target with a dashed line and grows the scale to include it', () => {
+  const rows = simulateCompound(modelDefaults()).years;
+  assert.ok(!compoundChartHtml(rows, (n) => `$${n}`).includes('cc-target'));
+  const html = compoundChartHtml(rows, (n) => `$${n}`, null, null, 3000000);
+  assert.match(html, /cc-target"/);
+  assert.match(html, /Goal \$3000000/);
 });
 
 const zero = { ...modelDefaults(), start: 0, rate: 0, years: 2 };

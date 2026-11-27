@@ -83,6 +83,7 @@ export const COMPOUND_FIELDS = [
     options: [{ value: 'effective', label: 'Effective annual rate (APY)' }, { value: 'nominal', label: 'Nominal rate (APR)' }],
   },
   { id: 'variance', advanced: true, label: 'Return range (± percentage points)', kind: 'percent', default: 0, slider: { min: 0, max: 5, step: 0.5 }, hint: 'Optional. Shows the result at the annual return minus and plus this many percentage points. With a 9% return and this set to 2, the chart shades the range between a 7% and an 11% return, and the results state the balance range. 0 shows a single line.' },
+  { id: 'target', advanced: true, label: 'Target balance (optional)', kind: 'money', default: 0, slider: { min: 0, max: 5000000, step: 50000 }, hint: "A balance you want to reach by the end of Years, in the dollars the results are shown in (set Show results in to Today's dollars to name a goal in today's buying power). Leave at 0 to skip it. When set, the page shows the contribution, the years and the return needed to reach it, changing one thing at a time, and marks the target on the chart." },
   {
     id: 'frequency', advanced: true, label: 'Compounding', kind: 'choice', default: 'monthly',
     hint: 'How often interest is added to the balance. An effective annual return grows by that percent over a year whatever you pick here; with a nominal rate, monthly adds one twelfth of the rate each month; annually adds the full rate once a year, and semiannually and quarterly split the year the same way (contributions made inside a period earn simple interest until it ends). Daily and continuous compounding grow the balance a little faster than monthly.',
@@ -422,6 +423,42 @@ export function simulateCompound(v) {
   }
   const last = years[years.length - 1];
   return { years, months, start: v.start, futureValue: last.balance, contributed: last.totalContributed, withdrawn, runsOut, interest: last.totalInterest };
+}
+
+// Goal seek: what it would take to end at v.target (in the dollars the results are shown in), changing
+// one input at a time and leaving the rest as entered. Each answer is { status, value }: 'ok' with the
+// amount, 'already' when the plan as entered gets there with none needed (contribution) or at any return
+// (rate), or 'none' when no value in range can. Null when no target is set.
+export function solveGoal(v) {
+  if (!(v.target > 0)) return null;
+  const show = (x) => { const r = simulateCompound(x); return x.basis === 'today' ? inTodaysDollars(r, x.inflation) : r; };
+  const balance = (x) => show(x).futureValue;
+  const goal = v.target;
+  const current = balance(v);
+  const bisect = (lo, hi, at) => { for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (at(m) >= goal) hi = m; else lo = m; } return hi; };
+
+  let monthly;
+  const withMonthly = (x) => balance({ ...v, monthly: x });
+  if (withMonthly(0) >= goal) monthly = { status: 'already', value: 0 };
+  else {
+    let hi = Math.max(v.monthly, 100);
+    while (hi < 1e9 && withMonthly(hi) < goal) hi *= 2;
+    monthly = withMonthly(hi) >= goal ? { status: 'ok', value: Math.ceil(bisect(0, hi, withMonthly) * 100) / 100 } : { status: 'none' };
+  }
+
+  // Whole years, up to MAX_YEARS (any extra months are dropped). Contributions keep going to the end unless Contribute for was cut short.
+  const toEnd = contributionMonths(v) === termMonths(v);
+  const run = show({ ...v, years: MAX_YEARS, months: 0, ...(toEnd && { contributeYears: MAX_YEARS, contributeMonths: 0 }) });
+  const hit = run.years.find((y) => y.balance >= goal);
+  const years = hit ? { status: 'ok', value: hit.year } : { status: 'none' };
+
+  let rate;
+  const withRate = (x) => balance({ ...v, rate: x });
+  if (withRate(LIMITS.rate.min) >= goal) rate = { status: 'already', value: LIMITS.rate.min };
+  else if (withRate(LIMITS.rate.max) < goal) rate = { status: 'none' };
+  else rate = { status: 'ok', value: Math.ceil(bisect(LIMITS.rate.min, LIMITS.rate.max, withRate) * 100) / 100 };
+
+  return { target: goal, current, met: current >= goal, monthly, years, rate };
 }
 
 // Best and worst case: the same plan at the return minus and plus the variance (never below the lowest return the page accepts),

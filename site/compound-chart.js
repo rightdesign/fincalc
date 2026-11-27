@@ -67,7 +67,8 @@ export function chartKeyHtml(band, basis) {
 
 // band, when set, is { low, high } rows for the worst and best return (plus optional lowRate and highRate for the
 // legend); it is shaded around the balance line. basis ('future' or 'today') adds the on-chart dollars switch.
-export function compoundChartHtml(rows, fmt, band = null, basis = null) {
+// target, when set, is a goal balance drawn as a dashed line across the plot (the scale grows to include it).
+export function compoundChartHtml(rows, fmt, band = null, basis = null, target = null) {
   const last = rows[rows.length - 1];
   const xs = [0, ...rows.map((r) => r.year)];
   const put = [rows[0].totalContributed - rows[0].contributions, ...rows.map((r) => r.totalContributed)];
@@ -75,7 +76,7 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   const edge = (b) => [put[0], ...b.map((r, i) => Math.max(r.balance, put[i + 1]))];
   const lowBal = band ? edge(band.low) : null;
   const highBal = band ? edge(band.high) : null;
-  const ticks = niceTicks(Math.max(...bal, ...(highBal ?? []), 1));
+  const ticks = niceTicks(Math.max(...bal, ...(highBal ?? []), target ?? 0, 1));
   const yMax = ticks[ticks.length - 1];
   const sx = (x) => PAD.l + (x / last.year) * (W - PAD.l - PAD.r);
   const sy = (y) => H - PAD.b - (y / yMax) * (H - PAD.t - PAD.b);
@@ -106,6 +107,10 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   }
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(intY)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-2)">Interest earned</text>`;
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(put[put.length - 1]) - 8)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-1)">What you put in</text>`;
+  if (target !== null) {
+    svg += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${f(sy(target))}" y2="${f(sy(target))}" class="marker cc-target"/>`;
+    svg += `<text x="${PAD.l + 8}" y="${f(sy(target) - 7)}" font-size="14" font-weight="600" class="cc-target-label">Goal ${escape(fmt(target))}</text>`;
+  }
   const cross = crossoverYear(rows);
   if (cross !== null) {
     const row = rows.find((x) => x.year === cross);
@@ -141,7 +146,8 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${yearLabel(cross)}.`;
   const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
   const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${yearLabel(last.year)}.` : '';
-  const description = `Stacked area chart over ${monthsText(Math.round(last.year * 12))}. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${yearLabel(last.year)}. ${crossText}${stopText}${bandText} The full values for every year are in the table below.`;
+  const targetText = target === null ? '' : ` A dashed line marks your goal of ${fmt(target)}, which the balance ${last.balance >= target ? 'reaches' : 'does not reach'} by year ${yearLabel(last.year)}.`;
+  const description = `Stacked area chart over ${monthsText(Math.round(last.year * 12))}. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${yearLabel(last.year)}. ${crossText}${stopText}${bandText}${targetText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure">${chartKeyHtml(band, basis)}<div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
 

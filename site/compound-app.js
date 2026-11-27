@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { contribUnit, contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, solveGoal, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -149,6 +149,26 @@ for (const p of COMPOUND_PRESETS) {
   presets.append(b);
 }
 
+// The three answers to "what would it take to reach the target?"; empty when no target is set.
+function goalPanel(v, g, unit) {
+  if (!g) return '';
+  const yrs = (n) => `${n} year${n === 1 ? '' : 's'}`;
+  const gap = g.met ? `Your plan as entered already reaches it, ending at ${money(g.current)}.` : `Your plan as entered ends at ${money(g.current)}, ${money(g.target - g.current)} short.`;
+  const monthly = { ok: `<strong>${money(Math.ceil(g.monthly.value))} ${contribUnit(v)}</strong>`, already: '<strong>Nothing more</strong>', none: '<strong>Not enough</strong>' }[g.monthly.status];
+  const monthlyNote = { ok: `instead of ${money(v.monthly)}${v.stepUp > 0 ? ' (the yearly increase still applies)' : ''}`, already: 'your starting balance alone grows to the target', none: contributionMonths(v) === 0 ? 'you contribute for 0 months, so the contribution changes nothing' : 'no contribution amount reaches it in this time' }[g.monthly.status];
+  const years = g.years.status === 'ok' ? `<strong>${yrs(g.years.value)}</strong>` : '<strong>Not in 100 years</strong>';
+  const yearsNote = g.years.status === 'ok' ? `instead of ${monthsText(termMonths(v))}${contributionMonths(v) < termMonths(v) ? '; contributions still stop when they do now' : ''}` : 'at this return and contribution';
+  const rate = { ok: `<strong>${g.rate.value}% a year</strong>`, already: `<strong>Any return</strong>`, none: '<strong>Not reachable</strong>' }[g.rate.status];
+  const rateNote = { ok: `instead of ${v.rate}%`, already: `even at ${g.rate.value}%, the lowest the page accepts`, none: `even at ${LIMITS.rate.max}%, the highest the page accepts` }[g.rate.status];
+  return `<div class="m-panelbox m-goal" id="compound-goal"><h3>Reaching ${money(g.target)}${unit}</h3>
+    <p>${gap} Changing one thing at a time and leaving the rest as entered, you would need:</p>
+    <div class="m-tiles">
+      <div class="m-tile"><h3>Contribution ${contribUnit(v)}</h3><p class="m-big">${monthly}</p><p>${monthlyNote}</p></div>
+      <div class="m-tile"><h3>Time</h3><p class="m-big">${years}</p><p>${yearsNote}</p></div>
+      <div class="m-tile"><h3>Annual return</h3><p class="m-big">${rate}</p><p>${rateNote}</p></div>
+    </div></div>`;
+}
+
 // What the effective rate shrinks to after tax and, in today's dollars, after inflation.
 function rateBreakdown(v) {
   const g = growthRates(v);
@@ -245,6 +265,7 @@ function render() {
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
   const range = returnRange(v);
   const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${monthsText(termMonths(v))} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
+  const goal = goalPanel(v, solveGoal(v), unit);
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
   const bd = balanceBreakdown(v, today ? v.inflation : null);
@@ -276,8 +297,9 @@ function render() {
     <div class="m-table-wrap"><table class="m-table m-stack"><caption>What your choices are worth (change one at a time)</caption>
       <thead><tr><th scope="col">Choice</th><th scope="col">You chose</th><th scope="col">Instead</th><th scope="col">Future value${unit}</th><th scope="col">Difference</th></tr></thead>
       <tbody>${effectRow('Compounding', frequencyLabel(v.frequency), frequencyLabel(fx.frequency.alt), fx.frequency)}${effectRow('Contribution timing', v.timing === 'end' ? 'End of period' : 'Beginning of period', fx.timing.alt === 'end' ? 'End of period' : 'Beginning of period', fx.timing)}</tbody></table></div>
+    ${goal}
     ${rangeNote}
-    <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis)}</div>
+    <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis, v.target > 0 ? v.target : null)}</div>
     <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}. The changes cost different amounts, so compare each gain with the extra you put in.</caption>
       <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${monthsText(termMonths(v))}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
