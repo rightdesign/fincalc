@@ -1,9 +1,8 @@
-import { altFrequency, contribUnit, contributionPhrase, contributes, contributionYears, frequencyLabel, inTodaysDollars, simulateCompound as simulate } from './compound.js';
+import { altFrequency, contribUnit, contributionPhrase, contributes, contributionMonths, frequencyLabel, inTodaysDollars, monthsText, simulateCompound as simulate, termMonths } from './compound.js';
 
 // FAQ and sources for the compound interest page. Pure (no DOM). Each answer quotes the numbers on the page right now.
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
-const years = (n) => `${n} year${n === 1 ? '' : 's'}`;
 
 export function faqItems(v, r) {
   const share = r.futureValue > 0 ? Math.round((r.interest / r.futureValue) * 100) : 0;
@@ -22,21 +21,21 @@ export function faqItems(v, r) {
     },
     {
       q: 'Is 7% a realistic return?',
-      a: `The S&P 500's long-run average is about 10% a year nominal, or about 7% after inflation, which is the same source the rent vs own investment presets cite. You have ${v.rate}% a year over ${years(v.years)}. Treat the return as an assumption, not a forecast: real returns swing from year to year, and a lower rate such as 4% to 5% is a sensible second scenario.`,
+      a: `The S&P 500's long-run average is about 10% a year nominal, or about 7% after inflation, which is the same source the rent vs own investment presets cite. You have ${v.rate}% a year over ${monthsText(termMonths(v))}. Treat the return as an assumption, not a forecast: real returns swing from year to year, and a lower rate such as 4% to 5% is a sensible second scenario.`,
     },
     {
       q: 'Does compounding work with monthly contributions?',
-      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${contributionPhrase(v, money)} adds up to ${money(r.contributed - v.start)} over ${years(v.years)}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
+      a: `Yes. Each contribution joins the balance and starts earning too, so every deposit compounds for the rest of the time. Your ${contributionPhrase(v, money)} adds up to ${money(r.contributed - v.start)} over ${monthsText(termMonths(v))}; with ${money(v.start)} to start, you put in ${money(r.contributed)} and ${growth} adds ${money(r.interest)}${out
         ? `. You also take out ${money(r.withdrawn)}, so ${money(r.futureValue)}${unit} is left; the interest can be larger than that balance because withdrawals come out of it.`
         : ` (${share}% of the ${money(r.futureValue)} total${unit}).`}`,
     },
     {
       q: 'What about taxes and fees?',
       a: v.accountType === 'free'
-        ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth, so to allow for them, enter a return a little lower than you expect.`
+        ? `This is set to a tax-free account (like a Roth IRA), so nothing is taxed and the ${money(r.futureValue)}${unit} is what you keep. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth, so to allow for them, enter a return a little lower than you expect.`
         : v.taxRate > 0
-          ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). Fund or account fees are not modelled, and a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth; to allow for fees, enter a return a little lower than you expect.`
-          : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${years(v.years)} of growth, so to allow for them, enter a return a little lower than you expect.`,
+          ? `Tax is modelled: with a ${v.taxRate}% tax rate on a ${accountText(v.accountType)}, the ${money(r.futureValue)}${unit} is after tax. That is ${money(untaxed(v).futureValue - r.futureValue)} lower than the same plan untaxed (${money(untaxed(v).futureValue)}${unit}). Fund or account fees are not modelled, and a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth; to allow for fees, enter a return a little lower than you expect.`
+          : `Tax rate is set to 0%, so the ${money(r.futureValue)}${unit} is before tax. Choose an account type and enter your tax rate: taxable accounts are taxed as they grow or when sold, a 401(k) or traditional IRA is taxed on the whole balance at the end, and a Roth is not taxed. Fees are not modelled: a fee of even 1% a year takes a real bite out of ${monthsText(termMonths(v))} of growth, so to allow for them, enter a return a little lower than you expect.`,
     },
     {
       q: 'What if I stop contributing?',
@@ -58,7 +57,7 @@ export function faqItems(v, r) {
       q: "Are the results in today's dollars?",
       a: today
         ? `Yes, right now: the figures above are restated using ${v.inflation}% a year inflation, so ${money(r.futureValue)} is what the future balance could buy at today's prices. Switch "Show results in" to future dollars to see the amount you would actually hold.`
-        : `Not at the moment: they are future dollars, so ${money(r.futureValue)} will buy less in ${years(v.years)} than it does now. Choose "Today's dollars" under "Show results in" to restate the balance using the inflation rate you enter (${v.inflation}% a year).`,
+        : `Not at the moment: they are future dollars, so ${money(r.futureValue)} will buy less in ${monthsText(termMonths(v))} than it does now. Choose "Today's dollars" under "Show results in" to restate the balance using the inflation rate you enter (${v.inflation}% a year).`,
     },
   ];
 }
@@ -66,30 +65,31 @@ export function faqItems(v, r) {
 // Quotes the page's plan against the same plan with contributions running the whole time (or, when
 // they already do, against stopping a third of the way in).
 function stopAnswer(v, r, unit) {
-  const pay = contributionYears(v);
+  const pay = contributionMonths(v);
+  const term = termMonths(v);
   const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
-  if (pay < v.years) {
-    const whole = restate(simulate({ ...v, contributeYears: v.years }));
-    return `Your contributions stop after ${years(pay)} and the balance keeps compounding for the other ${years(v.years - pay)}, ending at ${money(r.futureValue)}${unit} on ${money(r.contributed)} contributed. Contributing for all ${years(v.years)} would end at ${money(whole.futureValue)}${unit}, so stopping early costs ${money(whole.futureValue - r.futureValue)}${unit}.`;
+  if (pay < term) {
+    const whole = restate(simulate({ ...v, contributeYears: v.years, contributeMonths: v.months ?? 0 }));
+    return `Your contributions stop after ${monthsText(pay)} and the balance keeps compounding for the other ${monthsText(term - pay)}, ending at ${money(r.futureValue)}${unit} on ${money(r.contributed)} contributed. Contributing for all ${monthsText(termMonths(v))} would end at ${money(whole.futureValue)}${unit}, so stopping early costs ${money(whole.futureValue - r.futureValue)}${unit}.`;
   }
-  const cut = Math.max(1, Math.round(v.years / 3));
-  if (v.years < 2 || !contributes(v)) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
-  const stopped = restate(simulate({ ...v, contributeYears: cut }));
-  return `Right now you contribute for all ${years(v.years)}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${years(cut)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
+  const cut = Math.max(1, Math.round(term / 36));
+  if (term < 24 || !contributes(v)) return 'Set "Contribute for" below Years and the contributions end after that many years while the balance keeps compounding, with no new money, to the end.';
+  const stopped = restate(simulate({ ...v, contributeYears: cut, contributeMonths: 0 }));
+  return `Right now you contribute for all ${monthsText(termMonths(v))}, ending at ${money(r.futureValue)}${unit}. If you stopped after ${monthsText(cut * 12)}, the balance would keep compounding with no new money and end at ${money(stopped.futureValue)}${unit} on ${money(stopped.contributed)} contributed. Set "Contribute for" to try your own stopping point.`;
 }
 
 // Quotes the page's plan against the same plan with a flat contribution (or, when the plan is flat, a 3% yearly increase).
 function increaseAnswer(v, r, unit) {
   const restate = (x) => (v.basis === 'today' ? inTodaysDollars(x, v.inflation) : x);
-  if (!(v.monthly > 0) || contributionYears(v) < 1) return 'With no regular contribution there is nothing to increase. Enter a contribution amount, then use "Increase contribution each year (%)" to raise it every year.';
+  if (!(v.monthly > 0) || contributionMonths(v) < 12) return 'With no regular contribution there is nothing to increase. Enter a contribution amount, then use "Increase contribution each year (%)" to raise it every year.';
   const step = v.stepUp ?? 0;
   if (step > 0) {
     const flat = restate(simulate({ ...v, stepUp: 0 }));
-    const last = v.monthly * (1 + step / 100) ** (contributionYears(v) - 1);
-    return `Your contribution rises ${step}% a year, from ${money(v.monthly)} ${contribUnit(v)} in year 1 to ${money(last)} ${contribUnit(v)} in year ${contributionYears(v)}, so you put in ${money(r.contributed)} and end at ${money(r.futureValue)}${unit}. Kept flat at ${money(v.monthly)} ${contribUnit(v)} it would end at ${money(flat.futureValue)}${unit}, so the increases add ${money(r.futureValue - flat.futureValue)}${unit}. Set the increase to 0 to keep it flat.`;
+    const last = v.monthly * (1 + step / 100) ** (Math.ceil(contributionMonths(v) / 12) - 1);
+    return `Your contribution rises ${step}% a year, from ${money(v.monthly)} ${contribUnit(v)} in year 1 to ${money(last)} ${contribUnit(v)} in year ${Math.ceil(contributionMonths(v) / 12)}, so you put in ${money(r.contributed)} and end at ${money(r.futureValue)}${unit}. Kept flat at ${money(v.monthly)} ${contribUnit(v)} it would end at ${money(flat.futureValue)}${unit}, so the increases add ${money(r.futureValue - flat.futureValue)}${unit}. Set the increase to 0 to keep it flat.`;
   }
   const raised = restate(simulate({ ...v, stepUp: 3 }));
-  return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} ${contribUnit(v)} for ${years(contributionYears(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
+  return `Set "Increase contribution each year (%)" to raise it. Right now it is 0%, so the contribution stays flat at ${money(v.monthly)} ${contribUnit(v)} for ${monthsText(contributionMonths(v))}, ending at ${money(r.futureValue)}${unit}. With a 3% increase each year it would end at ${money(raised.futureValue)}${unit}, ${money(raised.futureValue - r.futureValue)}${unit} more.`;
 }
 
 const accountText = (t) => ({ deferred: 'tax-deferred account (tax on the whole balance at the end)', stocks: 'taxable stock account (tax on yearly dividends and on the gain at the end)' })[t] ?? 'taxable interest account (each period\'s interest is taxed before it compounds)';

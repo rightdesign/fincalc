@@ -656,7 +656,7 @@ test('balance breakdown in today\'s dollars adds to the deflated balance and can
 
 test('Basics come first, then the advanced inputs, and advancedChanged names what differs from default', async () => {
   const { COMPOUND_FIELDS, advancedChanged, compoundDefaults } = await import('../site/compound.js');
-  assert.deepEqual(COMPOUND_FIELDS.filter((f) => !f.advanced).map((f) => f.id), ['start', 'monthly', 'years', 'rate']);
+  assert.deepEqual(COMPOUND_FIELDS.filter((f) => !f.advanced).map((f) => f.id), ['start', 'monthly', 'years', 'months', 'rate']);
   const v = compoundDefaults();
   assert.deepEqual(advancedChanged(v), []);
   assert.deepEqual(advancedChanged({ ...v, years: 20, contributeYears: 20 }), []);
@@ -908,4 +908,55 @@ test('withdrawals: a percent of the balance and of the earnings', () => {
   assert.equal(withdrawsOn({ withdrawMode: 'percentBalance', withdrawal: 500, withdrawPercent: 0 }), false);
   assert.equal(withdrawsOn({ withdrawal: 500 }), true);
   assert.deepEqual(invalidCompound({ ...modelDefaults(), withdrawPercent: 101 }), ['Withdrawal percent (%)']);
+});
+
+test('a term in years and months ends with a partial final year', () => {
+  const v = { ...compoundDefaults(), years: 1, months: 6, contributeYears: 1, contributeMonths: 6 };
+  const r = simulateCompound(v);
+  const i = 1 + 0.07 / 12;
+  const closed = 10000 * i ** 18 + 500 * ((i ** 18 - 1) / (0.07 / 12));
+  assert.ok(Math.abs(r.futureValue - closed) < 0.01);
+  assert.equal(r.contributed, 10000 + 500 * 18);
+  assert.deepEqual(r.years.map((y) => y.year), [1, 1.5]);
+  assert.equal(r.years[1].contributions, 3000);
+  assert.match(headline(v, r), /^After 1 year 6 months, your \$19,000 becomes/);
+  // Months alone: a 9-month term, and the same plan as whole years when months is 0.
+  assert.equal(simulateCompound({ ...v, years: 0, months: 9, contributeYears: 0, contributeMonths: 9 }).years.length, 1);
+  assert.equal(simulateCompound({ ...v, months: 0, contributeMonths: 0 }).futureValue, simulateCompound({ ...v, months: undefined, contributeMonths: undefined }).futureValue);
+});
+
+test('contributions can stop partway through a year, and with periodic compounding the last period is pro rata', () => {
+  const v = { ...compoundDefaults(), start: 0, years: 2, months: 3, contributeYears: 1, contributeMonths: 4 };
+  const r = simulateCompound(v);
+  assert.equal(r.contributed, 500 * 16);
+  assert.equal(r.years[1].contributions, 500 * 4);
+  assert.equal(r.years[2].contributions, 0);
+  const q = simulateCompound({ ...compoundDefaults(), frequency: 'annually', start: 1000, monthly: 0, years: 0, months: 6 });
+  assert.ok(Math.abs(q.futureValue - 1000 * (1 + 0.07 / 2)) < 1e-9);
+});
+
+test('months validate, round-trip through the link, and fall back safely', () => {
+  const v = { ...compoundDefaults(), years: 2, months: 5, contributeYears: 1, contributeMonths: 7 };
+  assert.deepEqual(invalidCompound(v), []);
+  const back = decodeCompound(encodeCompound(v));
+  assert.equal(back.months, 5);
+  assert.equal(back.contributeYears, 1);
+  assert.equal(back.contributeMonths, 7);
+  assert.deepEqual(invalidCompound({ ...v, months: 12 }), ['Months']);
+  assert.deepEqual(invalidCompound({ ...v, years: 0, months: 0, contributeYears: 0, contributeMonths: 0 }), ['Years']);
+  assert.deepEqual(invalidCompound({ ...v, years: 100, months: 1 }), ['Years']);
+  assert.equal(decodeCompound('months=12').months, 0);
+  assert.equal(decodeCompound('years=0&months=0').years, 30);
+  assert.equal(encodeCompound(compoundDefaults()), 'rateBasis=nominal');
+  assert.equal(decodeCompound('years=1&months=6&contributeYears=5').contributeMonths, 6);
+});
+
+test('cost of waiting and the extra-years lever honour months', () => {
+  const v = { ...compoundDefaults(), years: 12, months: 6, contributeYears: 12, contributeMonths: 6 };
+  const c = compareStartingLater(v);
+  assert.ok(c.gap > 0);
+  assert.equal(compareStartingLater({ ...v, years: 10, months: 0 }), null);
+  assert.equal(compareStartingLater({ ...v, years: 10, months: 1 }) !== null, true);
+  const lever = leverTable({ ...v, years: 99, months: 6 }).rows.find((r) => r.id === 'years');
+  assert.equal(lever, undefined);
 });

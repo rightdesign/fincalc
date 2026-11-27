@@ -1,6 +1,8 @@
 // Stacked area chart for the compound interest calculator: what you put in on the bottom, the
 // interest it has earned stacked on top. Pure (data in, strings out). rows: [{ year, contributions,
 // totalContributed, totalInterest, balance }]. compound-app.js wires the hover and tap tooltip.
+import { monthsText, yearLabel } from './compound.js';
+
 const W = 720;
 const H = 400;
 const PAD = { l: 80, r: 20, t: 24, b: 36 };
@@ -26,7 +28,7 @@ export function compoundTip(row, fmt, stop = null) {
   const lines = [['Balance', fmt(row.balance)], ['Put in to date', fmt(row.totalContributed)], ['Interest to date', fmt(row.totalInterest)]];
   if (row.totalWithdrawn > 0) lines.push(['Taken out to date', fmt(row.totalWithdrawn)]);
   if (stop !== null && row.year > stop) lines.push(['Put in this year', fmt(row.contributions)], ['Interest this year', fmt(row.interest)]);
-  return { title: `Year ${row.year}`, lines };
+  return { title: `Year ${yearLabel(row.year)}`, lines };
 }
 
 // Chart x position (0..1 across the plot) of each year, for snapping a pointer to the nearest year.
@@ -89,7 +91,7 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   for (let y = 0; y <= last.year; y += step) {
     svg += `<text x="${f(sx(y))}" y="${H - 12}" text-anchor="${y === 0 ? 'start' : 'middle'}" font-size="13">${y === 0 ? 'Today' : y}</text>`;
   }
-  svg += `<text x="${W - PAD.r}" y="${H - 12}" text-anchor="end" font-size="13" class="cc-edge">${last.year % step === 0 ? '' : `Year ${last.year}`}</text>`;
+  svg += `<text x="${W - PAD.r}" y="${H - 12}" text-anchor="end" font-size="13" class="cc-edge">${last.year % step === 0 ? '' : `Year ${yearLabel(last.year)}`}</text>`;
   svg += `<path d="${line(bal)}${base}" style="fill:var(--series-2);fill-opacity:0.45;stroke:var(--series-2)" stroke-width="2"/>`;
   svg += `<path d="${line(put)}${base}" style="fill:var(--series-1);fill-opacity:0.6;stroke:var(--series-1)" stroke-width="2"/>`;
   if (band) {
@@ -106,16 +108,16 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
   svg += `<text x="${f(sx(last.year) - 10)}" y="${f(sy(put[put.length - 1]) - 8)}" text-anchor="end" font-size="14" font-weight="600" style="fill:var(--series-1)">What you put in</text>`;
   const cross = crossoverYear(rows);
   if (cross !== null) {
-    const row = rows[cross - 1];
+    const row = rows.find((x) => x.year === cross);
     const cx = sx(cross);
     const cy = sy(row.totalContributed);
     // Anchor the label on whichever side of the line has room for all of it; if neither does, shorten it.
-    const full = `Interest passes contributions in year ${cross}`;
+    const full = `Interest passes contributions in year ${yearLabel(cross)}`;
     const fits = (text) => text.length * 8 + 10;
     const leftRoom = cx - PAD.l;
     const rightRoom = W - PAD.r - cx;
     const right = leftRoom < fits(full) && rightRoom > leftRoom;
-    const text = (right ? rightRoom : leftRoom) >= fits(full) ? full : `Crossover: year ${cross}`;
+    const text = (right ? rightRoom : leftRoom) >= fits(full) ? full : `Crossover: year ${yearLabel(cross)}`;
     svg += `<line x1="${f(cx)}" x2="${f(cx)}" y1="${PAD.t}" y2="${f(sy(0))}" class="marker cc-cross"/>`;
     svg += `<circle cx="${f(cx)}" cy="${f(cy)}" r="6" class="cc-cross-dot"/>`;
     svg += `<text x="${f(cx + (right ? 10 : -10))}" y="${PAD.t + 12}" text-anchor="${right ? 'start' : 'end'}" font-size="14" font-weight="600" class="cc-cross-label">${text}</text>`;
@@ -129,17 +131,17 @@ export function compoundChartHtml(rows, fmt, band = null, basis = null) {
     const right = leftRoom < full.length * 8 + 10 && rightRoom > leftRoom;
     const text = (right ? rightRoom : leftRoom) >= full.length * 8 + 10 ? full : `Stop: year ${stop}`;
     svg += `<line x1="${f(sxp)}" x2="${f(sxp)}" y1="${PAD.t}" y2="${f(sy(0))}" class="marker cc-stop"/>`;
-    svg += `<circle cx="${f(sxp)}" cy="${f(sy(rows[stop - 1].totalContributed))}" r="6" class="cc-stop-dot"/>`;
+    svg += `<circle cx="${f(sxp)}" cy="${f(sy(rows.find((x) => x.year === stop).totalContributed))}" r="6" class="cc-stop-dot"/>`;
     svg += `<text x="${f(sxp + (right ? 10 : -10))}" y="${PAD.t + 30}" text-anchor="${right ? 'start' : 'end'}" font-size="14" font-weight="600" class="cc-stop-label">${text}</text>`;
   }
   svg += `<line class="crosshair cc-hover-line cc-off" x1="0" x2="0" y1="${PAD.t}" y2="${f(sy(0))}"/>`;
   svg += `<circle class="cc-hover-dot cc-off" r="5" cx="0" cy="0"/>`;
   svg += '</svg>';
   const xy = rows.map((r) => ({ year: r.year, x: sx(r.year) / W, y: sy(r.balance) / H }));
-  const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${cross}.`;
+  const crossText = cross === null ? 'Interest earned does not pass what you put in within this period.' : `Interest earned passes what you put in during year ${yearLabel(cross)}.`;
   const stopText = stop === null ? '' : ` Contributions stop after year ${stop}, so what you put in stays flat from there while the interest keeps growing.`;
-  const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${last.year}.` : '';
-  const description = `Stacked area chart over ${last.year} years. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${last.year}. ${crossText}${stopText}${bandText} The full values for every year are in the table below.`;
+  const bandText = band ? ` The shaded band around the balance runs from ${fmt(band.low[band.low.length - 1].balance)} at the lower return to ${fmt(band.high[band.high.length - 1].balance)} at the higher return in year ${yearLabel(last.year)}.` : '';
+  const description = `Stacked area chart over ${monthsText(Math.round(last.year * 12))}. What you put in grows to ${fmt(last.totalContributed)} and the interest earned on top of it reaches ${fmt(last.totalInterest)}, for a balance of ${fmt(last.balance)} in year ${yearLabel(last.year)}. ${crossText}${stopText}${bandText} The full values for every year are in the table below.`;
   return `<figure class="m-chart cc-figure">${chartKeyHtml(band, basis)}<div class="cc-wrap" tabindex="0" data-points="${escape(JSON.stringify(xy))}" aria-describedby="compound-chart-desc">${svg}<div class="cc-tip" hidden></div></div><p class="visually-hidden" id="compound-chart-desc">${escape(description)}</p></figure>`;
 }
 

@@ -4,7 +4,7 @@ import { compareChartHtml, compoundChartHtml, compoundTip, crossoverYear, stopYe
 import { groupWhileTyping } from './grouping.js';
 import { csvFilename, tableCsv } from './export.js';
 import { groupAmount } from './mortgage.js';
-import { contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionYears, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
+import { contributes, contributionPhrase, yearsCaption, COMPOUND_FIELDS, balanceBreakdown, LIMITS, limitText, advancedChanged, choiceEffects, frequencyLabel, interestTax, contributionMonths, monthsText, termMonths, yearLabel, COMPOUND_INPUTS_KEY, COMPOUND_PRESETS, compoundDefaults, compoundingExplainer, decodeCompound, doubleTileText, encodeCompound, compareStartingLater, effectiveAnnualRate, growthRates, headline, inTodaysDollars, invalidCompound, leverTable, parseNumber, roundedMoney, returnRange, simulateCompound, withdrawsOn, WAIT_YEARS, MAX_YEARS, SLIDER_STEPS, sliderPos, sliderValue } from './compound.js';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const money = (n) => usd.format(Math.round(n) === 0 ? 0 : n);
@@ -44,7 +44,7 @@ advanced.className = 'm-advanced';
 advanced.innerHTML = '<summary><span class="m-group-title">Advanced</span> <span class="m-badge" id="compound-advanced-badge" hidden></span> <span class="m-group-summary">Contribution length and step-up, return range, compounding, tax, inflation</span></summary>';
 const advancedBadge = advanced.querySelector('#compound-advanced-badge');
 group.insertBefore(advanced, presetsLabel);
-// "Contribute for" follows Years until the user sets it shorter; it never runs past Years.
+// "Contribute for" follows the term (Years and Months) until the user sets it shorter; it never runs past it.
 let follow = true;
 for (const f of COMPOUND_FIELDS) {
   const label = document.createElement('label');
@@ -103,19 +103,24 @@ for (const f of COMPOUND_FIELDS) {
   if (f.advanced) advanced.append(label); else group.insertBefore(label, advanced);
 }
 
+// A box read as a number; a half-typed one is NaN, and a blank months box counts as 0 in the term arithmetic.
+const num = (el) => parseNumber(el.value);
+
 function markFollow() {
-  const n = parseNumber(inputs.contributeYears.value);
-  const y = parseNumber(inputs.years.value);
-  if (Number.isFinite(n) && Number.isFinite(y)) follow = n >= y;
+  const n = num(inputs.contributeYears) * 12 + (num(inputs.contributeMonths) || 0);
+  const t = num(inputs.years) * 12 + (num(inputs.months) || 0);
+  if (Number.isFinite(n) && Number.isFinite(t)) follow = n >= t;
 }
 inputs.contributeYears.addEventListener('input', markFollow);
+inputs.contributeMonths.addEventListener('input', markFollow);
 
-// Keeps the Contribute for box and slider in line with Years (following it, or held down to it).
+// Keeps the Contribute for boxes and slider in line with the term (following it, or held down to it).
 function syncContribute() {
-  const y = parseNumber(inputs.years.value);
+  const y = num(inputs.years);
   if (!Number.isFinite(y)) return;
-  const n = parseNumber(inputs.contributeYears.value);
-  if (follow || n > y) { inputs.contributeYears.value = y; setSlider(COMPOUND_FIELDS.find((x) => x.id === 'contributeYears'), y); }
+  const m = num(inputs.months) || 0;
+  const n = num(inputs.contributeYears) * 12 + (num(inputs.contributeMonths) || 0);
+  if (follow || n > y * 12 + m) { inputs.contributeYears.value = y; inputs.contributeMonths.value = m; setSlider(COMPOUND_FIELDS.find((x) => x.id === 'contributeYears'), y); }
   sliders.contributeYears.max = Math.max(1, Math.min(y, MAX_YEARS));
 }
 
@@ -131,7 +136,7 @@ function writeValues(v) {
     const s = sliders[f.id];
     if (s) setSlider(f, v[f.id]);
   }
-  follow = v.contributeYears >= v.years;
+  follow = v.contributeYears * 12 + v.contributeMonths >= termMonths(v);
 }
 
 const presets = document.getElementById('compound-presets');
@@ -140,7 +145,7 @@ for (const p of COMPOUND_PRESETS) {
   b.type = 'button';
   b.textContent = p.label;
   b.dataset.preset = p.id;
-  b.addEventListener('click', () => { const next = { ...values(), ...p.values }; if (follow && !('contributeYears' in p.values)) next.contributeYears = next.years; writeValues(next); render(); persist(); say(''); });
+  b.addEventListener('click', () => { const next = { ...values(), ...p.values }; if ('years' in p.values) next.months = 0; if ('contributeYears' in p.values) next.contributeMonths = 0; if (follow && !('contributeYears' in p.values)) { next.contributeYears = next.years; next.contributeMonths = next.months; } writeValues(next); render(); persist(); say(''); });
   presets.append(b);
 }
 
@@ -160,7 +165,7 @@ let scheduleCsv = '';
 function scheduleSection({ r, today, unit, cross, taking }) {
   const monthly = scheduleView === 'monthly';
   const rows = monthly ? r.months : r.years;
-  const cell = (x) => [monthly ? x.month : x.year, money(x.contributions), ...(taking ? [money(x.withdrawals)] : []), money(x.interest), money(x.totalContributed), money(x.totalInterest), money(x.balance)];
+  const cell = (x) => [monthly ? x.month : yearLabel(x.year), money(x.contributions), ...(taking ? [money(x.withdrawals)] : []), money(x.interest), money(x.totalContributed), money(x.totalInterest), money(x.balance)];
   return {
     id: `compound-${scheduleView}`,
     rows: rows.map(cell),
@@ -176,11 +181,11 @@ function drawSchedule() {
   const sec = scheduleSection(schedule);
   const monthly = scheduleView === 'monthly';
   scheduleCsv = tableCsv(sec);
-  const body = sec.rows.map((row, i) => `<tr${i === sec.crossRow ? ` class="m-cross" aria-label="Year ${cross}, the year interest to date passes contributions to date"` : ''}>${row.map((c, j) => `<td${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</td>`).join('')}</tr>`).join('');
+  const body = sec.rows.map((row, i) => `<tr${i === sec.crossRow ? ` class="m-cross" aria-label="Year ${yearLabel(cross)}, the year interest to date passes contributions to date"` : ''}>${row.map((c, j) => `<td${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</td>`).join('')}</tr>`).join('');
   const heads = sec.columns.map((c, j) => `<th scope="col"${j === intCol ? ' class="m-int"' : j === intCol + 2 ? ' class="m-int m-int-total"' : ''}>${c}</th>`).join('');
   const note = monthly && schedule.r.months.some((m) => m.interest === 0 && m.balance > 0) ? ' Below monthly compounding, interest joins the balance only when each compounding period ends.' : '';
   host.innerHTML = `<div class="m-schedule-bar no-print"><div class="m-toggle" role="group" aria-label="Schedule detail"><button type="button" data-view="yearly" aria-pressed="${!monthly}">Yearly</button><button type="button" data-view="monthly" aria-pressed="${monthly}">Monthly</button></div> <button type="button" class="ghost" id="compound-csv">Download table (CSV)</button> <button type="button" class="ghost" id="compound-print">Print&hellip;</button></div>
-    <p class="m-table-caption" id="compound-years-caption">${monthly ? caption.replace('Year by year', 'Month by month') : caption}${!monthly && cross ? `. The highlighted row, year ${cross}, is when interest to date first passes contributions to date.` : ''}${note}</p>
+    <p class="m-table-caption" id="compound-years-caption">${monthly ? caption.replace('Year by year', 'Month by month') : caption}${!monthly && cross ? `. The highlighted row, year ${yearLabel(cross)}, is when interest to date first passes contributions to date.` : ''}${note}</p>
     <div class="m-table-wrap"><table class="m-table m-years" aria-labelledby="compound-years-caption"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
   for (const b of host.querySelectorAll('[data-view]')) b.addEventListener('click', () => { scheduleView = b.dataset.view; drawSchedule(); host.querySelector(`[data-view="${scheduleView}"]`).focus(); });
   host.querySelector('#compound-csv').addEventListener('click', () => {
@@ -234,12 +239,12 @@ function render() {
   // Show both dollar bases so Inflation always visibly matters, whichever view the tables and chart use.
   const infl = `${v.inflation}% inflation`;
   const otherDollars = today ? `About ${roundedMoney(nominal.futureValue)} in future dollars` : `About ${roundedMoney(inTodaysDollars(nominal, v.inflation).futureValue)} in today's dollars (${infl})`;
-  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${v.years} year${v.years === 1 ? '' : 's'}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-other-dollars">${otherDollars}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}${rateBreakdown(v)}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
+  hero.innerHTML = `<div class="m-hero"><p class="m-hero-label">Future value after ${monthsText(termMonths(v))}${unit}</p><p class="m-hero-figure"><span>${money(r.futureValue)}</span></p><p class="m-hero-sub">${headlineEl.innerHTML}</p><p class="m-hero-sub" id="compound-other-dollars">${otherDollars}</p><p class="m-hero-sub" id="compound-effective-rate">Effective annual rate: <strong>${effectiveAnnualRate(v).toFixed(2)}%</strong>${v.rateBasis === 'nominal' ? ` (from a ${v.rate}% nominal rate)` : ''}${rateBreakdown(v)}</p>${withdrawNote ? `<p class="m-hero-sub" id="compound-withdrawals">${withdrawNote}</p>` : ''}</div>`;
   const fx = choiceEffects(v, r, today ? v.inflation : null);
   const sign = (n) => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;
   const effectRow = (name, now, other, e) => `<tr><th scope="row">${name}</th><td>${now}</td><td>${other}</td><td>${money(e.futureValue)}</td><td>${sign(-e.gap)}</td></tr>`;
   const range = returnRange(v);
-  const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${v.years} year${v.years === 1 ? '' : 's'} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
+  const rangeNote = range ? `<p class="m-strip" id="compound-range">At a return of ${range.lowRate}% to ${range.highRate}% (${v.rate}% ± ${v.variance} points), the balance after ${monthsText(termMonths(v))} lands between <strong>${money(range.low.futureValue)}</strong> and <strong>${money(range.high.futureValue)}</strong>${unit}, with ${money(r.futureValue)} at ${v.rate}%. The shaded band on the chart shows that range.</p>` : '';
   const levers = leverTable(v);
   const leverRows = levers.rows.map((l) => `<tr><th scope="row">${l.label}</th><td>${money(l.balance)}</td><td>${l.gain >= 0 ? '+' : ''}${money(l.gain)}</td><td>+${money(l.extra)}</td></tr>`).join('');
   const bd = balanceBreakdown(v, today ? v.inflation : null);
@@ -252,19 +257,19 @@ function render() {
   const c = compareStartingLater(v);
   const compare = withdrawsOn(v) ? '' : c ? `
     <div class="m-panelbox m-compare"><h3>The cost of waiting ${c.waitYears} years${unit}</h3>
-      <p>Same ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${v.years - c.waitYears} years of saving${contributionYears(v) < v.years ? `; contributions run for ${contributionYears(v)} years from the start, or the whole ${v.years - c.waitYears} if that is shorter` : ''}).</p>
+      <p>Same ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year (the later plan restarts that schedule at ${money(v.monthly)} in its first year),` : ''} and ${v.rate}% return, same end date: starting now versus starting ${c.waitYears} years later (${monthsText(termMonths(v) - c.waitYears * 12)} of saving${contributionMonths(v) < termMonths(v) ? `; contributions run for ${monthsText(contributionMonths(v))} from the start, or the whole ${monthsText(termMonths(v) - c.waitYears * 12)} if that is shorter` : ''}).</p>
       ${v.start > 0 ? `<p class="m-strip">The ${money(v.start)} starting balance is assumed to sit idle (earning 0%) during the ${c.waitYears}-year wait and is invested only when the later plan starts. If that money would be invested anyway, the real cost of waiting is smaller than shown.</p>` : ''}
       ${compareChartHtml(c, money)}
       <div class="m-table-wrap"><table class="m-table m-stack"><thead><tr><th scope="col"></th><th scope="col">Start now</th><th scope="col">Start ${c.waitYears} years later</th><th scope="col">Difference</th></tr></thead>
         <tbody><tr><th scope="row">Total contributed</th><td>${money(c.now.contributed)}</td><td>${money(c.later.contributed)}</td><td>${money(c.extraContributed)}</td></tr>
         <tr><th scope="row">End balance</th><td>${money(c.now.futureValue)}</td><td>${money(c.later.futureValue)}</td><td>${money(c.gap)}</td></tr></tbody></table></div>
       <p>Starting ${c.waitYears} years earlier means ${c.extraContributed > 0 ? `contributing ${money(c.extraContributed)} more` : 'contributing the same amount'} and ending with ${money(c.gap)} more.</p></div>` : `
-    <p class="m-strip">Set Years above ${WAIT_YEARS} to compare starting now with starting ${WAIT_YEARS} years later.</p>`;
+    <p class="m-strip">Set the term above ${WAIT_YEARS} years to compare starting now with starting ${WAIT_YEARS} years later.</p>`;
   out.innerHTML = `
     ${printInputs(v)}
     <div class="m-tiles">
       <div class="m-tile" id="compound-double"><h3>Time to double</h3><p class="m-big">${doubleTile.value}</p><p>${doubleTile.caption}</p></div>
-      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.annual > 0 && v.annualStepUp > 0 ? `, the lump sum rising ${v.annualStepUp}% a year` : ''}${contributes(v) && contributionYears(v) < v.years ? `${v.stepUp > 0 || v.annualStepUp > 0 ? ',' : ''} for ${contributionYears(v)} year${contributionYears(v) === 1 ? '' : 's'}` : ''}</p></div>
+      <div class="m-tile"><h3>Total contributed</h3><p class="m-big">${money(r.contributed)}</p><p>${money(v.start)} to start plus ${contributionPhrase(v, money)}${v.monthly > 0 && v.stepUp > 0 ? `, rising ${v.stepUp}% a year` : ''}${v.annual > 0 && v.annualStepUp > 0 ? `, the lump sum rising ${v.annualStepUp}% a year` : ''}${contributes(v) && contributionMonths(v) < termMonths(v) ? `${v.stepUp > 0 || v.annualStepUp > 0 ? ',' : ''} for ${monthsText(contributionMonths(v))}` : ''}</p></div>
       <div class="m-tile"><h3>${today ? 'Growth after inflation' : 'Total interest earned'}</h3><p class="m-big m-better">${money(r.interest)}</p><p>${today ? 'Balance in today\'s dollars minus what you put in' : (taking ? 'All interest earned, including what was withdrawn' : `${share}% of the final balance`)}</p></div>
     </div>
     ${breakdown}
@@ -274,7 +279,7 @@ function render() {
     ${rangeNote}
     <div class="m-panelbox">${compoundChartHtml(r.years, money, range && { low: range.low.years, high: range.high.years, lowRate: range.lowRate, highRate: range.highRate }, v.basis)}</div>
     <div class="m-table-wrap"><table class="m-table m-stack" id="compound-levers"><caption>What moves the needle: change one thing at a time${unit}. The changes cost different amounts, so compare each gain with the extra you put in.</caption>
-      <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${v.years} year${v.years === 1 ? '' : 's'}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
+      <thead><tr><th scope="col">Change</th><th scope="col">Balance after ${monthsText(termMonths(v))}</th><th scope="col">Difference</th><th scope="col">Extra you put in</th></tr></thead>
       <tbody><tr><th scope="row">Your inputs</th><td>${money(levers.base)}</td><td>&mdash;</td><td>&mdash;</td></tr>${leverRows}</tbody></table></div>
     ${compare}
     <div id="compound-schedule"></div>
